@@ -1,0 +1,132 @@
+\documentclass[12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+% \usepackage{times}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\usepackage{url}
+\usepackage{xr} % External references
+\usepackage{titlesec}
+
+\usepackage{amsmath,amssymb,amsthm,enumitem,mathtools}
+\renewcommand{\qedsymbol}{$\blacksquare$}
+\renewcommand\arraystretch{1.2}
+\usepackage{multirow}
+\usepackage{algorithm}% http://ctan.org/pkg/algorithms
+\usepackage[noend]{algpseudocode} % Avoid "end" and make it look cleaner
+
+% Tables
+\usepackage{csvsimple}	% reading CSV files in tables
+\usepackage{booktabs}   % Nicer Tables
+\usepackage{adjustbox}  % To adjust table length
+
+% Hyperreferences
+\usepackage[colorlinks=true, citecolor=cyan, linkcolor=cyan, urlcolor=cyan]{hyperref}
+
+% Equation linebreaks
+\allowdisplaybreaks
+
+% Double spacing for main text
+\doublespacing
+
+% Custom commands for front matter
+\newcommand{\frontmatter}{
+    \pagenumbering{gobble} % No page numbers for title and copyright
+}
+\newcommand{\mainmatter}{
+    \pagenumbering{arabic}
+    \setcounter{page}{3} % Abstract starts at page 3
+}
+
+\input{./definitions.tex}
+
+\begin{document}
+\frontmatter
+
+% Title Page (unpaginated)
+\begin{titlepage}
+\begin{center}
+\vspace*{1in}
+{\Large {{cookiecutter.thesis_title}}} \\
+\vspace{0.5in}
+{{cookiecutter.author_name}}\\
+\vspace{0.5in}
+A DISSERATION \\
+PRESENTED TO THE FACULTY \\
+OF PRINCETON UNIVERSITY \\
+IN CANDIDACY FOR THE DEGREE \\
+OF DOCTOR OF PHILOSOPHY\\
+
+\vspace{0.5in}
+RECOMMENDED FOR ACCEPTANCE BY\\
+THE DEPARTMENT OF \\
+{{cookiecutter.department}} \\
+
+\vspace{0.5in}
+ADVISER: {{cookiecutter.advisor_name}}\\
+\vspace{0.5in}
+{{cookiecutter.defense_month}} {{cookiecutter.defense_year}} % Use Board of Trustees meeting date
+\end{center}
+\end{titlepage}
+
+% Copyright Page (unpaginated)
+\newpage
+\vspace*{1in}
+\begin{center}
+© Copyright by {{cookiecutter.author_name}}, {{cookiecutter.copyright_year}}. All rights reserved.
+\end{center}
+
+\newpage
+
+\mainmatter
+
+% Abstract (page 3)
+% \chapter*{Abstract}
+% \addcontentsline{toc}{chapter}{Abstract}
+% Your abstract text here. Must be 350 words or less per Graduate School requirements [1].
+
+\begingroup
+\let\clearpage\relax % to avoid starting a new page
+\titleformat{\chapter}[block]{\centering\normalfont\Large\bfseries}{\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{0.em}{0.2em}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+Your abstract text here...
+
+\newpage
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+Your acknowledgements here...
+\endgroup
+
+\newpage
+
+% Table of Contents
+\tableofcontents
+
+% List of Figures (if needed)
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+% List of Tables (if needed)
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+% Main content starts here
+\include{chapter1}
+\include{chapter2}
+% \include{chapter3}
+% \include{chapter4}
+% \include{chapter5}
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{references}
+
+% Appendices (if needed)
+\appendix
+\include{appendix}
+
+\end{document}

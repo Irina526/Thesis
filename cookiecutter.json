@@ -1,0 +1,12 @@
+{
+    "project_name": "PhD Thesis",
+    "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+    "author_name": "John Doe",
+    "thesis_title": "Optimization Methods for Machine Learning: Theory and Applications",
+    "department": "Operations Research and Financial Engineering",
+    "university": "Princeton University",
+    "advisor_name": "Professor Bartolomeo Stellato",
+    "defense_month": "June",
+    "defense_year": "2025",
+    "copyright_year": "2025"
+}

@@ -1,0 +1,58 @@
+\chapter{Introduction}
+\label{chap:intro}
+Your introduction content...
+\begin{equation}
+    E = mc^2
+    \label{eq:energy}
+\end{equation}
+
+This writing is here mostly to test that the formatting follows the requirements.
+This all needs to be double spaced.
+
+\section{Introduction Overview}
+Testing section here.
+
+\section{Example Figure and Table}
+
+Figure~\ref{fig:sample} shows an example of including an image, while Table~\ref{tab:example} demonstrates how to include data from a CSV file. We can also create plots from data as shown in Figure~\ref{fig:plot}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.5\textwidth]{figures/sample.jpg}
+  \caption{Example figure with a sample image.}
+  \label{fig:sample}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+  \caption{Example table with data from CSV file.}
+  \label{tab:example}
+  \begin{tabular}{cc}
+    \toprule
+    Column A & Column B \\
+    \midrule
+    \csvreader[no head, column count=2]{data/table.csv}{1=\colA,2=\colB}%
+    {\colA & \colB \\}
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=10cm,
+      height=6cm,
+      xlabel={$a$},
+      ylabel={$b$},
+      title={Data Plot from CSV},
+      grid=major,
+      mark=*,
+      only marks
+    ]
+    \addplot table [col sep=comma, x=a, y=b] {data/plot.csv};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Example plot using data from CSV file.}
+  \label{fig:plot}
+\end{figure}
