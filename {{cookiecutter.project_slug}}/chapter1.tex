@@ -15,10 +15,9 @@ Testing section here.
 \section{Example Figure and Table}
 
 Figure~\ref{fig:sample} shows an example of including an image, while Table~\ref{tab:example} demonstrates how to include data from a CSV file. We can also create plots from data as shown in Figure~\ref{fig:plot}.
-
-\begin{figure}[h]
+\begin{figure}[ht]
   \centering
-  \includegraphics[width=0.5\textwidth]{figures/sample.jpg}
+  \includegraphics[width=0.5\textwidth]{figures/sample.pdf}
   \caption{Example figure with a sample image.}
   \label{fig:sample}
 \end{figure}
@@ -27,32 +26,41 @@ Figure~\ref{fig:sample} shows an example of including an image, while Table~\ref
   \centering
   \caption{Example table with data from CSV file.}
   \label{tab:example}
-  \begin{tabular}{cc}
+  \begin{tabular}{ll}
     \toprule
-    Column A & Column B \\
+    $A$ & $B$\\
     \midrule
-    \csvreader[no head, column count=2]{data/table.csv}{1=\colA,2=\colB}%
-    {\colA & \colB \\}
+    % Add directly from csv reader
+    % the csv file has names colnameA, colnameB
+    \csvreader[head to column names, late after line=\\]{./data/table.csv}{
+    colnameA=\colA,
+    colnameB=\colB
+    }{\colA & \colB}
     \bottomrule
   \end{tabular}
 \end{table}
 
 \begin{figure}[h]
   \centering
-  \begin{tikzpicture}
-    \begin{axis}[
-      width=10cm,
-      height=6cm,
-      xlabel={$a$},
-      ylabel={$b$},
-      title={Data Plot from CSV},
-      grid=major,
-      mark=*,
-      only marks
-    ]
-    \addplot table [col sep=comma, x=a, y=b] {data/plot.csv};
-    \end{axis}
-  \end{tikzpicture}
+	\begin{tikzpicture}
+		\begin{axis}
+			[
+				axis x line=bottom,
+				axis y line=left,
+				enlarge y limits={0.05, upper},  % Enlarge y limits by 10%
+				enlarge x limits={0.05, upper},  % Enlarge x limits by 10%
+				xtick = {0,...,5},
+				xmin = 0,
+				ymin = 0,
+				width=\textwidth,
+				height=0.33\textheight,
+				xlabel=$x$,
+				ylabel=$f(x)$,
+				]
+				\addplot[thick, color=black, mark=none] table [x=a, y=b, col sep=comma] {./data/plot.csv};
+				\legend{My Line $f(x)$}
+		\end{axis}
+	\end{tikzpicture}
   \caption{Example plot using data from CSV file.}
   \label{fig:plot}
 \end{figure}

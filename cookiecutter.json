@@ -9,5 +9,13 @@
     "advisor_name": "Professor Bartolomeo Stellato",
     "defense_month": "June",
     "defense_year": "2025",
-    "copyright_year": "2025"
+    "copyright_year": "2025",
+    "_copy_without_render": [
+        "definitions.tex",
+        "chapter1.tex",
+        "chapter2.tex",
+        "appendix.tex",
+        "data/*",
+        "figures/*"
+    ]
 }
