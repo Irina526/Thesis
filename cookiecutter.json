@@ -1,6 +1,7 @@
 {
     "project_name": "PhD Thesis",
     "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+    "file_name": "main",
     "author_name": "John Doe",
     "thesis_title": "Optimization Methods for Machine Learning: Theory and Applications",
     "department": "Operations Research and Financial Engineering",
