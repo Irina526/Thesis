@@ -37,8 +37,8 @@
     \pagenumbering{gobble} % No page numbers for title and copyright
 }
 \newcommand{\mainmatter}{
-    \pagenumbering{roman}
-    \setcounter{page}{1} % Abstract starts at page i
+    \pagenumbering{arabic}
+    \setcounter{page}{3} % Abstract starts at page 3
 }
 
 \input{./definitions.tex}
@@ -121,9 +121,7 @@ Your acknowledgements here...
 \renewcommand\arraystretch{1.2}
 
 % Main content starts here
-% Switch to arabic numbering for chapters
-\pagenumbering{arabic}
-\setcounter{page}{1}
+% Page numbering continues from front matter
 
 \include{chapter1}
 \include{chapter2}
