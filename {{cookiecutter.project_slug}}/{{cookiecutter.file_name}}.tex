@@ -11,7 +11,6 @@
 
 \usepackage{amsmath,amssymb,amsthm,enumitem,mathtools}
 \renewcommand{\qedsymbol}{$\blacksquare$}
-\renewcommand\arraystretch{1.2}
 \usepackage{multirow}
 \usepackage{algorithm}% http://ctan.org/pkg/algorithms
 \usepackage[noend]{algpseudocode} % Avoid "end" and make it look cleaner
@@ -38,8 +37,8 @@
     \pagenumbering{gobble} % No page numbers for title and copyright
 }
 \newcommand{\mainmatter}{
-    \pagenumbering{arabic}
-    \setcounter{page}{3} % Abstract starts at page 3
+    \pagenumbering{roman}
+    \setcounter{page}{1} % Abstract starts at page i
 }
 
 \input{./definitions.tex}
@@ -51,7 +50,7 @@
 \begin{titlepage}
 \begin{center}
 \vspace*{1in}
-{\Large {{cookiecutter.thesis_title}}} \\
+{\Large \textsc{ {{cookiecutter.thesis_title}} }} \\
 \vspace{0.5in}
 {{cookiecutter.author_name}}\\
 \vspace{0.5in}
@@ -77,7 +76,8 @@ ADVISER: {{cookiecutter.advisor_name}}\\
 \newpage
 \vspace*{1in}
 \begin{center}
-© Copyright by {{cookiecutter.author_name}}, {{cookiecutter.copyright_year}}. All rights reserved.
+© Copyright by {{cookiecutter.author_name}}, {{cookiecutter.copyright_year}}. \\ 
+All rights reserved.
 \end{center}
 
 \newpage
@@ -92,7 +92,7 @@ ADVISER: {{cookiecutter.advisor_name}}\\
 \begingroup
 \let\clearpage\relax % to avoid starting a new page
 \titleformat{\chapter}[block]{\centering\normalfont\Large\bfseries}{\thechapter}{1em}{}
-\titlespacing*{\chapter}{0pt}{0.em}{0.2em}
+\titlespacing*{\chapter}{0pt}{0.em}{1.5em}
 
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
@@ -117,7 +117,14 @@ Your acknowledgements here...
 \listoftables
 \addcontentsline{toc}{chapter}{List of Tables}
 
+% Set array stretch for mathematical content only
+\renewcommand\arraystretch{1.2}
+
 % Main content starts here
+% Switch to arabic numbering for chapters
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
 \include{chapter1}
 \include{chapter2}
 % \include{chapter3}
@@ -127,6 +134,7 @@ Your acknowledgements here...
 % Bibliography
 \bibliographystyle{abbrv}
 \bibliography{references}
+\addcontentsline{toc}{chapter}{Bibliography}
 
 % Appendices (if needed)
 \appendix
