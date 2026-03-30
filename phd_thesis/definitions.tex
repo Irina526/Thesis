@@ -1,0 +1,170 @@
+% Commands
+\newcommand{\eg}{{\it e.g.}}
+\newcommand{\ie}{{\it i.e.}}
+\newcommand{\reviewChanges}{}
+\newcommand{\citep}{\cite}
+
+% Inner products and Norms
+\newcommand{\norm}[1]{\| #1 \|}
+\newcommand{\inner}[3][]{ \left\langle #2,  #3 \right\rangle_{ #1 } }
+
+% Sets
+\newcommand{\ones}{\mathbf 1}
+\newcommand{\reals}{{\mathbf R}}
+\newcommand{\integers}{{\mbox{\bf Z}}}
+\newcommand{\symm}{{\mbox{\bf S}}}  % symmetric matrices
+\newcommand{\naturals}{\mathbf{N}}
+\newcommand{\NPhard}{\mbox{$\mathcal{NP}$-hard}}
+\newcommand{\prob}{{\mathbf P}}
+\newcommand{\distrib}{{\mathcal P}}
+\newcommand{\identity}{I}
+\newcommand{\tpose}{T}
+\newcommand{\nullspace}{{\mathcal N}}
+\newcommand{\range}{{\mathcal R}}
+\newcommand{\Rank}{\mathop{\bf Rank}}
+\newcommand{\Tr}{\mathop{\bf tr}}
+\newcommand{\diag}{\mathop{\bf diag}}
+\newcommand{\Span}{\mathop{\bf span}}
+\newcommand{\lambdamax}{{\lambda_{\rm max}}}
+\newcommand{\lambdamin}{\lambda_{\rm min}}
+\newcommand{\Expect}{\mathbf{E}}
+\newcommand{\Prob}{\mathop{\bf Prob}}
+\newcommand{\Co}{{\mathop {\bf Co}}} % convex hull
+\newcommand{\dist}{\mathop{\bf dist{}}}
+\newcommand{\argmin}{\mathop{\rm argmin}}
+\newcommand{\argmax}{\mathop{\rm argmax}}
+\newcommand{\epi}{\mathop{\bf epi}} % epigraph
+\newcommand{\Vol}{\mathop{\bf vol}}
+\newcommand{\dom}{\mathop{\bf dom}} % domain
+\newcommand{\intr}{\mathop{\bf int}}
+\newcommand{\ve}{\mathbf{e}}
+\newcommand{\opT}{\mathbf{T}}
+
+\newcommand{\sign}{\mathop{\bf sign}}
+\newcommand{\round}{\mathop{\bf round}}
+\newcommand{\define}{\coloneqq}
+\newcommand{\defn}{\define}
+\DeclareMathOperator*{\esssup}{{ess}\,{sup}}
+
+% Trees
+\newcommand{\tree}{\mathcal{T}}
+
+% Strategy
+\newcommand{\strategy}{\mathcal{S}}
+\newcommand{\intvars}{\mathcal{I}}
+\newcommand{\tightconstraints}{\mathcal{T}}
+
+% Convex Opt
+\newcommand{\lagrangian}{\mathbf{L}}
+
+% Machine learning
+\newcommand{\loss}{\mathcal{L}}
+
+% DRO
+\newcommand{\VaR}{\mathop{\bf VaR}}
+\newcommand{\CVaR}{\mathop{\bf CVaR}}
+\newcommand{\suppset}{\Xi}
+\newcommand{\supp}{\mathcal{S}}
+\newcommand{\hd}{\hat{d}}
+\newcommand{\Ncluster}{{N^{\mathrm{cl}}}}
+\newcommand{\lossclass}{L}
+
+% Stochastic optimization
+\newcommand{\uncset}{{\mathcal{U}}}
+\newcommand{\uMat}{\texttt{\textbackslash uMat}}
+
+% Additional math
+\newcommand{\dif}{\text{d}}
+\renewcommand{\Re}{\reals}
+\newcommand{\tb}{\textbf}
+\newcommand{\mcu}{\mathcal{U}}
+\newcommand{\indicator}{\mathcal{I}}
+\newcommand{\set}[2]{\{ #1 \mid #2 \}}
+\newcommand{\p}{\mathbf{P}}
+
+% PEP
+\newcommand{\hg}{\hat{g}}
+\newcommand{\hG}{\widehat{G}}
+\newcommand{\hf}{\hat{f}}
+\newcommand{\hF}{\widehat{F}}
+\newcommand{\hx}{\hat{x}}
+\newcommand{\hX}{\widehat{X}}
+\newcommand{\yp}{y^{\mathrm{PEP}}}
+\newcommand{\Gp}{\widehat{G}^{\mathrm{PEP}}}
+\newcommand{\Fp}{\widehat{F}^{\mathrm{PEP}}}
+\newcommand{\Sp}{S^{\mathrm{PEP}}}
+\newcommand{\sigmap}{\sigma^{\mathrm{PEP}}}
+\newcommand{\perfmetr}[1][]{\phi^{#1}}
+\newcommand{\fclass}{\mathcal{F}}
+\newcommand{\performance}{\mathcal{L}}
+\newcommand{\Mfclass}{M_{\fclass}}
+\newcommand{\taupep}{\tau^{\mathrm{PEP}}}
+\newcommand{\tausample}{\tau^{\mathrm{SAMPLE}}}
+\newcommand{\linear}{\mathcal{S}}
+
+% LMI notation
+\newcommand{\Aobj}{A^{\mathrm{obj}}}
+\newcommand{\bobj}{b^{\mathrm{obj}}}
+\newcommand{\cobj}{c^{\mathrm{obj}}}
+\newcommand{\tobj}{t^{\mathrm{obj}}}
+
+% Probability and algorithm
+\newcommand{\algo}{\mathcal{A}}
+\newcommand{\probQ}{\mathbf{Q}}
+\newcommand{\measure}{\mathcal{M}}
+
+% Sections (for citation)
+\newcommand{\Sec}{Section\;}
+
+% Create theorems and other environments
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{assumption}{Assumption}[section]
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{problem}{Problem}[section]
+
+\theoremstyle{remark}
+\newtheorem{example}{Example}[section]
+\newtheorem{exercise}{Exercise}[section]
+\newtheorem{remark}{Remark}[section]
+
+% Acronyms
+\newacronym{SAA}{SAA}{sample average approximation}
+\newacronym{LO}{LO}{linear optimization}
+\newacronym{QO}{QO}{quadratic optimization}
+\newacronym{MIQO}{MIQO}{mixed-integer quadratic optimization}
+\newacronym{MIO}{MIO}{mixed-integer optimization}
+\newacronym{MILO}{MILO}{mixed-integer linear optimization}
+\newacronym{MINLO}{MINLO}{mixed-integer nonlinear optimization}
+\newacronym{sBB}{sBB}{spacial branch and bound}
+\newacronym{NLO}{NLO}{nonlinear optimization}
+\newacronym{PWA}{PWA}{piecewise affine}
+\newacronym{SVM}{SVM}{support vector machines}
+\newacronym{ReLU}{ReLU}{rectified linear unit}
+\newacronym{CPU}{CPU}{central processing unit}
+\newacronym{GPU}{GPU}{graphics processing unit}
+\newacronym{MPC}{MPC}{model predictive control}
+\newacronym{ADMM}{ADMM}{alternating direction method of multipliers}
+\newacronym{ADP}{ADP}{approximate dynamic programming}
+\newacronym{FPGA}{FPGA}{field-programmable gate array}
+\newacronym{DRO}{DRO}{distributionally robust optimization}
+\newacronym{RO}{RO}{robust optimization}
+\newacronym{MRO}{MRO}{mean robust optimization}
+\newacronym{SO}{SO}{stochastic optimization}
+\newacronym{DSP}{DSP}{disciplined saddle programming}
+\newacronym{CVXRO}{CVXRO}{convex optimization under uncertainty}
+
+% Online DRO
+\newcommand{\RC}[1]{\textcolor{black}{#1}}
+\newcommand{\unc}{u}
+\newcommand{\eps}{\epsilon^K}
+\newcommand{\epsnom}{\epsilon}
+\newcommand{\barp}{p}
+\newcommand{\ld}{W}
+
+% Learning RO
+\newcommand{\githubrepo}{\url{https://github.com/stellatogrp/cvxro_experiments}}

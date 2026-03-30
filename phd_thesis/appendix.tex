@@ -1,0 +1,2230 @@
+\chapter{Proofs for Mean Robust Optimization}
+\label{app:mro}
+
+\section{Proof of the constraint reformulation in~\eqref{eq:robustopt_p}}
+
+\label{app:dual_form}
+% \reviewChanges{
+% To simplify notation, we define $c_k(v_k) \define   \| v_k - \bar{d}_k \|^p - \epsilon^p$. Then, starting from the inner optimization problem of~\eqref{eq:unif-const}:
+% \begin{equation*}
+% 	\begin{aligned}
+% & \begin{cases}
+% 	\underset{v_1, \dots, v_K \in \supp}{\sup} &\sum_{k=1} ^K w_k g(v_k, x) \\
+% 	\mbox{subject to} & \sum_{k=1} ^K w_k c_k(v_k) \le 0
+% \end{cases}\\
+% &= \begin{cases}
+% 	\underset{v_1, \dots, v_K \in \supp}{\sup} &\sum_{k=1} ^K w_k ~\underset{j \leq J}{\max}~g_{j}(v_k, x) \\
+% 	\mbox{subject to} & \sum_{k=1} ^K w_k c_k(v_k) \le 0
+% \end{cases}\\
+% &= \begin{cases}
+% 	\underset{(\pi_1,\dots, \pi_K)\in \Pi}{\max}~\underset{v_1, \dots, v_K \in \supp}{\sup} &\sum_{k=1} ^K w_k ~g_{\pi_k}(v_k, x) \\
+% 	\mbox{subject to} & \sum_{k=1} ^K w_k c_k(v_k) \le 0
+% \end{cases}\\
+% &= \begin{cases}
+% 	\underset{\pi = (\pi_1,\dots, \pi_K)\in \Pi}{\max}~ \underset{v_1, \dots, v_K \in \supp}{\sup}  & \underset{\lambda \geq 0}{\inf}   \sum_{k=1} ^K  w_k g_{\pi_k}(v_k, x)  - \lambda \sum_{k=1} ^K w_k c_k (v_k)\\
+% 	\end{cases}\\
+% &= \begin{cases}
+% 		\underset{\pi = (\pi_1,\dots, \pi_K)\in \Pi}{\max}~ \underset{\lambda \geq 0}{\inf} ~\underset{v_1, \dots, v_K \in \supp}{\sup}  ~  \sum_{k=1} ^K  w_k g_{\pi_k}(v_k, x)  - \lambda \sum_{k=1} ^K  w_k c_k (v_k).\\
+% 		\end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% where in the first equality we separated $g$ into its constituents $g_j$ for each $k$. 
+% We then brought the maximum outside the summation by defining the set $\Pi$ of all possible choices of $l$ across the $K$ clusters. 
+% A realization of the set is defined $(\pi_1, \dots, \pi_K)$, and as each cluster $k$ has $J$ possible pieces in the maximization function, each $\pi_k \in \{1, \dots, J\}$.
+% The set $\Pi$ thus has size $J^K$.
+% We then applied the Lagrangian for the third equality. As the summation is now over upper-semicontinuous functions $g_{\pi_k}$ concave in $v_k$, we then applied the Von Neumann-Fan minimax theorem to interchange the inf and the sup.
+% Now, we can rewrite this in epigraph form with $J^K$ total constraints, one for each realization of $\Pi$. In the next step, the same $J^K$ constraints are rewritten with new variables $v_{11},\dots,v_{JK}$; specifically, for each $k$ we optimize over $v_{k1},\dots,v_{JK}$ instead of simply over $v_k$.
+% \begin{equation*}
+% 	\begin{aligned}
+% &=\begin{cases}
+% 	\underset{\lambda_\pi \geq 0}{\inf} &  \tau \\
+% 	\mbox{subject to} &  \underset{v_1, \dots, v_K \in \supp}{\sup}\sum_{k=1} ^K  w_k g_{\pi_k}(v_k, x)  - \lambda_\pi \sum_{k=1} ^K w_k c_k (v_k) \leq \tau \quad \pi \in \Pi
+% \end{cases}\\
+% &= \begin{cases}
+% 	\underset{\lambda_\pi \geq 0}{\inf} &  \tau \\
+% 	\mbox{subject to} &  \underset{v_{11}, \dots, v_{JK} \in \supp}{\sup}\sum_{k=1} ^K  w_k g_{\pi_k}(v_{{\pi_k}k}, x)  - \lambda_\pi \sum_{k=1} ^K w_k c_k (v_{{\pi_k}k}) \leq \tau \\
+% 	& \hfill \pi \in \Pi.\\
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% The summation over $k$ can now be broken apart as follows, where for each $k$ there are $J$ total constraints. 
+% \begin{equation*}
+% 	\begin{aligned}
+% &\leq\begin{cases}
+% 	\underset{\lambda \geq 0}{\inf} &  \tau \\
+% 	\mbox{subject to} &  \sum_{k=1} ^K  w_k s_k \leq \tau \\
+% 	& \underset{v_{jk} \in \supp}{\sup} g_{j}(v_{jk}, x)  - \lambda c_k (v_{jk}) \leq s_k \quad  k = 1, \dots, K, \quad j = 1,\dots,J \\
+% \end{cases}\\
+% 	&= \begin{cases}
+% \underset{\lambda \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+% \mbox{subject to} &  \underset{v_{jk}\in \supp}{\sup}\hspace{1mm} g_{j}(v_{jk}, x) -\lambda c_k (v_{jk})  \le s_k \quad k = 1,\dots,K,\quad j = 1,\dots,J
+% \end{cases}\\
+% &= \begin{cases}
+% \underset{\lambda \geq 0} {\inf} &  \sum_{k=1} ^K  w_k s_k \\
+% \mbox{subject to} &  [-g_j +\chi_{\supp} + \lambda c_k]^*(0) \le s_k \quad k = 1,\dots,K,\quad j = 1,\dots,J.
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% For the last equality, we used the definition of conjugate functions. Now, borrowing results from~\citep[Theorem 4.2]{mohajerin_esfahani_data-driven_2018},~\citep[Theorem 11.23(a), p. 493]{rockafellar_wets_1998}, and~\citep[Lemma B.8]{zhen2021mathematical}, with regards to the conjugate functions of infimal convolutions and $p$-norm balls, we note that:
+% \begin{equation*}
+% 	[-g_j + \chi_{\supp} + \lambda c_k]^* (0) = \underset{y_{jk},z_{jk}}{\inf} ([-g_j]^*(z_{jk} - y_{jk}) + \sigma_{\supp}(y_{jk}) + [\lambda c_k]^* (-z_{jk})]),
+% \end{equation*}
+% and
+% \begin{equation*}
+% 	[\lambda c_k]^* (-z_{jk}) = \underset{v_{jk}}{\sup}(-z_{jk}^T v_{jk}- \lambda \| v_{jk} - \bar{d}_k\|^p + \lambda \epsilon^p) =-z_{jk}^T\bar{d}_k + \phi(q)\lambda {\|}z_{jk}/\lambda{\|}^q_* + \lambda \epsilon^p.
+% \end{equation*}
+% Substituting these in, we arrive at:
+% \begin{equation*}
+% 	\begin{aligned}
+% \begin{cases}
+% 	\underset{\lambda \geq 0, z_{jk},y_{jk}, s_k}{\inf} & \sum_k^K w_k s_k\\
+% 	\mbox{subject to} & [-g_j]^*(z_{jk} - y_{jk}) + \sigma_{\supp}(y_{jk}) - z_{jk}^T\bar{d}_k  + \phi(q)\lambda \left\|z_{jk}/\lambda \right\|^q_* + \lambda \epsilon^p \le s_k \\
+% 	&\hspace{6cm} \quad k = 1,\dots,K, \quad j = 1,\dots,J.
+% \end{cases}
+% \end{aligned}
+% \end{equation*}}
+% We present the proof for, the derivation of the dual formulation.
+To simplify notation, we define $c_k(v_k) \define   \| v_k - \bar{d}_k \|^p - \epsilon^p$. Then, starting from the inner optimization problem of~\eqref{eq:unif-const}:
+\begin{equation*}
+	\begin{aligned}
+& \begin{cases}
+	\underset{v_1 \dots v_K \in \supp}{\sup} &\sum_{k=1} ^K w_k g(v_k, z) \\
+	\mbox{subject to} & \sum_{k=1} ^K w_k c_k(v_k) \le 0
+\end{cases}\\
+&= \begin{cases}
+	\underset{v_1 \dots v_K\in \supp}{\sup}  & \underset{\lambda \geq 0}{\inf}   \sum_{k=1} ^K  w_k g(v_k, z)  - \lambda \sum_{k=1} ^K w_k c_k (v_k)\\
+	\end{cases}\\
+	&= \begin{cases}
+		\underset{\lambda \geq 0}{\inf} & \underset{v_1 \dots v_K\in \supp}{\sup}    \sum_{k=1} ^K  w_k  g(v_k, z)  - \lambda \sum_{k=1} ^K w_k c_k (v_k)\\
+		\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} &  \underset{v_k\in \supp}{\sup}\hspace{1mm} g(v_k, z) -\lambda c_k (v_k)  \le s_k \quad k = 1,\dots,K
+\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} &  [-g +\chi_{\supp} + \lambda c_k]^*(0)  \le s_k \quad k = 1,\dots,K,
+\end{cases}\\
+\end{aligned}
+\end{equation*}
+where we used the Lagrangian in the first equality, and Lagrangian strong duality in the second inequality, where we applied the assumption that $g$ is upper-semicontinuous and concave in $v$, the convexity of the supports, and the satisfaction of Slater's condition for all $\epsilon > 0$. For the last equality, we used the definition of conjugate functions. Now, borrowing results from Esfahani et al.~\cite[Theorem 4.2]{mohajerin_esfahani_data-driven_2018}, Rockafellar and Wets~\cite[Theorem 11.23(a), p. 493]{rockafellar_wets_1998}, and Zhen et al.~\cite[Lemma B.8]{zhen2021mathematical}, with regards to the conjugate functions of infimal convolutions and $p$-norm balls, we note that:
+\begin{equation*}
+	[-g + \chi_{\supp} + \lambda c_k]^* (0) = \underset{h_{k},y_{k}}{\inf} ([-g]^*(y_{k} - h_{k},z) + \sigma_{\supp}(h_{k}) + [\lambda c_k]^* (-y_{k})]),
+\end{equation*}
+and
+\begin{equation*}
+	[\lambda c_k]^* (-y_{k}) = \underset{v_k}{\sup}(-y_{k}^T v_k - \lambda \| v_k - \bar{d}_k\|^p + \lambda \epsilon^p) =-y_{k}^T\bar{d}_k + \phi(q)\lambda {\|}y_{k}/\lambda{\|}^q_* + \lambda \epsilon^p.
+\end{equation*}
+Substituting these in, we arrive at:
+\begin{equation*}
+	\begin{aligned}
+\begin{cases}
+	\underset{\lambda \geq 0, y_{k},h_{k}, s_k}{\inf} & \sum_k^K w_k s_k\\
+	\mbox{subject to} & [-g]^*(y_{k} - h_{k},z) + \sigma_{\supp}(h_{k}) - y_{k}^T\bar{d}_k  + \phi(q)\lambda \left\|y_{k}/\lambda \right\|^q_* + \lambda \epsilon^p \le s_k \\
+	& \hspace{7cm} \quad k = 1,\dots,K.
+\end{cases}
+\end{aligned}
+\end{equation*}
+\section{Proof of the constraint reformulation in~\eqref{eq:unif-dual-p}}
+\label{app:dual_form-p}
+% \reviewChanges{
+% Starting from the inner optimization problem of~\eqref{eq:unif-const-p}:
+% \begin{equation*}
+% 	\begin{aligned}
+% &=\begin{cases}
+% 	\underset{v_1, \dots, v_K \in \supp}{\sup} &\sum_{k=1} ^K w_k g(v_k, x) \\
+% 	\mbox{subject to} &  \|v_k - \bar{d}_k\| \le \epsilon, \quad k = 1,\dots,K
+% \end{cases}\\
+% & = \begin{cases}
+% 	\underset{v_1, \dots, v_K \in \supp}{\sup} &\sum_{k=1} ^K w_k ~\underset{j \leq J}{\max}~g_j(v_k, x) \\
+% 	\mbox{subject to} &  \|v_k - \bar{d}_k\| \le \epsilon, \quad k = 1,\dots,K
+% \end{cases}\\
+% &= \begin{cases}
+% 	\underset{(\pi_1,\dots, \pi_K)\in \Pi}{\max}~\underset{v_1, \dots, v_K \in \supp}{\sup}~ \underset{\lambda_k \geq 0}{\inf}   \sum_{k=1} ^K  w_k (g_{\pi_k}(v_k, x)  +  (1/w_k)\lambda_k (\epsilon  - \|v_k - \bar{d}_k\| ))\\
+% 	\end{cases}\\
+% 	&= \begin{cases}
+% 		\underset{(\pi_1,\dots, \pi_K)\in \Pi}{\max}~\underset{\lambda_k \geq 0}{\inf}~ \underset{v_1, \dots, v_K \in \supp}{\sup}    \sum_{k=1} ^K  w_k  (g_{\pi_k}(v_k, x)  +  (1/w_k)\lambda_k (\epsilon  - \|v_k - \bar{d}_k\| )).\\
+% 		\end{cases}\\
+% 	\end{aligned}
+% \end{equation*}
+% We have again separated $g$ into its constituents, brought out the maximization by defining the set $\Pi$, and formulated  the Lagragian. We then applied the minmax theorem to the sum of concave functions in $v$.
+% Now, using the same procedure as in Appendix~\ref{app:dual_form}, we can rewrite this in epigraph form,
+% 		\begin{equation*}
+% 			\begin{aligned}
+% &= \begin{cases}
+% 	\underset{\lambda_k \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+% 	\mbox{subject to} & (\lambda_k/w_k)\epsilon + \underset{v_{jk}\in \supp}{\sup}\hspace{1mm} g_j(v_{jk}, x) -  \underset{\|z_{jk}\|_* \leq \lambda_k/w_k}{\max} z_{jk}^T(v_{jk} - \bar{d}_k)\le s_k \\
+% 	&\hfill \quad k = 1,\dots,K, \quad j = 1,\dots,J
+% \end{cases}\\
+% &= \begin{cases}
+% 	\underset{\lambda_k \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+% 	\mbox{subject to} & (\lambda_k/w_k)\epsilon +  \underset{\|z_{jk}\|_* \leq \lambda_k/w_k}{\min} \underset{v_{jk}\in \supp}{\sup}\hspace{1mm} g_j(v_{jk}, x) -   z_{jk}^T(v_{jk} - \bar{d}_k)\le s_k \\
+% 	&\hfill \quad k = 1,\dots,K, \quad j = 1,\dots,J,
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% where we refer to the proof of~\cite[Theorem 4.2]{mohajerin_esfahani_data-driven_2018} for the definition of the dual norm. We can now apply the definition of conjugate functions.
+% \begin{equation*}
+% 	\begin{aligned}
+% &= \begin{cases}
+% 	\underset{\lambda_k \geq 0, z_{jk}}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+% 	\mbox{subject to} & (\lambda_k/w_k)\epsilon + [-g_j +\chi_{\supp}]^*(-z_{jk}) + z_{jk}^T\bar{d}_k \le s_k \\
+% 	&\hfill \quad k = 1,\dots,K, \quad j = 1,\dots,J\\
+% 	& \|z_{jk}\|_* \leq \lambda_k/w_k \quad k = 1,\dots,K, \quad j = 1,\dots,J.
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% \begin{equation*}
+% \begin{aligned}
+% &= \begin{cases}
+% 	\underset{\lambda_k \geq 0, z_{jk}}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+% 	\mbox{subject to} &  [-g]^*(z_{jk} - y_{jk}) + \sigma_{\supp}(y_{jk})  - z_{jk}^T\bar{d}_k  + \lambda_k\epsilon \le s_k\\
+% 	&\hfill  \quad k = 1,\dots,K, \quad j = 1,\dots,J\\
+% 	& \|-z_{jk}\|_*\leq \lambda_k,\quad k = 1,\dots,K, \quad j = 1,\dots,J.
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% Lastly, we make the substitions $z_{jk} = -z_{jk}$ and $ \lambda_k =  \lambda_kw_k$. The substitution of the auxiliary variable $\lambda_k$ does not change the value of the optimization problem, as $w_k$ are known positive constants, and minimizing with respect to $\lambda_k/w_k$ is equivalent to minimizing with respect to $\lambda_k$.
+% }
+Starting from the inner optimization problem of~\eqref{eq:unif-const-p}:
+% \vspace{-1cm}
+\begin{equation*}
+	\begin{aligned}
+& \begin{cases}
+	\underset{v_1 \dots v_K \in \supp}{\sup} &\sum_{k=1} ^K w_k g(v_k, z) \\
+	\mbox{subject to} &  \|v_k - \bar{d}_k\| \le \epsilon, \quad k = 1,\dots,K
+\end{cases}\\
+&= \begin{cases}
+	\underset{v_1 \dots v_K\in \supp}{\sup}  & \underset{\lambda_k \geq 0}{\inf}   \sum_{k=1} ^K  w_k (g(v_k, z)  +  (1/w_k)\lambda_k (\epsilon  - \|v_k - \bar{d}_k\| ))\\
+	\end{cases}\\
+	&= \begin{cases}
+		\underset{\lambda_k \geq 0}{\inf} & \underset{v_1 \dots v_K\in \supp}{\sup}    \sum_{k=1} ^K  w_k  (g(v_k, z)  +  (1/w_k)\lambda_k (\epsilon  - \|v_k - \bar{d}_k\| ))\\
+		\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda_k \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} &   (\lambda_k/w_k)\epsilon + \underset{v_k\in \supp}{\sup}\hspace{1mm} g(v_k, z) -(\lambda_k/w_k)\|v_k - \bar{d}_k\| \le s_k \quad k = 1,\dots,K
+\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda_k \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} & (\lambda_k/w_k)\epsilon + \underset{v_k\in \supp}{\sup}\hspace{1mm} g(v_k, z) -  \underset{\|y_k\|_* \leq \lambda_k/w_k}{\max} y_k^T(v_k - \bar{d}_k)\le s_k\\
+	 &\hspace{7cm}\quad k = 1,\dots,K
+\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda_k \geq 0}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} & (\lambda_k/w_k)\epsilon +  \underset{\|y_k\|_* \leq \lambda_k/w_k}{\min} \underset{v_k\in \supp}{\sup}\hspace{1mm} g(v_k, z) -   y_k^T(v_k - \bar{d}_k)\le s_k\\
+	&\hspace{7cm}\quad k = 1,\dots,K
+\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda_k \geq 0, y_k}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} & (\lambda_k/w_k)\epsilon + [-g +\chi_{\supp}]^*(-y_k) + y_k^T\bar{d}_k \le s_k \quad k = 1,\dots,K\\
+	& \|y_k\|_* \leq \lambda_k/w_k,\quad k = 1,\dots,K
+\end{cases}\\
+&= \reviewChanges{\begin{cases}
+	\underset{y_k}{\inf} &  \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} &  [-g]^*(y_{k} - h_{k},z) + \sigma_{\supp}(h_{k})  - y_k^T\bar{d}_k  + \epsilon\|y_k\|_* \le s_k \quad k = 1,\dots,K.\\
+\end{cases}}\\
+\end{aligned}
+\end{equation*}
+We have again used the Lagragian, Lagrangian strong duality, and the definition of conjugate function. In particular, in the fourth equality, we refer to the proof of~\cite[Theorem 4.2]{mohajerin_esfahani_data-driven_2018} where we use the definition of the dual norm. \reviewChanges{In the final equality, we make the substition $y_k = -y_k$ and $ \lambda_k/w_k = \|y_k\|_* $, because the coefficient multiplying $\lambda_k$, $\epsilon/w_k$, is nonnegative and $\lambda_k/w_k$ achieves its lower bound, $\|y_k\|_*$, for all $k$.}
+
+
+
+\section{Proof of the constraint reformulation in~\eqref{c3:eq:robustopt_p_max}}
+
+\label{app:dual_form_max}
+\reviewChanges{
+To simplify notation, we define $c_k(v_{jk}) \define   \| v_{jk} - \bar{d}_k \|^p - \epsilon^p$. Then, starting from the inner optimization problem of~\eqref{eq:unif-const_max}:
+\begin{equation*}
+	\begin{aligned}
+& \begin{cases}
+	\underset{v_{11}, \dots, v_{JK} \in \supp, \alpha \in \Gamma}{\sup} &\sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) \\
+	\mbox{~~~~subject to} & \sum_{k=1} ^K \sum_{j=1}^J \alpha_{jk} c_k(v_{jk}) \le 0
+\end{cases}\\
+&=\begin{cases}
+	\underset{v_{11}, \dots, v_{JK} \in \supp, \alpha \in \Gamma}{\sup} & \underset{\lambda \geq 0}{\inf}~\sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) - \lambda\sum_{k=1} ^K \sum_{j=1}^J \alpha_{jk} c_k(v_{jk})\\
+\end{cases}\\
+&=\begin{cases}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf}~\underset{v_{11}, \dots, v_{JK} \in \supp}{\sup} &\sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) - \lambda\sum_{k=1} ^K \sum_{j=1}^J \alpha_{jk} c_k(v_{jk}),\\
+\end{cases}\\
+\end{aligned}
+\end{equation*}
+We applied the Lagrangian in the first equality. Then, as the summation is over upper-semicontinuous functions $g_j(v_{jk},z)$ concave in $v_{jk}$, we noted Lagrangian strong duality to interchange the inf and the sup. Next, we rewrite the formulation using an epigraph trick, and note that the $\alpha_{jk}$'s can be pulled outside the inner supremum due to their nonnegativity and the separability of the $v_{jk}$'s. 
+\begin{equation*}
+	\begin{aligned}
+&= \begin{cases}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}~\underset{v_{11}, \dots, v_{JK} \in \supp}{\sup}& \sum_{j=1}^J \alpha_{jk}(g_j(v_{jk}, z) - \lambda c_k(v_{jk})) \le s_k \quad k = 1,\dots,K,
+\end{cases}\\
+&= \begin{cases}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}& \sum_{j=1}^J \alpha_{jk}[-g_j +\chi_{\supp} + \lambda c_k]^*(0) \le s_k \quad k = 1,\dots,K.
+\end{cases}\\
+\end{aligned}
+\end{equation*}
+% In the last step, we rewrote $v_{jk} = (\alpha_{jk}v_{jk})/\alpha_{jk}$, and maximized over $\alpha_{jk}v_{jk} \in S'$, where $S'$ is the support trasformed by $\alpha_{jk}$. 
+% In the case $\alpha_{ij} > 0$, the terms in the summation are unchanged, and maximizing over $v_{jk}$ is equivalent to maximizing over $\alpha_{jk}v_{jk}$.
+% In the case $\alpha_{jk}= 0$, we have in the transformed formulation $(\alpha_{jk}v_{jk})/\alpha_{jk} = 0/0 = 0$, and $\alpha_{jk}(g_j(0, x) - \lambda c_k(0)) = 0(g_j(0, x) - \lambda c_k(0)) = 0$.
+% In the original formulation, the term $\alpha_{jk}(g_j(v_{jk}, x) - \lambda c_k(v_{jk}))$ is also equivalent to 0. 
+% As the terms in the summation are 0 regardless of the value of $v_{jk}$, maximizing over $v_{jk}$ is equivalent to maximizing over $0$.
+% Therefore, we note that the optimal value remains unchanged. 
+% Next, we make substitutions $h_{ij} = \alpha_{jk}v_{jk}$, and define functions $g_j'(h_{jk},x) = \alpha_{jk}g_j(h_{jk}/\alpha_{jk})$, $c_k'(h_{jk}) = \alpha_{jk}c_k'(h_{jk}/\alpha_{jk})$.
+% \begin{equation*}
+% 	\begin{aligned}
+% &= \begin{cases}
+% 	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+% 	\mbox{subject to}~\underset{h_{11}, \dots, h_{JK} \in \supp'}{\sup}& \sum_{j=1}^J g_j'(h_{jk}, x)- \lambda c_k'(h_{jk}) \le s_k \quad k = 1,\dots,K,
+% \end{cases}\\
+% &= \begin{cases}
+% 	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+% 	\mbox{subject to}& \sum_{j=1}^J [-g_j' +\chi_{\supp'} + \lambda c_k']^*(0) \le s_k \quad k = 1,\dots,K.
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% For the new functions defined, we applied the definition of conjugate functions.}
+% \reviewChanges{
+% Now, using the conjugate form $f^*(y) = \alpha g^*(y)$ of a right-scalar-multiplied function $f(x) = \alpha g(x/\alpha)$, we rewrite the above as 
+% \begin{equation*}
+% 	\begin{aligned}
+% &= \begin{cases}
+% 	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+% 	\mbox{subject to}& \sum_{j=1}^J \alpha_{jk}[-g_j +\chi_{\supp} + \lambda c_k]^*(0) \le s_k \quad k = 1,\dots,K.
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+% We note that while the support of $h_{jk}$ is $\supp'$, the support of $h_{jk}/\alpha_{jk}$, which is the input of $g_j$, is still $\supp$. 
+ Now, again using properties of conjuate functions as given in Appendix~\ref{app:dual_form}, we note that:
+\begin{equation*}
+	\begin{aligned}
+		\alpha_{jk}[(-g_j +\chi_{\supp} + \lambda c_k)]^* (0) &= \alpha_{jk}\underset{h_{jk},y_{jk}}{\inf} ([-g_j]^*(y_{jk} - h_{jk},z) + \sigma_{\supp}(h_{jk}) + [\lambda c_k]^* (-y_{jk})).
+	\end{aligned}
+\end{equation*}
+Substituting in the conjugate functions derived in Appendix~\ref{app:dual_form}, we have 
+\begin{equation*}
+	\begin{aligned}
+\begin{cases}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0, y_{jk},h_{jk}, s_k}{\inf} & \sum_k^K s_k\\
+	\mbox{subject to} & \sum_{j=1}^J \alpha_{jk}([-g_j]^*(y_{jk} - h_{jk},z)\\
+	& + \sigma_{\supp}(h_{jk}) - y_{jk}^T\bar{d}_k + \phi(q)\lambda \left\|y_{jk}/\lambda \right\|^q_* + \lambda \epsilon^p ) \le s_k \\
+	&\hspace{2cm} \quad k = 1,\dots,K, \quad j = 1,\dots,J.
+\end{cases}
+\end{aligned}
+\end{equation*}
+Taking the supremum over $\alpha$, noting that $\sum_{j=1}^J \alpha_{jk} = w_k$ for all $k$, we arrive at
+\begin{equation*}
+	\begin{aligned}
+\begin{cases}
+	~\underset{\lambda \geq 0, y_{jk},h_{jk}, s_k}{\inf} & \sum_k^K s_k\\
+	\mbox{subject to} & w_k ([-g_j]^*(y_{jk}' - h_{jk}',z) + \sigma_{\supp}(h_{jk}') - y_{jk}'^T\bar{d}_k \\
+	&~~ + \phi(q)\lambda \left\|y_{jk}'/\lambda \right\|^q_* + \lambda \epsilon^p ) \le s_k \quad k = 1,\dots,K, \quad j = 1,\dots,J,
+\end{cases}
+\end{aligned}
+\end{equation*}
+which is equivalent to~\eqref{c3:eq:robustopt_p_max}.
+}
+
+\section{Reformulation of the maximum-of-concave case for ${p = \infty}$}
+\label{app:dual_form-p_max}
+
+\reviewChanges{In the case where ${p = \infty}$, we have
+\begin{equation}
+	\label{eq:unif-const-p_max}
+	% \tag{P}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \begin{dcases}
+			\begin{rcases}
+		\underset{v_{11},\dots,v_{JK} \in \supp, \alpha \in \Gamma}{\text{maximize}} &\quad \sum_{k=1} ^K\sum_{j=1} ^J  \alpha_{jk} g(v_{jk}, z) \\
+		\mbox{~~~~subject to} & \quad  \sum_{j=1}^J (\alpha_{jk}/w_k)| v_{jk} - \bar{d}_k \|^p  \le \epsilon, \quad k = 1,\dots, K
+			\end{rcases}
+			\end{dcases} \le 0,
+	\end{array}
+\end{equation}
+which has a reformulation where the constraint above is dualized,}
+\reviewChanges{
+	\begin{equation}
+	\label{eq:unif-dual-p_max}
+	% \tag{D}
+	\begin{array}{ll}
+		\text{minimize} & f(z)\\
+ \text{subject to} \quad & \sum_{k=1}^{K} w_k s_k \leq 0\\
+&[-g_j]^*(y_{jk} - h_{jk},z) + \sigma_{{\supp}}(h_{jk}) - y_{jk}^T\bar{d}_k  + \lambda_k \epsilon \leq s_k\\
+& \hspace{3cm} \quad k = 1,\dots, K, \quad j = 1,\dots, J\\
+&  \left\|y_{jk} \right\|_* \leq \lambda_k \quad k = 1,\dots, K, \quad j = 1,\dots, J,
+\end{array}
+\end{equation}
+with new variables $s_k \in \reals$, $y_{jk} \in \reals^m$, and $h_{jk} \in \reals^m$. }
+\reviewChanges{
+We prove this by starting from the inner optimization problem of~\eqref{eq:unif-const-p_max}:
+\begin{equation*}
+	\begin{aligned}
+		& \begin{cases}
+			\underset{v_{11}, \dots, v_{JK} \in \supp, \alpha \in \Gamma}{\sup} &\sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) \\
+			\mbox{~~~~subject to} & \sum_{j=1}^J (\alpha_{jk}/w_k) \|v_{jk} - \bar{d}_k\| \le \epsilon, \quad k = 1,\dots,K
+		\end{cases}\\
+		&=\begin{cases}
+			\underset{v_{11}, \dots, v_{JK} \in \supp, \alpha \in \Gamma}{\sup} & \underset{\lambda \geq 0}{\inf}~\sum_{k=1}^K (\sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) + \lambda_k (\epsilon - \sum_{j=1}^J (\alpha_{jk}/w_k) \|v_{jk} - \bar{d}_k\|))\\
+		\end{cases}\\
+		&=\begin{cases}
+			\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf}~\underset{v_{11}, \dots, v_{JK} \in \supp}{\sup}&\sum_{k=1}^K (\sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) + \lambda_k (\epsilon - \sum_{j=1}^J (\alpha_{jk}/w_k)  \|v_{jk} - \bar{d}_k\|))\\
+		\end{cases}\\
+	\end{aligned}
+\end{equation*}
+We have again formulated the Lagragian and noted that strong duality holds for the sum of concave functions in $v_{jk}$.
+Now, using the same procedure as in Appendix~\ref{app:dual_form}, we can rewrite this in epigraph form, and use the dual norm definition,
+		\begin{equation*}
+			\begin{aligned}
+				&= \begin{cases}
+					\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+					\mbox{subject to}&\underset{v_{11}, \dots, v_{JK} \in \supp}{\sup}~ \lambda_k \epsilon+ \sum_{j=1}^J \alpha_{jk}g_j(v_{jk}, z) - \lambda_k(\alpha_{jk}/w_k) \|v_{jk} - \bar{d}_k\|\le s_k\\
+					& \hspace{4cm}  \quad k = 1,\dots,K,
+				\end{cases}\\
+				&= \begin{cases}
+					\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+					\mbox{subject to}&\underset{v_{11}, \dots, v_{JK} \in \supp}{\sup}~ \lambda_k \epsilon+ \sum_{j=1}^J \underset{\|y_{jk}\|_* \leq \lambda_k/w_k}{\min} \alpha_{jk}g_j(v_{jk}, z) \\
+					& \hspace{4cm} - \alpha_{jk}y_{jk}^T(v_{jk} - \bar{d}_k)\le s_k \quad k = 1,\dots,K.
+				\end{cases}\\
+&= \begin{cases}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda_k \geq 0, y_{jk}}{\inf} &  \sum_{k=1} ^K s_k \\
+	\mbox{subject to}&\lambda_k \epsilon+ \alpha_{jk}[-g_j +\chi_{\supp}]^*(-y_{jk},z) +\alpha_{jk}y_{jk}^T\bar{d}_k \le s_k \\
+	&\hfill \quad k = 1,\dots,K, \quad j = 1,\dots,J\\
+	& \|y_{jk}\|_* \leq \lambda_k/w_k \quad k = 1,\dots,K, \quad j = 1,\dots,J.
+\end{cases}\\
+\end{aligned}
+\end{equation*}
+% In the last step, we again rewrote $v_{jk} = (\alpha_{jk}v_{jk})/\alpha_{jk}$ inside functions $g_j$. Using similar logic as in Appendix~\ref{app:dual_form_max}, we note that this does not change the optimal value for both $\alpha_{jk} > 0$ and  $\alpha_{jk} = 0$, as taking the supremum over the transformed variables is equivalent to taking the supremum over the original variables. For conciseness, we omit the steps of creating the right-scalar-multiplied function and transformations. For details, please refer to Appendix~\ref{app:dual_form_max}.
+% We directly apply the definition of conjugate functions,
+% \begin{equation*}
+% 	\begin{aligned}
+% &= \begin{cases}
+% 	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda_k \geq 0, z_{jk}}{\inf} &  \sum_{k=1} ^K s_k \\
+% 	\mbox{subject to}&\lambda_k \epsilon+ \alpha_{jk}[-g_j +\chi_{\supp}]^*(-z_{jk},x) +\alpha_{jk}z_{jk}^T\bar{d}_k \le s_k \\
+% 	&\hfill \quad k = 1,\dots,K, \quad j = 1,\dots,J\\
+% 	& \|z_{jk}\|_* \leq \lambda_k/w_k \quad k = 1,\dots,K, \quad j = 1,\dots,J.
+% \end{cases}\\
+% \end{aligned}
+% \end{equation*}
+Now, substituting $\lambda_k = \lambda_k w_k$, $y_{jk} = -y_{jk}$, and substituting in the conjugate functions derived in Appendix~\ref{app:dual_form_max}, we have 
+\begin{equation*}
+\begin{aligned}
+&= \begin{cases}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda_k \geq 0, y_{jk}}{\inf} &  \sum_{k=1} ^K s_k \\
+	\mbox{subject to} &  \lambda_k w_k\epsilon + \sum_{j=1}^J \alpha_{jk} ([-g_j]^*(y_{jk} - h_{jk},z) + \sigma_{\supp}(h_{jk}) \\
+	&\hspace{2cm} - y_{jk}^T\bar{d}_k) \le s_k \quad k = 1,\dots,K, \quad j = 1,\dots,J\\
+	& \|y_{jk}\|_*\leq \lambda_k,\quad k = 1,\dots,K, \quad j = 1,\dots,J.
+\end{cases}\\
+\end{aligned}
+\end{equation*}
+Note that rescaling $\lambda_k$ did not affect value of the problem, as minimizing $\lambda_k$ is equivalent to minimizing $\lambda_k w_k$.
+Lastly, taking the supremum over $\alpha$, we arrive at
+\begin{equation*}
+	\begin{aligned}
+	&= \begin{cases}
+		\underset{\lambda_k \geq 0, y_{jk}}{\inf} &  \sum_{k=1} ^K s_k \\
+		\mbox{subject to} & w_k(\lambda_k\epsilon + [-g_j]^*(y_{jk} - h_{jk},z) + \sigma_{\supp}(h_{jk})  - y_{jk}^T\bar{d}_k) \le s_k\\
+		&\hfill  \quad k = 1,\dots,K, \quad j = 1,\dots,J\\
+		& \|-y_{jk}\|_*\leq \lambda_k,\quad k = 1,\dots,K, \quad j = 1,\dots,J.
+	\end{cases}\\
+	\end{aligned}
+	\end{equation*}
+}
+
+
+
+\section{Proof of the primal problem reformulation as $\mathbf{p \rightarrow \infty}$}
+\label{app:primal_limit}
+
+
+Consider again the function $\bar g^K$ discussed in Section \ref{sec:conservatism} and defined as
+\[
+\bar g^K(z; p)
+\defn
+\left\{
+\begin{array}{l@{~~~~}l}
+	\mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+     \mbox{subject to} & \sum_{k=1}^K w_k \norm{v_k-d_k}^p\leq \epsilon^p\\[0.5em]
+          & v_k\in \supp \quad k = 1,\dots,K
+\end{array}
+\right.
+\]
+where we make its dependence on $p$ explicit.
+We have that $1/M<w_k=|C_k|/N<M$ for all $k= 1,\dots, K$ for some large $M\geq 1$.
+
+\begin{theorem}
+  \label{thm:extreme-case-infinity}
+  Let the functions $\epsilon \mapsto g^\epsilon(d_k, z)$ be continuous for all $k= 1,\dots, K$ where
+\(
+  g^{\epsilon}(d, z)= \max \{g(v, z) \mid v\in \supp,\,\norm{v-d}\leq \epsilon\}.
+\)
+We have that
+\(
+  \bar g^K(z;\infty)\defn\lim_{p\to\infty} \bar g^K(z;p) = \sum_{k=1}^K w_k g^{\epsilon}(d_k, z).
+  \)
+\end{theorem}
+\begin{proof}
+  Using the auxiliary variables $t_k\geq 0$ for $k= 1,\dots, K$ we have that
+  \[
+    \bar g^K(z; p)
+    =
+    \left\{
+      \begin{array}{l@{~~~~}l}
+	      \mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp, ~ t_k\geq 0\quad k = 1,\dots,K\\[0.5em]
+             &  \sum_{k=1}^K t_k^p \leq \epsilon^p\\[0.5em]
+             &  t_k\geq \norm{v_k-d_k} w_k^{1/p} \quad k  =1,\dots,K.
+      \end{array}
+    \right.
+  \]
+  The function $\bar g^K(z;p)$ is hard to study directly. Hence, let us first introduce two auxiliary functions
+  \[
+    \bar{g}^K_u(z; p)
+    =
+    \left\{
+      \begin{array}{l@{~~~~}l}
+	      \mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp, \, t_k\geq 0 \quad k = 1,\dots,K\\[0.5em]
+             &  \sum_{k=1}^K t_k^p \leq \epsilon^p\\[0.5em]
+             &  t_k\geq \norm{v_k-d_k} M^{-1/p} \quad k = 1,\dots,K
+      \end{array}
+    \right.
+  \]
+  and
+    \[
+    \bar{g}^K_l(z; p)
+    =
+    \left\{
+      \begin{array}{l@{~~~~}l}
+	      \mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp, \, t_k\geq 0 \quad k = 1,\dots,K\\[0.5em]
+             &  \sum_{k=1}^K t_k^p \leq \epsilon^p,\\[0.5em]
+             &  t_k\geq \norm{v_k-d_k} M^{1/p} \quad k = 1,\dots,K.
+      \end{array}
+    \right.
+  \]
+  Observe that for $p\geq 1$ we have $1/M<w_k<M \implies M^{-1/p} < w^{1/p}_k < M^{1/p}$ for any $k\in 1,\dots, K$.
+  As we hence have for all $k= 1,\dots, K$ that
+  \(
+    M^{-1/p} \norm{v_k-d_k} \leq w_k^{1/p} \norm{v_k-d_k}  \leq M^{1/p} \norm{v_k-d_k}
+  \)
+  we obtain the sandwich inequality $\bar{g}^K_l(z; p) \leq \bar{g}^K(z; p) \leq \bar{g}^K_u(z; p)$ for any $p\geq 1$.
+
+  Furthermore, observe that when $t_k\geq 0$ for all $k=1,\dots, K$ then we have the implication $\sum_{k=1}^K t^p_k\leq \epsilon^p \implies \max_{k=1}^K t_k \leq \epsilon$. Hence, we have that
+  \begin{align*}
+    \bar{g}_u(z; p)
+    \leq &
+    \left\{
+      \begin{array}{l@{~~~~}l}
+				\mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp, \, t_k\geq 0 \quad k = 1,\dots,K,\\[0.5em]
+             &  \max_{k=1}^K t_k \leq \epsilon,\\[0.5em]
+             &  t_k\geq \norm{v_k-d_k} M^{-1/p} \quad k = 1,\dots,K
+      \end{array}
+           \right.\\
+    = &    \left\{
+      \begin{array}{l@{~~~~}l}
+				\mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp\quad k = 1,\dots,K\\[0.5em]
+             &  \max_{k=1}^K \norm{v_k-d_k} M^{-1/p} \leq \epsilon\\[0.5em]
+      \end{array}
+        \right.\\
+    = &  \sum_{k=1}^K w_k \left[\max_{v\in \supp,\,\norm{v-d_k}\leq \epsilon M^{1/p}} g(v, z)\right].
+  \end{align*}
+
+  Similarly, observe that when $t_k\geq 0$ for all $k = 1,\dots, K$ we also have the inequality $\sum_{k=1}^K t_k^p \leq K (\max_{k=1}^K t_k)^p$. Hence, we have that
+  \begin{align*}
+    \bar{g}^K_l(z; p)
+    \geq &
+    \left\{
+      \begin{array}{l@{~~~~}l}
+				\mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp, \, t_k\geq 0 \quad k = 1,\dots,K\\[0.5em]
+             &  K (\max_{k=1}^K t_k)^p \leq \epsilon^p\\[0.5em]
+             &  t_k\geq \norm{v_k-d_k} M^{1/p} \quad k = 1,\dots,K
+      \end{array}
+           \right.\\
+    = &
+    \left\{
+      \begin{array}{l@{~~~~}l}
+				\mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp, \, t_k\geq 0 \quad k = 1,\dots,K,\\[0.5em]
+             &   \max_{k=1}^K t_k \leq K^{-1/p} \epsilon,\\[0.5em]
+             &  t_k\geq \norm{v_k-d_k} M^{1/p} \quad k = 1,\dots,K
+      \end{array}
+               \right.\\
+    = &    \left\{
+      \begin{array}{l@{~~~~}l}
+				\mbox{maximize} & \sum_{k=1}^K w_k g(v_k, z) \\[0.5em]
+        \mbox{subject to} & v_k\in \supp~~\forall k \in [1,\dots,K],\\[0.5em]
+             &  \max_{k=1}^K \norm{v_k-d_k} M^{1/p} \leq \epsilon K^{-1/p}\\[0.5em]
+      \end{array}
+        \right.\\
+    = &  \sum_{k=1}^K w_k \left[\max_{v\in \supp,\,\norm{v-d_k}\leq \epsilon (MK)^{-1/p}} g(v, z)\right].
+  \end{align*}
+
+  Finally, chaining all the inequalities together we obtain
+  \[
+    \sum_{k=1}^K w_k \left[\max_{v\in \supp,\,\norm{v-d_k}\leq \epsilon (MK)^{-1/p}} g(v, z)\right] \leq \bar{g}^K(z;p)  \leq \sum_{k=1}^K w_k \left[\max_{v\in \supp,\,\norm{v-d_k}\leq \epsilon M^{1/p}} g(v, z)\right]
+  \]
+  for any $p\geq 1$.
+  Considering now the limit for $p$ to infinity
+  \begin{align*}
+    & \lim_{p\to\infty}\sum_{k=1}^K w_k  g^{\epsilon (MK)^{-1/p}}(d_k, z)\leq \lim_{p\to\infty} \bar{g}^K(z;p) \leq \lim_{p\to\infty} \sum_{k=1}^K w_k g^{\epsilon M^{1/p}}(d_k, z) \\
+    \implies &\sum_{k=1}^K w_k \lim_{p\to\infty} g^{\epsilon (MK)^{-1/p}}(d_k, z)\leq \lim_{p\to\infty} \bar{g}^K(z;p) \leq \sum_{k=1}^K w_k  \lim_{p\to\infty}  g^{\epsilon M^{1/p}}(d_k, z) \\
+    \implies &  \sum_{k=1}^K w_k g^{\epsilon}(d_k, z) \leq \lim_{p\to\infty} \bar{g}^K(z; p) \leq \sum_{k=1}^K w_k g^{\epsilon}(d_k, z)
+  \end{align*}
+  establishes the claim.
+  The first implication follows from the fact that the finite sums and limits can be exchanged. The final implication follows from
+  $\lim_{p\to \infty} (MK)^{-1/p} = \lim_{p\to \infty} M^{1/p}=1$ and the fact that the functions $\epsilon \mapsto g^\epsilon(d_k, z)$ are continuous  for all $k=1,\dots, K$.
+\end{proof}
+
+\section{Proof of the dual problem reformulation as $\mathbf{p \rightarrow \infty}$}
+\label{app:dual_limit}
+
+\begin{theorem}
+  Let $S$ be a bounded set.
+  Define here
+  \begin{equation}
+    \label{eq:def:barf}
+    \bar g^K(z;\infty)\defn
+    \left\{
+      \begin{array}{l@{~~~~}l}
+				\mbox{\rm{minimize}} & \sum_{k=1}^K w_k s_k\\
+        \mbox{\rm{subject to}} &  \lambda \geq 0,~ y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k=1,\dots, K,\\
+             &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  + \epsilon \left\|y_{k} \right\|_* \le s_k\\
+						 &\hspace{5.5cm} \quad k=1,\dots, K.
+      \end{array}
+    \right.
+  \end{equation}
+  Then,
+  \(
+    \lim_{p\to \infty} \bar g^K(z;p)= \bar g^K(z;\infty)
+  \)
+  for any $z\in X$.
+\end{theorem}
+\begin{proof}
+  First, from Equation \eqref{eq:robustopt_p} we have for any $p> 1$ that
+  \begin{align*}
+    & \bar g^K(z;p)\\
+    =&\reviewChanges{
+                       \left\{
+                       \begin{array}{l@{~~~~}l}
+												\mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+                         \mbox{subject to} &  \lambda \geq 0,~ y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k = 1,\dots,K,\\
+                              &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  + \phi(q)\lambda \left\|y_{k}/\lambda \right\|^q_* + \lambda \epsilon^p\le s_k\\
+															&\hspace{7cm} \quad k=1,\dots, K
+                       \end{array}
+                       \right.}\\
+    \geq &
+                       \left\{
+                       \begin{array}{l@{~~~~}l}
+												\mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+                         \mbox{subject to} &  \lambda_k \geq 0,~ y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k = 1,\dots,K,\\
+                              &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  + \phi(q)\lambda_k \left\|y_{k}/\lambda_k \right\|^q_* + \lambda_k \epsilon^p\le s_k\\
+															&\hspace{7cm} \quad k=1,\dots, K
+                       \end{array}
+                       \right.\\
+    = &
+           \left\{
+           \begin{array}{l@{~~~~}l}
+						\mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+             \mbox{subject to} & y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k = 1,\dots, K,\\
+                  &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k + \epsilon \left\|y_{k} \right\|_*\le s_k \quad k =1,\dots, K
+           \end{array}
+           \right.
+  \end{align*}
+  \reviewChanges{where the first equality is established in Appendix \ref{app:dual_form}} and the second equality follows from Lemma \ref{lemma:dual-helper}. Remark that the inequality in the second step simply follows as we introduce $\lambda_k$ and do not impose that $\lambda_k=\lambda$ for all $k=1,\dots, K$.
+  Hence, considering the limit for $p$ tending to infinity gives us now
+  \(
+  \reviewChanges{\liminf_{p\to \infty}} \bar g^K(z;p)\geq \bar g^K(z;\infty).
+  \)
+  It remains to prove the reverse
+  \(
+  \reviewChanges{\limsup_{p\to \infty}} \bar g^K(z;p) \leq \bar g^K(z;\infty).
+  \)
+
+  Second, we have for any $p>1$ with $1/p+1/q=1$ that
+  \begin{align*}
+    & \bar g^K(z;p)\\
+    \leq&
+                       \left\{
+                       \begin{array}{l@{~~~~}l}
+												\mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+                         \mbox{subject to} &  y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad  k=1,\dots,K,\\
+                              &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  \\
+															& \qquad \qquad + \phi(q)\left[\frac{q-1}{q} \epsilon^{\frac{1}{1-q}} \max_{k'=1}^K\norm{y_{k'}}_*\right]^{1-q} \left\|y_{k} \right\|^q_* \\
+                              & \qquad \qquad+ \left[\frac{q-1}{q} \epsilon^{\frac{1}{1-q}} \max_{k'=1}^K\norm{y_{k'}}_*\right] \epsilon^p\le s_k \quad  k=1,\dots, K\\
+                              & (q-1)^{1/4} \leq \norm{y_k}_* \leq (q-1)^{-1/4}\quad  k =1,\dots, K
+                       \end{array}
+                     \right.\\
+    =&
+                       \left\{
+                       \begin{array}{l@{~~~~}l}
+												\mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+                         \mbox{subject to} &  y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k= 1,\dots, K,\\
+                              &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  + \frac{1}{q}\epsilon \left[\max_{k'=1}^K\norm{y_{k'}}_*\right]^{1-q} \left\|y_{k} \right\|^q_* \\
+                              & \qquad + \frac{q-1}{q} \epsilon \max_{k'=1}^K\norm{y_{k'}}_*\le s_k \quad  k =1,\dots, K\\
+			      & (q-1)^{1/4} \leq \norm{y_k}_* \leq (q-1)^{-1/4}\quad  k =1,\dots, K
+                       \end{array}
+                       \right.\\
+    =&
+                       \left\{
+                       \begin{array}{l@{~~~~}l}
+												\mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+                         \mbox{subject to} &  y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k= 1,\dots, K,\\
+                              &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  \\
+                              & \qquad +\epsilon \left\|y_{k} \right\|_* \left[\frac{1}{q} \left[\max_{k'=1}^K\frac{\norm{y_{k'}}_*}{\left\|y_{k} \right\|_*}\right]^{1-q} +\frac{q-1}{q} \max_{k'=1}^K\frac{\norm{y_{k'}}_*}{\left\|y_{k} \right\|_*} \right] \le s_k\\
+															&\hspace{7cm} \quad k =1,\dots, K\\
+                         & (q-1)^{1/4} \leq \norm{y_k}_* \leq (q-1)^{-1/4}\quad k=1,\dots, K
+                       \end{array}
+                       \right.\\
+    \leq&
+                       \left\{
+                       \begin{array}{l@{~~~~}l}
+												\mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+                         \mbox{subject to} &  y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k=1,\dots, K,\\
+                              &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  +\epsilon \left\|y_{k} \right\|_* D(q) \le s_k \quad k =1,\dots, K\\
+                         & (q-1)^{1/4} \leq \norm{y_k}_* \leq (q-1)^{-1/4}\quad  k=1,\dots, K.
+                       \end{array}
+                       \right.
+  \end{align*}
+  \reviewChanges{
+    The first inequality follows from the choice $\lambda_k = \left[\frac{q-1}{q} \epsilon^{\frac{1}{1-q}} \max_{k'=1}^K\norm{y_{k'}}_*\right]$ and by imposing the restrictions $(q-1)^{1/4} \leq \norm{y_k}_* \leq (q-1)^{-1/4}$ for all $k =1,\dots, K$.
+    %
+    The first equality follows from the identities
+    \[
+      \phi(q)\left[\frac{q-1}{q}\right]^{1-q} = (q-1)^{(q-1)}/q^q \left[\frac{q-1}{q}\right]^{1-q} = 1/q
+    \]
+    and
+    \[
+      p+\frac{1}{1-q} = \frac{1}{\frac{1}{p}} + \frac{1}{1-q} = \frac{1}{1-\frac{1}{q}}+\frac{1}{1-q} = \frac{-q}{-q+1}+\frac{1}{1-q}=\frac{1-q}{1-q}=1.
+    \]
+    The second equality follows by pulling $\epsilon \left\|y_{k} \right\|_*>0$ out of the last two terms in the constraints.
+  }
+  To establish the last inequality we note that $\max_{k'=1}^K \tfrac{\norm{y_{k'}}_*}{\left\|y_{k} \right\|_*} \geq \tfrac{\norm{y_{k}}_*}{\left\|y_{k} \right\|_*} = 1$ and $\max_{k'=1}^K \tfrac{\norm{y_{k'}}_*}{\left\|y_{k} \right\|_*} \leq (q-1)^{-1/2}$ and hence we can apply Lemma \ref{lemma:dual-helper-II}. Let
+  \begin{equation}
+    \label{eq:def:barf2}
+    \bar g_u^K(z;p)\defn \left\{
+      \begin{array}{l@{~}l}
+        \mbox{minimize} & \sum_{k=1}^K w_k s_k\\
+        \mbox{subject to} &  y_{k}\in \Re^m, ~h_{k}\in \Re^m, ~s_k\in \Re^m \quad k =1,\dots, K,\\
+             &  [-g]^*(y_{k} - h_{k}) + \sigma_{\supp}(h_{k}) - y_{k}^T{d}_k  +\epsilon \left\|y_{k} \right\|_* D\left(\frac{p}{p-1}\right) \le s_k\\
+						 &\hspace{6cm} \quad k =1,\dots, K\\
+             & (p-1)^{-1/4} \leq \norm{y_k}_* \leq (p-1)^{1/4}\quad  k =1,\dots, K.
+      \end{array}
+    \right.
+  \end{equation}
+  Hence, as $q=p/(p-1)$ and $q-1=1/(p-1)$  we have
+  \(
+    \bar g^K(z;p) \leq \bar g_u^K(z;p)
+  \)
+  for all $p>1$.
+  Hence, taking the limit $p\to\infty$ we have $\bar g^K(z;\infty)=\lim_{p\to\infty} \bar g^K(z;p) \leq \liminf_{p\to\infty} \bar g_u^K(z;p)$.
+  \reviewChanges{In fact, as the function $D\left(\frac{p}{p-1}\right)$ defined in Lemma \ref{lemma:dual-helper-II} is nonincreasing for all $p$ sufficiently large this implies that $\bar g^K(z;p)$ is nonincreasing for $p$ sufficiently large and hence we have $\bar g^K(z;\infty)=\lim_{p\to\infty} \bar g^K(z;p) \leq \liminf_{p\to\infty} \bar g_u^K(z;p) = \lim_{p\to\infty} \bar g_u^K(z;p)$. }
+    We now prove here that $\lim_{p\to\infty} \bar g_u^K(z;p) = \liminf_{p\to\infty} \bar g_u^K(z;p)\leq \bar g^K(z;\infty)$. \reviewChanges{Consider any feasible sequence $\{(y^t_{k}, \,h^t_{k}, \,s^t_k=[-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k  +\epsilon \left\|y^t_{k} \right\|_* )\}_{t\geq 1}$ in the optimization problem characterizing $\bar g^K(z;\infty)$ in Equation \eqref{eq:def:barf} so that $\lim_{t\to\infty}\sum_{k=1}^K w_k s^t_k=\bar g^K(z;\infty)$.}
+  Let $\tilde y^t_{k}\in \arg\max \set{\norm{y}_*}{y\in \Re^m, \, \norm{y-y_k^t}_*\leq 1/t}$ for all $t\geq 1$ and $k=1,\dots, K$ and \reviewChanges{observe that $\norm{\tilde y^t_k}_*= 1/t+\norm{y_k^t}_*\geq 1/t$.}
+  Consider now an increasing sequence $\{p_t\}_{t\geq 1}$ so that $(p_t-1)^{1/4}\geq \max^K_{k=1} \norm{\tilde y^t_k}_*$ and $(p_t-1)^{-1/4}\leq 1/t$.
+  Finally observe that the auxiliary sequence $\{(\tilde y^t_{k}, \,\tilde h^t_{k}=h^t_k + (\tilde y^t_{k}-y^t_{k}), \,\tilde s^t_k= [-g]^*(\tilde y^t_{k} - \tilde h^t_{k}) + \sigma_{\supp}(\tilde h^t_{k}) - (\tilde y^t_{k})^T{d}_k  +\epsilon \left\|\tilde y^t_{k} \right\|_* D\left(\tfrac{p_t}{(p_t-1)}\right))\}_{t\geq 1}$ is by construction feasible in the minimization problem characterizing the function $\bar g_u^K(z;p_t)$ in Equation \eqref{eq:def:barf2}. Hence, finally, we have
+  \begin{align*}
+    \lim_{p\to\infty} &g_u^K(z;p) = \lim_{t\to\infty} g_u^K(z;p_t)\\
+    =  & \lim_{t\to\infty} \sum_{k=1}^K w_k \tilde s_k^t\\
+    \reviewChanges{=} & \lim_{t\to\infty} \sum_{k=1}^Kw_k\left([-g]^*(\tilde y^t_{k} - \tilde h^t_{k}) + \sigma_{\supp}(\tilde h^t_{k}) - (\tilde y^t_{k})^T{d}_k  +\epsilon \left\|\tilde y^t_{k} \right\|_* D\left(\tfrac{p_t}{(p_t-1)}\right)\right)\\
+    \leq &\lim_{t\to\infty} \sum_{k=1}^Kw_k\left([-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k  +\epsilon \left\|y^t_{k} \right\|_* D\left(\tfrac{p_t}{(p_t-1)}\right)\right)\\
+                                            & \qquad  + \sum_{k=1}^Kw_k\left(\max_{s\in S} \norm{s}+\norm{d_k}+\epsilon D\left(\tfrac{p_t}{(p_t-1)}\right) \right)/t\\
+    \leq &\lim_{t\to\infty} \sum_{k=1}^Kw_k\left([-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k  +\epsilon \left\|y^t_{k} \right\|_* D\left(\tfrac{p_t}{(p_t-1)}\right)\right)\\
+    \reviewChanges{=} &\lim_{t\to\infty} \sum_{k=1}^Kw_k([-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k  \\
+		& \qquad +\epsilon \left\|y^t_{k} \right\|_* + \epsilon \left\|y^t_{k} \right\|_* \left(D\left(\tfrac{p_t}{(p_t-1)}\right)-1\right))\\
+    \leq &\lim_{t\to\infty} \sum_{k=1}^Kw_k([-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k \\
+		& \qquad +\epsilon \left\|y^t_{k} \right\|_* + \epsilon  (p_t-1)^{1/4} \left(D\left(\tfrac{p_t}{(p_t-1)}\right)-1\right))\\
+    \leq & \lim_{t\to\infty} \sum_{k=1}^Kw_ks_k = \bar g^K(z;\infty).
+  \end{align*}  
+  To establish the third inequality observe first that $-(\tilde y^t_{k})^T{d}_k = -(y^t_{k})^T{d}_k - (\tilde y^t_k-y^t_k)^Td_k\leq -(y^t_{k})^T{d}_k + \norm{\tilde y^t_k-y^t_k}_* \norm{d_k}\leq -(y^t_{k})^T{d}_k + \norm{d_k}/t$. \reviewChanges{Second, remark that we have 
+    \begin{align*}
+      \sigma_{\supp}(\tilde h^t_{k}) = & \sigma_{\supp}(h^t_{k}+(\tilde y^t_k-y_k^t)) \\
+      \leq & \max_{s\in S} s^T(h^t_{k}+(\tilde y^t_k-y_k^t)) \\
+      \leq & \max_{s\in S} s^Th^t_{k}+\max_{s\in S} s^T(\tilde y^t_k-y_k^t)\leq \norm{s}\norm{\tilde y^t_k-y_k^t}_* \leq 1/t \max_{s\in S} \norm{s} .
+    \end{align*}
+    as $\norm{\tilde y_t-y_t}\leq 1/t$.
+  }
+  Lemma \ref{lemma:dual-helper-II} guarantees that $\lim_{t\to\infty} D\left(\tfrac{p_t}{(p_t-1)}\right)=1$.
+  Finally, $\left\|y^t_{k} \right\|_*\leq \left\|\tilde y^t_{k} \right\|_*\leq (p_t-1)^{1/4}$ and
+  \begin{align*}
+    \lim_{t\to\infty} (p_t-1)^{1/4} \left(D\left(\tfrac{p_t}{(p_t-1)}\right)-1\right)=& \lim_{p\to\infty} (p-1)^{1/4} \left(D\left(\tfrac{p}{(p-1)}\right)-1\right)\\
+    = & \lim_{q\to 1} (q-1)^{-1/4} \left( D(q)-1 \right)=0
+  \end{align*}
+  with $1/p+1/q=1$ using again Lemma \ref{lemma:dual-helper-II}.
+\end{proof}
+
+\begin{lemma}
+  \label{lemma:dual-helper}
+  We have
+  \[
+    \min_{\lambda \geq 0} ~\phi(q)\lambda \left\|y/\lambda \right\|^q_* + \lambda \epsilon^p = \norm{y}_*\epsilon
+  \]
+  for any $p>1$ and $q>1$ for which $1/p+1/q=1$, $\phi(q)=(q-1)^{q-1}/q^q$ and $\epsilon>0$.
+\end{lemma}
+\begin{proof}
+  Remark that as the objective function $\lambda\mapsto \phi(q)\lambda \left\|y/\lambda \right\|^q_* + \lambda \epsilon^p$ is continuous and we have $\lim_{\lambda\to 0} \phi(q)\lambda \left\|y/\lambda \right\|^q_* + \lambda \epsilon^p = \lim_{\lambda\to\infty} \phi(q)\lambda \left\|y/\lambda \right\|^q_* + \lambda \epsilon^p=\infty$ as $\epsilon>0$ there must exist a minimizer $\lambda^\star\in \min_{\lambda \geq 0}\, \phi(q)\lambda \left\|y/\lambda \right\|^q_* + \lambda \epsilon^p$ with $\lambda_\star>0$.
+The necessary and sufficient first-order convex optimality conditions of the minimization problem guarantee
+\begin{align*}
+  & \lambda^\star\in \min_{\lambda \geq 0} ~\phi(q)\lambda \left\|y/\lambda \right\|^q_* + \lambda \epsilon^p\\
+  \iff & (1-q)\phi(q) \lambda_\star^{-q} \norm{y}_\star^q + \epsilon^p = 0\\
+  \iff & \epsilon^p = (q-1) \phi(q) \lambda_\star^{-q} \norm{y}_\star^q \\
+  \iff & \lambda_\star = \left[(q-1) \phi(q)\right]^{1/q} \norm{y}_\star\epsilon^{-p/q}\\
+  \iff & \lambda_\star = \frac{q-1}{q} \epsilon^{\frac{1}{1-q}} \norm{y}_\star
+\end{align*}
+where we exploit that $1/p+1/q=1$ and $\phi(q)=(q-1)^{q-1}/q^q$. Indeed, we have
+\[
+  \left[(q-1) \phi(q)\right]^{1/q} = \left[(q-1)^{q}/q^q\right]^{1/q}= (q-1)/q
+\]
+and
+\[
+  -\frac{p}{q} = -\frac{1}{\frac{1}{p} q} = -\frac{1}{(1-1/q) q}=-\frac{1}{q-1}=\frac{1}{1-q}.
+\]
+Hence, we have
+\begin{align*}
+  & \min_{\lambda\geq 0} ~\phi(q) \lambda^{1-q} \norm{y}_\star^q+\lambda\epsilon^p\\
+  = ~&\phi(q) \lambda_\star^{1-q} \norm{y}_\star^q+\lambda_\star\epsilon^p\\
+  = ~&\phi(q) \left[ \frac{(q-1)^{1-q}}{q^{1-q}} \epsilon \norm{y}^{1-q}_\star \right] \norm{y}_\star^q +\left[\frac{q-1}{q} \epsilon^{\frac{1}{1-q}} \norm{y}_\star\right]\epsilon^p\\
+  = ~&\phi(q) \frac{(q-1)^{1-q}}{q^{1-q}} \epsilon \norm{y}_\star +\frac{q-1}{q} \epsilon^{p+\frac{1}{1-q}} \norm{y}_\star\\
+  = ~&\phi(q) \frac{(q-1)^{1-q}}{q^{1-q}} \epsilon \norm{y}_\star +\frac{q-1}{q} \epsilon \norm{y}_\star\\
+  = ~&\frac{(q-1)^{q-1}}{q^q} \frac{(q-1)^{1-q}}{q^{1-q}} \epsilon \norm{y}_\star +\frac{q-1}{q} \epsilon \norm{y}_\star\\
+  = ~&\frac{1}{q} \epsilon \norm{y}_\star +\frac{q-1}{q} \epsilon \norm{y}_\star\\
+  = ~&\left[\frac{1}{q}  +\frac{q-1}{q} \right] \epsilon \norm{y}_\star\\
+  = ~ & \epsilon \norm{y}_\star
+\end{align*}
+where we exploit that $1/p+1/q=1$ and $\phi(q)=(q-1)^{q-1}/q^q$. Indeed, we have
+\[
+  p+\frac{1}{1-q} = \frac{1}{\frac{1}{p}} + \frac{1}{1-q} = \frac{1}{1-\frac{1}{q}}+\frac{1}{1-q} = \frac{-q}{-q+1}+\frac{1}{1-q}=\frac{1-q}{1-q}=1
+\]
+establishing the claim.
+%
+\end{proof}
+
+\begin{lemma}
+  \label{lemma:dual-helper-II}
+  Let $q>1$ then
+  \[
+    \max_{t\in [1, \tfrac{1}{\sqrt{q-1}}]} ~\frac{1}{q} t^{1-q} +\frac{q-1}{q} t = D(q)\defn \max\left(1, \frac{1}{q} \frac{1}{(q-1)^{(1-q)/2}} +\frac{\sqrt{q-1}}{q}\right)
+  \]
+  with $\lim_{q\to 1} D(q)=1$ and $\lim_{q\to 1} (q-1)^{1/4} \left(D(q)-1\right)=0$.
+\end{lemma}
+\begin{proof}
+  Observe that the objective function is convex in $t$. Convex functions attain their maximum on the extreme points of their domain. The limits can be verified using standard manipulations.
+\end{proof}
+
+
+\section{Proof of the equivalence between $\mathbf{p =1}$ and  $\mathbf{p = \infty}$ for affine uncertainty}
+\label{app:equivalence}
+We again consider the single affine constraint~\eqref{eq:affineg}. In formulation~\eqref{eq:example-affine-p}, when $p=1$, we observe from Kuhn et al.~\citep[Section 2.2 Remark 1]{kuhn2019wasserstein} that
+\begin{equation*}
+	 \lim_{q \rightarrow \infty}\phi(q)\lambda \left\|y_{k}/\lambda \right\|^q_* =
+	\begin{dcases} 0 & \text{if}\; \|y_{k} \| \leq \lambda \\
+		\infty & \text{otherwise},
+	\end{dcases}
+	\end{equation*}
+so when the support is $\supp = \reals^m$, the reformulation becomes
+\begin{equation}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & a^Tz - b +\lambda \epsilon + (P^Tz)^T\sum_{k=1}^{K} w_k \bar{d}_k \le 0\\
+		& \|P^Tz \|_* \leq \lambda \\
+		& \lambda \ge 0,\\
+	\end{array}
+\end{equation}
+where we can make the substitution $\lambda = \| P^Tz \|_*$, in which case this becomes equivalent to~\eqref{eq:example-affine-inf}.
+
+\section{Proof of convex reduction of the worst-case problem~\eqref{eq:dro-reduct}}
+\label{app:convex_red}
+We assume all preconditions given in Section 2.2. Referencing the proof for the case where $p=1$ in~\cite{mohajerin_esfahani_data-driven_2018}, we first expand-out the definition of the expected value and the Wasserstein-ball constraint. Then, we replace the joint distribution by a conditional one, since one of the distributions is the known empirical distribution, given by data. We use $K$ instead of $N$ and $w_i$ instead of $1/N$ such that this generalizes to ambiguitity sets defined as the Wasserstein-ball around the weighted empirical distribution $\prob^K$ of the clustered and averaged dataset.
+\begin{equation*}
+\begin{aligned}
+  \sup_{\mathbf{Q}\in \mathbf{B}_\epsilon^p(\hat{\prob}^K)} \Expect^\mathbf{Q}[g(u,z)] &=
+    \begin{cases}
+      \underset{\Pi, \mathbf{Q}}{\sup} & \int_\reviewChanges{\supp} g(u,z)\mathbf{Q}(\dif u)\\
+			\text{s.t.} & \int_\reviewChanges{\supp} \|u - u'\|^p \Pi (\dif u,\dif u') \leq \epsilon^p
+    \end{cases} \\
+		&=   \begin{cases}
+      \underset{\mathbf{Q_k} \in \mathcal{M}(\supp)}{\sup} & \sum_{k = 1}^K w_k \int_\reviewChanges{\supp} g(u,z)\mathbf{Q_k}(\dif u)\\
+			\text{s.t.} &  \sum_{k = 1}^K w_k \int_\reviewChanges{\supp} \|u - \bar{d_k}\|^p \mathbf{Q_k}(\dif u) \leq \epsilon^p.
+    \end{cases} \\
+\end{aligned}
+\end{equation*}
+Next, we take the Lagrangian and utilize the definition of conjugacy.
+\begin{equation*}
+\begin{aligned}
+		&= \begin{cases}
+			\underset{\mathbf{Q_k} \in \mathcal{M}(\supp)}{\sup}\underset{\lambda \geq 0}{\inf} &  \sum_{k = 1}^K w_k \int_\reviewChanges{\supp} g(u,z)\mathbf{Q_k}(\dif u) + \lambda(\epsilon^p - \sum_{k = 1}^K w_k \int_\reviewChanges{\supp} \|u - \bar{d_k}\|^p \mathbf{Q_k}(\dif u) )\\
+	\end{cases}\\
+	&= \begin{cases}
+		\underset{\lambda \geq 0}{\inf} \underset{\mathbf{Q_k} \in \mathcal{M}(\supp)}{\sup} \quad \lambda\epsilon^p +  \sum_{k = 1}^K w_k \int_\reviewChanges{\supp} g(u,z)-\lambda\|u - \bar{d_k}\|^p \mathbf{Q_k}(\dif u)\\
+\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda \geq 0}{\inf} \quad \lambda \epsilon^p +  \underset{u = (v_1,\dots,v_K) \in \supp}{\sup} \sum_{k = 1}^K w_k (g(v_k,z)-\lambda\|v_k - \bar{d_k}\|^p),\\
+\end{cases}
+\end{aligned}
+\end{equation*}
+where the second equality is due to a well-known strong duality result for moment problems~\citep{mohajerin_esfahani_data-driven_2018}. \reviewChanges{Now, separating $g$ into its constituent functions following~\citep[Theorem 4.2]{mohajerin_esfahani_data-driven_2018},
+\begin{equation*}
+	\begin{aligned}
+&= \begin{cases}
+	\underset{\lambda \geq 0}{\inf} & \lambda\epsilon^p + \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} &  \underset{v_k\in \supp}{\sup}\hspace{1mm} g_j(v_k, z) -\lambda \|v_k - \bar{d_k}\|^p  \le s_k \quad k = 1,\dots,K,\quad j = 1,\dots,J
+\end{cases}\\
+&= \begin{cases}
+	\underset{\lambda \geq 0}{\inf} & \sum_{k=1} ^K  w_k s_k \\
+	\mbox{subject to} &  [-g_j +\indicator_{\supp} + \lambda c_k]^*(0)  \le s_k \quad k = 1,\dots,K,\quad j = 1,\dots,J,
+\end{cases}
+\end{aligned}
+\end{equation*}
+where $c_k(v_k) \define   \| v_k - \bar{d}_k \|^p$. The last expression is identical to the form in Appendix~\ref{app:dual_form}, except now with multiple $j$, so the final dual is equivalent to the dualized constraint in~\eqref{c3:eq:robustopt_p_max}.}
+
+\section{Proof of Theorem~\ref{thm:1}}
+\label{app:thm1}
+We prove (i) $\bar{g}^N(z) \leq \bar{g}^K(z)$, (ii) $\bar{g}^K(z) \leq \bar{g}^{N*}(z) + (L/2) D(K)$, and (iii) when the support constraint does not affect the uncertainty set, ${\bar{g}^K(z) \leq \bar{g}^{N}(z) + (L/2) D(K)}$.
+
+\paragraph{Proof of (i).} We begin with a feasible solution $v_1, \dots, v_{N}$ of~\eqref{eq:nocluster_one}, and set $u_k = \sum_{i \in C_k}{v_i}/|C_k|$ for each of the $K$ clusters. We see $u_k$ with $k = 1,\dots,K$ satisfies the constraints of~\eqref{eq:cluster_one}, as
+\reviewChanges{
+\begin{align*}
+	\sum_{k = 1}^K \frac{|C_k|}{N}\left \| u_k - \bar{d}_k \right \|^p &= 	\sum_{k = 1}^K \frac{|C_k|}{N} \left \|  \frac{\sum_{i \in C_k}{v_i}}{|C_k|} -  \frac{\sum_{i \in C_k}{d_i}}{|C_k|} \right \|^p \\
+	&\leq \sum_{k = 1}^K \frac{|C_k|}{N}   \sum_{i \in C_k} \frac{1}{|C_k|} \|v_i - d_i\|^p\\
+	&= \sum_{k = 1}^K \frac{1}{N}  \sum_{i \in C_k} \|v_i - d_i\|^p\\
+	&\leq \epsilon^p,
+	%&= \sqrt{\left (\sum_{k = 1}^K \frac{1}{|C_k| N} \sum_{i \in C_k} \sum_{j \in C_k}\|v_i - d_i\| \|v_j - d_j\|\right)^2}\\
+	%&\leq \sqrt{\left(\sum_{k = 1}^K \frac{1}{|C_k| N} \sum_{i \in C_k} \sum_{j \in C_k}\|v_i - d_i\|^2\right)\left(\sum_{k = 1}^K \frac{1}{|C_k| N} \sum_{i \in C_k} \sum_{j \in C_k}\|v_j - d_j\|^2 \right)}\\
+	%&=\sqrt{\left(\frac{1}{N} \sum_{k = 1}^K  \sum_{i \in C_k}\|v_i - d_i\|^2\right )\left( \frac{1}{N} \sum_{k = 1}^K \sum_{j \in C_k}\|v_j - d_j\|^2\right)}\\
+	%&\leq \sqrt{\epsilon^2 \epsilon^2} = \epsilon^2
+\end{align*}
+where we have applied triangle inequality, Jensen's inequality for the convex function $f(z) = \|z\|^p$, and the constraint of~\eqref{eq:nocluster_one}. In addition, since the support $\supp$ is convex, for every $k$ our constructed $u_k$, as the average of select points $v_i$ $\in \supp$, must also be within $\supp$. The same applies with respect to the domain of $g$.
+}
+
+Since we have shown that the $u_k$'s satisfies the constraints for~\eqref{eq:cluster_one}, it is a feasible solution. We now show that for this pair of feasible solutions, in terms of the objective value, $\bar{g}^K(z) \geq \bar{g}^N(z)$.
+Bh assumption, $g$ is concave in the uncertain parameter, so by Jensen's inequality,
+\begin{align*}
+\sum_{k = 1}^K \frac{|C_k|}{N} g \left(\frac{1}{|C_k|}\sum_{i \in C_k}v_i, z\right) &\geq  \sum_{k = 1}^K \frac{|C_k|}{N} \frac{1}{|C_k|}\sum_{i \in C_k} g(v_i)\\
+\sum_{k = 1}^K \frac{|C_k|}{N}g(u_k,z) &\geq \frac{1}{N}\sum_{i \in N} g(v_i).
+\end{align*}
+Since this holds true for $u_k$'s constructed from any feasible solution $v_i, \dots, v_N$, we must have $\bar{g}^K(z) \geq \bar{g}^N(z)$.
+
+\paragraph{Proof of (ii).}
+Next, we prove $\bar{g}^K(z) \leq \bar{g}^{N*}(z) + (L/2) D(K)$ by making use of the $L$-smooth condition on $-g$. We first solve~\eqref{eq:cluster_one} to obtain a feasible solution $u_1, \dots, u_k$. We then set $\Delta_k \define u_k - \bar{d}_k$ for each $k \leq K$, and set $v_i = d_i + \Delta_k \quad \forall i \in C_k, k = 1,\dots,K$. These satisfy the constraint of~\eqref{eq:nocluster_inf}, as
+\begin{align*}
+	\frac{1}{N} \sum_{i=1}^N  \| v_i - d_i \|^p &= \frac{1}{N} \sum_{k=1}^K \sum_{i \in C_k} \|\Delta_k\|^p\\
+	&= \sum_{k=1}^K \frac{|C_k|}{N} \|u_k - \bar{d}_k\|^p\\
+	&\leq \epsilon^p,
+\end{align*}
+where the inequality makes use of the constraint of~\eqref{eq:cluster_one}. Since the constraints are satisfied, the constructed $v_i \dots v_N$ are a valid solution for~\eqref{eq:nocluster_inf}.
+We note that these $v_i$'s are also in the domain of $g$, given that the uncertain data $\mathcal{D}_N$ is in the domain of $g$.
+\reviewChanges{For monotonically increasing functions $g$, (\eg, $\log(u)$, $1/(1+u)$), we must have $\Delta_k = u_k - \bar{d_k} \geq 0$ in the solution of~\eqref{eq:cluster_one}, as the maximization of $g$ over $u_k$ wil lead to $u_k \geq \bar{d_k}$.
+Therefore, $v_i = d_i + \Delta_k$ is also in the domain, as the $L$-smooth and concave function $g$ with only a potential lower bound will not have holes in its domain above the lower bound. }
+For monotonically decreasing functions $g$, the same logic applies with a nonpositive $\Delta_k$.
+We now make use of the convex and $L$-smooth conditions~\citep[Theorem 5.8]{amirbeck} on $-g: \forall v_1, v_2 \in \supp, \lambda \in [0,1],$
+\begin{align*}
+	g(\lambda v_1 + (1-\lambda) v_2) \leq \lambda g(v_1) + (1 - \lambda)g(v_2) + \frac{L}{2}\lambda(1 - \lambda)\| v_1 - v_2 \|^2_2,
+\end{align*}
+\reviewChanges{which, we can apply iteratively, with the first iteration being
+$$ g\left (\frac{1}{|C_k|} v_1 + \frac{|C_k|-1}{|C_k|} \bar{v}_2\right ) \leq \frac{1}{|C_k|}g(v_1) + \frac{|C_k|-1}{|C_k|}g(\bar{v}_2) + \frac{L}{2}\frac{1}{|C_k|}\frac{|C_k|-1}{|C_k|}\| v_1 - \bar{v}_2 \|^2_2, $$
+where $\bar{v}_2 = \frac{1}{|C_k|-1}\sum_{i \in C_k, i\neq 1} v_i$. Note that $v_1 - \bar{v}_2 = d_1 - \frac{1}{|C_k|-1}\sum_{i \in C_k, i\neq 1} d_i$, as they share the same $\delta_k$. The next iteration will be applied to $g(\bar{v}_2)$, and so on.} 
+\reviewChanges{
+For each cluster $k$, this results in:
+\begin{align*}
+	g \left(\frac{1}{|C_k|}\sum_{i \in C_k} v_i, z\right) &\leq  \frac{1}{|C_k|}\sum_{i \in C_k} g(v_i,z) + \frac{L}{2|C_k|} \sum_{i=2} ^{|C_k|} \frac{i-1}{i} \left \|d_i - \frac{\sum_{j=1}^{i-1}d_j}{i-1} \right \|^2_2\\
+	 g(\bar{d}_k + \Delta_k,z) &\leq \frac{1}{|C_k|}\sum_{i \in C_k} g(v_i,z) + \frac{L}{2|C_k|} \sum_{i \in C_k} \|d_i - \bar{d}_k\|^2_2\\
+	g(u_k,z) &\leq  \frac{1}{|C_k|}\sum_{i \in C_k} g(v_i,z) + \frac{L}{2|C_k|} \sum_{i \in C_k} \|d_i - \bar{d}_k\|^2_2,
+\end{align*}
+where we used the equivalence $$ \sum_{i=2} ^{|C_k|} \frac{i-1}{i} \left \|d_i - \frac{\sum_{j=1}^{i-1}d_j}{i-1} \right \|^2_2 =  \sum_{i \in C_k} \|d_i - \bar{d}_k\|^2_2. $$
+Now, summing over all clusters, we have 
+\begin{align*}
+	\sum_{k = 1}^K \frac{|C_k|}{N}  g(u_k,z) &\leq \frac{1}{N} \sum_{i = 1}^N g(v_i,z) + (L/2) D(K).
+\end{align*}
+Since this holds for any feasible solution of~\eqref{eq:cluster_one}, we must have  $ {\bar{g}^K(z) \leq \bar{g}^{N*}(z) + (L/2) D(K)}$.
+}
+% \paragraph{Proof of (iii).} When the support constraint does not affect the uncertainty set, we note that the constructed $v_i$'s in part (ii) are then also in $\supp$. Therefore, ${\bar{g}^{N}(x) = \bar{g}^{N*}(x)}$, and we arrive at the desired conclusion.
+
+
+\section{Proof of Theorem~\ref{thm:maxconcave}}
+\label{app:maxconcave}
+\reviewChanges{
+\paragraph{Proof of the lower bound.}
+We use the dual formulations of the \gls{MRO} constraints. We first solve~\eqref{eq:cluster_dual} to obtain dual variables $y_{jk}$, $\gamma_{jk}$ for $k = 1,\dots,K$, $j = 1,\dots,J$. For each data label $i$ in cluster $C_k$, for all clusters $k = 1,\dots,K$, and for all pieces $j = 1,\dots, J$, if we set
+\begin{equation*}
+	\begin{aligned}
+		y_{ji} &= y_{jk}, \quad \gamma_{ji} = \gamma_{jk}\\
+		s_i &= s_k + \max_j\{(-y_{jk} - H^T\gamma_{jk})^T (d_i - \bar{d}_k)\},
+	\end{aligned}
+\end{equation*}
+we have obtained a valid solution for~\eqref{eq:nocluster_dual}. The increase in the objective value from $\bar{g}^K(z)$ to that of the constructed solution of~\eqref{eq:nocluster_dual} is
+\begin{equation*}
+	\begin{aligned}
+		\delta(K,y,\gamma) & \define (1/N)\sum_{i=1}^N s_i - \sum_{k=1}^K(|C_k|/N)s_k \\
+		&= (1/N)\sum_{k = 1}^K\sum_{i\in C_k} \max_j\{(-y_{jk} - H^T\gamma_{jk})^T(d_i - \bar{d}_k)\}.
+	\end{aligned}
+\end{equation*}
+We note that $\delta(K,y,\gamma) \geq 0$, as
+\begin{equation*}
+	\begin{aligned}
+		\delta(K,y,\gamma) &= (1/N)\sum_{k = 1}^K\sum_{i\in C_k} \max_j\{(-y_{jk} - H^T\gamma_{jk})^T(d_i - \bar{d}_k)\}\\
+		&\geq (1/N)\sum_{k = 1}^K\sum_{i\in C_k} (-y_{1k}^T - \gamma_{1k}^TH)(d_i - \bar{d}_k)\\
+		& = (|C_k|/N)\sum_{k = 1}^K  (-y_{1k} - H^T\gamma_{1k})^T (1/|C_k|)\sum_{i\in C_k} (d_i - \bar{d}_k)\\
+		&= (|C_k|/N) \sum_{k = 1}^K  (-y_{1k} - H^T\gamma_{1k})^T0\\
+		&= 0
+	\end{aligned}
+\end{equation*}
+The constructed feasible solution for~\eqref{eq:nocluster_dual} is an upper bound for its optimal solution, since we solve a minimization problem. As this holds true for any solution of~\eqref{eq:cluster_dual}, we must have $\bar{g}^K(z) + \delta(K,y,\gamma) \geq \bar{g}^N(z)$, which translates to $\bar{g}^N(z) - \delta(K,y,\gamma) \leq \bar{g}^K(z)$.
+\paragraph{Proof of the upper bound.}
+We use the primal formulations of the \gls{MRO} constraints. 
+We first solve~\eqref{eq:cluster_one} to obtain a feasible solution $u_{11}, \dots, u_{JK}$. We then set $\Delta_{jk} \define u_{jk} - \bar{d}_k$ for each $k \leq K$, and set $v_{ji} = d_i + \Delta_{jk}$, $\alpha_{ji} = \alpha_{jk}/|C_k| \quad \forall i \in C_k, k = 1,\dots,K$.
+These satisfy the constraint of~\eqref{eq:nocluster_inf}, as
+\begin{align*}
+	\sum_{i=1}^N \sum_{j=1}^J  \alpha_{ji} \| v_{ji} - d_i \|^p &= \sum_{k=1}^K \sum_{j=1}^J \sum_{i \in C_k}  \alpha_{ji} \|\Delta_{jk}\|^p\\
+	&= \sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} \|u_{jk} - \bar{d}_k\|^p\\
+	&\leq \epsilon^p.
+\end{align*}
+The constructed solutions remain in $\dom$, following the arguments in the proof of (ii) in Appendix~\ref{app:thm1}. 
+Now, for each cluster $k$ and function $g_j$, we note using the $L$-smooth condition on $-g_j$,
+\begin{align*}
+	\alpha_{jk} g_j\left(\frac{1}{|C_k|}\sum_{i \in C_k} v_{ji}, z\right) &\leq  \alpha_{jk} \left (\sum_{i \in C_k} \frac{1}{|C_k|} g_j(v_{ji},z) + \frac{L_j}{2|C_k|} \sum_{i=2} ^{|C_k|} \frac{i-1}{i} \left \|d_i - \frac{\sum_{j=1}^{i-1}d_j}{i-1} \right \|^2_2\right )\\
+	\alpha_{jk} g_j(\bar{d}_k + \Delta_k,z) &\leq  \sum_{i \in C_k} \alpha_{ji} g_j(v_{ji},z)  + \frac{\alpha_{ji} L_j}{2} \sum_{i \in C_k} \|d_i - \bar{d}_k\|^2_2
+\end{align*}
+Then, summing over all the clusters and functions, we have 
+\begin{align*}
+\sum_{k=1}^K \sum_{j=1}^J \alpha_{jk}  g_j(u_k,z) &\leq \sum_{k=1}^K \sum_{j=1}^J \sum_{i \in C_k} \alpha_{ji} g_j(v_{ji},z)  + \sum_{k=1}^K \sum_{j=1}^J \frac{\alpha_{ji}  \max_{j\leq J} L_j}{2} \sum_{i \in C_k} \|d_i - \bar{d}_k\|^2_2.\\
+&\leq \sum_{i=1}^N \sum_{j=1}^J \alpha_{ji} g(v_i,z) + \max_{j\leq J} (L_j/2N)\sum_{i=1}^N \|d_i - \bar{d}_k\|^2_2 .
+\end{align*}
+Since this holds for all feasible solutions of~\eqref{eq:cluster_one}, we conclude that 
+$$ \bar{g}^K(z) \leq \bar{g}^{N*}(z) +  \max_{j\leq J} (L_j/2) D(K).$$
+}
+
+% \ifpreprint
+% \subsection{Proof of Corollary~\ref{cor:strict_cluster}}
+% \else
+% \section{Proof of Corollary~\ref{cor:strict_cluster}}
+% \fi
+% \label{app:strict_cluster}
+% \reviewChanges{As all datapoints in the same cluster are maximized on the same piece of $g$, we can follow the proof of Appendix~\ref{app:thm1} for the single concave case, for each cluster. Specifically, for each cluster, the constructed solutions $u_k$ and $\{v_i\}_{i\in C_k}$ should be maximized on the same function $g_j$ as the solution it was constructed from. Jensen's ineqality and $L$-smoothness applies on each cluster, as every $g_j$ is concave. Summing over all the clusters, we obtain
+% $$\bar{g}^{N}(x) \le \bar{g}^K(x) \leq \bar{g}^{N*}(x) + \max_{j\leq J}(L_j/2) D(K).$$
+% }
+\section{Conjugate derivation for the Capital Budgeting problem~\eqref{eq:capital}}
+\label{app:capital}
+We begin with
+\begin{equation*}
+g(u,z) = -\eta(u)^Tz = -\sum_{j = 1}^n \sum_{t = 0}^T F_{jt}z_j/(1+u_j)^{t},
+\end{equation*}
+and take its conjugate $[-g]^*(y)$ in the uncertain parameter $u$. We use the theorem on infimal convolutions~\citep[Theorem 11.23(a), p. 493]{rockafellar_wets_1998} to arrive at
+\begin{equation*}
+	[-g]^*(y) = \sum_{t = 0}^T \sup_{u} \left( u^Th_t -  \left[\sum_{j = 1}^n F_{jt}z_j(1+ u_j)^t\right]\right), \quad \sum_{t = 0}^T h_t = y.
+	\end{equation*}
+We calculate the inner conjugates using the the first order optimality condition,
+\begin{align*}
+\nabla \left(h_t^Tu - \sum_{j = 1}^n F_{jt}z_j(1+ u_j)^{-t}\right) = 0 \\
+h_{jt} = -tF_{jt}z_j(1+u_j^\star)^{-(t+1)}, \quad j = 1,\dots,n \\
+u_j^\star = (tF_{jt}z_j(-h_{jt})^{-1})^{1/(t+1)} - 1, \quad j = 1,\dots,n.
+\end{align*}
+Substituting this back into the expression for the conjugate, we have, for each $j$ and $t$,
+\begin{align*}
+	h_{jt}u_j^\star - F_{jt}z_j&(1+u_j)^{-t} = h_{jt}(tF_{jt}z_j(-h_{jt}^{-1})^{(1/(t+1)} - 1)) \\
+	&\hspace{4cm} - F_{jt}(tF_{jt}z_j(-h{jt})^{-1})^{-t/(t+1)}\\
+&= -h_{jt} - ((-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)})(t^{1/(t+1)} + t^{-1/(t+1)}),
+	\end{align*}
+after combining terms. Note that $-(-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)}$ can be replaced by an auxiliary variable $\delta_{jtk} \leq 0$, by introducing the power cone constraint $(-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)} \geq |\delta_{jtk} |$. Bh substituting these results into~\eqref{eq:robustopt_p} and further vectoring some constraints, we arrive at the desired formulation.
+
+\chapter{Proofs for Online Distributionally Robust Optimization}
+\label{app:online_dro}
+
+\section{Proof of the performance guarantees in Section~\ref{sec:gen_gau}}
+
+\label{app:gen_proofs}
+\begin{proof}[Proof of Lemma~\ref{lem:delta}]
+    For all $t$, let $\tilde{\mathbf{Q}}_t \in  \tilde{\mathbf{B}}_{\epsnom_t}^{r}(\hat{\prob}_t)$ and $\mathbf{Q}_t \in  \mathcal{P}_t$. Bh~\cite[Lemma 3.7]{mohajerin2018data}, we observe {$\prob^{\infty}\{ \lim_{t\to\infty}\tilde{\mathbf{Q}}_t \rightarrow  \prob\}=1$} and $\prob^{\infty}\left\{ \lim_{t\to\infty}\mathbf{Q}_t \rightarrow \prob \right \}=1$. \RC{The first result follows. 
+    If $f$ is Lipschitz, by the Kantorovich-Rubinstein duality~\cite{kantorovich_duality}, and by noting $W_1(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)\leq W_r(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t) \leq 2\epsnom_{t}$ (by the ordering of Wasserstein distances and the triangle inequality), we obtain $\Delta_t\leq 2\max_{j\leq J}M_j \epsnom_{t}$.}
+    \RC{If $f$ is $L$-smooth, then by the descent lemma and~\eqref{eq:wass_dist}, 
+    $\mathbf{E}_{\mathbf{\tilde{Q}_t}}[f(\unc, z_{t})] - \mathbf{E}_{\mathbf{{Q}_t}}[f(\unc, z_{t})] \leq \inf_{\pi \in \Pi(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)}\int_{S\times S} \nabla f(v,z_t)^T(u-v)d\pi(u,v) + (L/2)W_2(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)^2.$ Bh the Cauchy-Schwartz inequality and H\"{o}lder's inequality with order 2, the integral is upper bounded by $(\textstyle \int \|\nabla f(v,z_t)\|^2d{\mathbf{Q}}_t)^{1/2} (\int \|u-v\|^2d\pi(u,v))^{1/2} = \|\nabla f_{z_t}\|_{L_2({\mathbf{Q}}_t)}W_2(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)$. When $r\geq 2$, this simplifies to $\Delta_t \leq \|\nabla f_{z_t}\|_{L_2({\mathbf{Q}}_t)}2\epsnom_t + 2L\epsnom_t^2$. The result follows.}
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:nominal_performance}]
+\RC{We first prove~\eqref{eq:relate}. We begin by observing} 
+\begin{equation*}
+    H_t = \max_{\mathbf{Q} \in \mathcal{P}_{t}} \mathbf{E}_{\mathbf{Q}}[f( \unc,z_t)] \leq \max_{\mathbf{Q} \in \mathcal{P}_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z^K_{t})] \leq \max_{\mathbf{Q} \in \mathcal{P}^K_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z^K_{t})]  + \Phi^K_{t},
+\end{equation*}
+with $\max_{\mathbf{Q} \in \mathcal{P}^K_{t}}\mathbf{E}_{\mathbf{Q}}[f(\unc, z^K_{t})] = H^K_t$ in the final clause. 
+The first inequality follows from the optimality of $z_t$, the second follows from~\cite[Theorem 5]{mro}, 
+% the equality follows from the optimality of $x^K_{t}$, 
+and $\Phi^K_t$ is defined in Definition~\ref{def:cluster_value}.
+From~\cite[Theorem 4]{mro}, we note that $\Phi^K_{t}=0$ for concave functions $f$,~\ie, when $J=1$.
+\RC{When $f$ is Lipschitz, using Kantorovich-Rubinstein duality~\cite{kantorovich_duality}, we can obtain a second bound on $H_t$,}
+\begin{equation*}
+\begin{aligned}
+        \max_{\mathbf{Q} \in \mathcal{P}_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z^K_{t})] &\leq  \max_{\mathbf{Q} \in \mathcal{P}^K_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z^K_{t})] + \max_{j\leq J}M_j(2\epsnom_{t} + W_1(\hat{\prob}_{t},\hat{\prob}^K_{t})).
+    % &\leq H^K_t+ \max_{j\leq J}M_j(2\epsnom_{t} +d^K_{t,1}).\\ 
+    \end{aligned}
+\end{equation*}
+\RC{When $f$ is $L$-smooth, using the same procedure as in the proof of Lemma~\ref{lem:delta} above, we obtain a third bound in terms of the $W_2$ distance.} 
+\RC{Combining all gives the bound on $H_t - H^K_t$.} For the other side, from the optimality of $H^K_t$ and \cite[Theorem 5]{mro},
+\begin{equation*}
+\begin{aligned}
+    H^K_t \leq \max_{\mathbf{Q} \in \mathcal{P}^K_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z_{t})] &\leq  H_t + (\tilde{H}_t - H_t) + {\max_{j \leq J}\frac{L_j}{2}}(D^K_{t,2})^2,
+    % &= H_t + \Delta_t + {\max_{j \leq J}(L_j/2)}(D^K_{t,2})^2,
+\end{aligned}
+\end{equation*}
+where $\tilde{H}_t - H_t =\Delta_t$ is given in Lemma~\ref{lem:delta}. 
+Kantorovich-Rubinstein duality yields 
+\begin{equation*} H^K_t \leq \max_{\mathbf{Q} \in \mathcal{P}^K_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z_{t})] \leq H_t + \max_{j\leq J}M_j(2\epsnom_{t} +\ld^K_{t,1}).\end{equation*}
+\RC{Combining everything, we obtain~\eqref{eq:relate}.} \RC{Using these relationships, and the finite-sample performance guarantee~\eqref{c3:eq:prob_guarantees1} implied by the chosen radii sequence in Assumption~\ref{ass:general_ass}(1), we obtain~\eqref{eq:is_bounds}.} \RC{To prove~\eqref{eq:oos_bounds}, we note that if the radii are chosen using Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf}, then with probability $1 - \beta_{t}$, $\prob \in \mathcal{P}_{t},$ and we have, with $\rho_{t}=0$,}
+\begin{equation}
+\label{eq:oos_proof}
+        \prob^{{t}}\left( H_\star \leq \mathbf{E}_{\mathbf{P}}[f(\unc, z^K_{t})] \leq \max_{\mathbf{Q} \in \mathcal{P}_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z^K_{t})] + \rho_{t}\right) \geq 1 - \beta_{t}.
+\end{equation}
+\RC{Applying the bounds we derived for $\max_{\mathbf{Q} \in \mathcal{P}_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc, z^K_{t})]$ gives the desired result.} \RC{If the radii are chosen using Theorem~\ref{thm:informal_curse}, then as $z^K_t \in \mathcal{Z}$,~\eqref{eq:oos_proof} holds by~\eqref{eq:informal_x}.}
+\end{proof}
+
+% \IrinaNote{Rewrite}
+% Recall that under the radius $\epsnom_{t-1}$, the solution $x_t$  and optimal value $H_t = \max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f( \unc,x_t)]$ of the \gls{DRO} problem~\eqref{eq:DRO} imply the finite sample performance guarantee~\eqref{c3:eq:prob_guarantees1}.
+% % $$\prob^{n_{t-1}}\left(H_\star \leq \max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc,x_t)] = H_t \right) \geq 1 - \beta_{t-1}.$$
+% % Furthermore, when the adaptive ambiguity set has radius $\eps_{t-1} = \epsnom_{t-1}$, the solution $x^K_{t}$ and optimal value $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} satisfy
+% We also observe
+% \begin{equation*}
+%     \begin{aligned}
+%     \max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f( \unc,x_t)] \leq \max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})] &\leq \max_{\mathbf{Q} \in \mathcal{P}^K_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})]  + \Phi^K_{t-1},
+%     \end{aligned}
+% \end{equation*}
+% with $\max_{\mathbf{Q} \in \mathcal{P}^K_{t-1}}\mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})] = H^K_t$ in the final clause. 
+% The first inequality follows from the optimality of $x_t$, the second follows from~\cite[Theorem 5]{mro}, 
+% % the equality follows from the optimality of $x^K_{t}$, 
+% and $\Phi^K_t$ is defined in Definition~\ref{def:cluster_value}.
+% From~\cite[Theorem 4]{mro}, we note that $\Phi^K_{t-1}=0$ for concave functions $f$,~\ie, when $J=1$.
+% We also observe, using Kantorovich-Rubinstein duality~\cite{kantorovich_duality}, 
+% \begin{equation*}
+% \begin{aligned}
+%         \max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})] &\leq  \max_{\mathbf{Q} \in \mathcal{P}^K_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})] + \max_{j\leq J}M_j(2\epsnom_{t-1} + W_1(\hat{\prob}_{t-1},\hat{\prob}^K_{t-1})) \\
+%     &\leq H^K_t+ \max_{j\leq J}M_j(2\epsnom_{t-1} +d^K_{t-1,1}).\\ 
+%     \end{aligned}
+% \end{equation*}
+% Combining the above relations, we obtain the first half of equation~\eqref{eq:is_bounds}, 
+% $$\prob^{{t-1}}\left(H_\star \leq H_t \leq H^K_t + \min\left\{\Phi^K_{t-1},\max_{j\leq J}M_j(2\epsnom_{t-1} +d^K_{t-1,1})\right\}\right) \geq 1 - \beta_{t-1}.$$
+% % Note that by definition of $\Phi^K_{t-1}$, it is generally expected to be a lower bound of $\max_{j\leq J}M_j(2\epsnom_{t-1} + d^K_{t-1,1}$), as each $M_j$ is assumed to be the global Lipchitz constant that bounds the functional change $|f_j(x,u) - f_j(x,v)|$, $u,v\in \supp$. However, since $d^K_{t-1,1}$ assumes optimal coupling between the two empirical distributions, and $\Phi^K_t$ uses the coupling induced by clustering, there may be exceptions. 
+
+% To derive~\eqref{eq:oos_bounds}, we also note that, with probability $1 - \beta_{t-1}$,
+% \begin{equation*}
+%     \begin{aligned}
+%         H_\star = \min_{x\in \mathcal{X}} \mathbf{E}_{\mathbf{P}}[f(\unc,x)] \leq \mathbf{E}_{\mathbf{P}}[f(\unc, x^K_{t})] \leq \max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})].
+%     \end{aligned}
+% \end{equation*}
+% Now for the upper bound, from the optimality of $H^K_t$ and \cite[Theorem 5]{mro},
+% \begin{equation*}
+% \begin{aligned}
+%     H^K_t \leq \max_{\mathbf{Q} \in \mathcal{P}^K_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x_{t})] &\leq  H_t + (\tilde{H}_t - H_t) + {\max_{j \leq J}(L_j/2)}(D^K_{t-1,2})^2\\
+%     &= H_t + \Delta_t + {\max_{j \leq J}(L_j/2)}(D^K_{t-1,2})^2,
+% \end{aligned}
+% \end{equation*}
+% where $\Delta_t$ is given in Lemma~\ref{lem:delta}. 
+% By applying Kantorovich-Rubinstein duality, 
+% $$ H^K_t \leq \max_{\mathbf{Q} \in \mathcal{P}^K_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x_{t})] \leq H_t + \max_{j\leq J}M_j(2\epsnom_{t-1} +d^K_{t-1,1}).$$
+% Combining both inequalities, we obtain 
+% $$H^K_t \leq H_t + \min\left\{\Delta_t + {\max_{j \leq J}(L_j/2)}(D^K_{t-1,2})^2,\max_{j\leq J}M_j(2\epsnom_{t-1} +d^K_{t-1,1})\right\}.$$
+% \ifpreprint Combining the upper and lower bounds gives the desired result.\fi
+% Rearranging terms and combining with previous results give equations~\eqref{eq:relate} and~\eqref{eq:is_bounds}.
+% \end{proof}
+
+% \ifpreprint
+% \ifpreprint
+% \section{Proof of the regret bound in Section~\ref{sec:regret}}
+% \else
+\section{Proof of the regret bounds in Section~\ref{sec:regret}}
+\label{app:regret}
+\begin{proof}[Proof of Lemma~\ref{lem:regret}]
+For brevity, let us denote the following shorthands for any $t$:
+ $\bar{f}_t(z) = \max_{\mathbf{Q} \in \mathcal{P}_t} \mathbf{E}_{\mathbf{Q}}[f(\unc,z)]$, $\bar{f}^K_t(z) = \max_{\mathbf{Q} \in \mathcal{P}^K_{t}} \mathbf{E}_{\mathbf{Q}}[f(\unc,z)],$ 
+ and the corresponding solutions 
+ $z_t = \argmin_{z \in \mathcal{Z}}\bar{f}_t(z)$, $z^K_{t} = \argmin_{z \in \mathcal{Z}}\bar{f}^K_{t}(z).$
+We wish to bound 
+$$R(T) = \frac{1}{T}\sum_{t=0}^{T-1} \left(\bar{f}_{t+1}(z^K_{t}) - \bar{f}_{t+1}(z_{t+1})\right),$$
+which can be rewritten as
+\begin{equation*}
+\begin{aligned}
+  R(T,K) &=\frac{1}{T}\sum_{t=0}^{T-1} \left(\bar{f}_{t+1}(z^K_{t}) - \bar{f}_{t}(z_{t})\right) + \frac{1}{T}\sum_{t=0}^{T-1} \left( \bar{f}_{t}(z_{t}) - \bar{f}_{t+1}(z_{t+1})\right).
+\end{aligned}
+\end{equation*}
+Note that the second summation telescopes to $(1/T)\left( \bar{f}_{0}(z_{0}) - \bar{f}_{T}(z_{T})\right).$
+We then begin by bounding the terms in the first summation. We observe that
+$$\bar{f}_{t+1}(z^K_{t}) \leq \bar{f}^K_{t+1}(z^K_{t}) + \min\left\{ \Phi^K_{t+1},  \max_{j\leq J}M_j(2\epsnom_{t+1}+d^K_{{t+1},1})\right\} = \bar{f}^K_{t+1}(z^K_{t}) + \underline{\psi}_{t+1}^K,$$
+using~\cite[Theorem 5]{mro} and Kantorovich-Rubinstein duality. Using the same theorems, we observe
+$\bar{f}_{t}(z_{t}) \geq \bar{f}_{t}^K(z_{t}) - \bar{\psi}_t^K,$
+and by the optimality of $z^K_{t}$ for the particular problem, $\bar{f}_{t}^K(z_{t}) \geq \bar{f}_{t}^K(z^K_{t})$.
+Furthermore, by Kantorovich-Rubinstein duality
+$$ \bar{f}^K_{t+1}(z^K_{t}) -\bar{f}_{t}^K(z^K_{t}) \leq \max_{j\leq J}M_j(2\epsnom_{t} + W_1(\hat{\prob}^K_t,\hat{\prob}^K_{t+1})).$$
+Combining these relations, we obtain
+    \begin{equation}
+    \begin{aligned}
+    \label{lem:regret_eq}
+    \frac{1}{T}& \sum_{t=0}^{T-1} (\bar{f}_{t+1}(z^K_{t}) - \bar{f}_{t}(z_{t})) \leq \frac{1}{T}\sum_{t=0}^{T-1}  (\underline{\psi}_{t+1}^K + \bar{\psi}_t^K  + \max_{j\leq J}M_j(2\epsnom_{t} +W_1(\hat{\prob}^K_t,\hat{\prob}^K_{t+1})).
+    \end{aligned}
+    \end{equation} 
+For the final term, we show again by Kantorovich-Rubinstein duality
+$$\bar{f}_{0}(z_{0}) - \bar{f}_{T}(z_{T}) \leq \bar{f}_{0}(z_{T}) - \bar{f}_{T}(z_{T})\leq  \max_{j\leq J}M_j(\epsnom_0 + \epsnom_{T} +W_1(\hat{\prob}_0,\hat{\prob}_{T})).$$
+\end{proof}
+
+We use this to prove Theorem~\ref{thm:regret} and its corollaries. 
+\begin{proof}[Proof of Theorem~\ref{thm:regret} and Corollary~\ref{cor:regret_beta}]
+We examine the terms in $R(T,K)$ individually, for a finite value $T \gg \tau$.
+As we assume the Lipschitz condition, we use the corresponding terms in $\underline{\psi}^K_{t}$ and $\bar{\psi}^K_t$ as the upper bounds. 
+% We first examine the terms on the right-hand-side of the minimum clauses. 
+Bh assumption, $\epsnom_t\sim (\log(\beta_t^{-1})/t)^{1/m}$, so their averages are $O((\log(\beta_T^{-1})/T)^{1/m}).$
+Note that by the summability of $\beta_t$, the convergence rate of $\beta_t$ is at least sublinear. 
+Next, recall by the triangle inequality,  $$d^K_{t,1} \leq W_1(\hat{\prob}_t,\prob) + W_1(\prob,\prob^K_\star) + W_1(\prob^K_\star,\prob^K_{t}).$$ Bh Theorem~\ref{thm:measure_gen}, we can construct a summable sequence $\beta_t$ such that $\prob(W_1(\hat{\prob}_t,\prob) \leq \epsnom_t) \geq  1-\beta_t$, where $\epsnom_t$ is the same as above. Bh Theorem~\ref{lem:conditional_Conv}, a similar result holds for $W_1(\prob^K_\star,\hat{\prob}^K_t)$, with a sequence of radii $\tilde{\epsnom}_t\leq O(\epsnom_t)$ for $t \geq \tau$. Since $T \gg \tau$, the finite values $\tilde{\epsnom}_t/T$ for $t\leq \tau$ are dominated by $O(\epsnom_T)$.
+Therefore, the terms involving $d^K_{t,1}$ and $d^K_{t-1,1}$ are together $O(W_1(\prob,\prob^K_\star) + \left(\log(\beta_{T}^{-1})/T\right)^{1/m})$, with probability at least $\Pi_{t=1}^{T}(1-\beta_t)^2$. This probability can be constructed to converge to a nonzero value due to the summability of $\beta_t$. 
+% Now, we note the terms on the left-hand-side of the minimum clauses. These terms quantify the distances between the empirical and the compressed empirical distributions, $\hat{\prob}_t$ and $\hat{\prob}^K_t$, at times $t$ and $t-1$. They converge to their asymptotic values at the convergence rates of $W_1(\hat{\prob}_t,\prob)$ and $W_1(\prob^K_\star,\prob^K_{t})$, which, as shown above, is $O(\epsnom_t)$. 
+% Overall, then, the sum of the two minimum clauses are bounded by $O\left(\underline{\psi}_\star^K + \bar{\psi}_\star^K\right)$ + $O(\epsnom_t)$.
+Next, we note again by the triangle inequality, $$W_1(\hat{\prob}_0,\hat{\prob}_T) \leq W_1(\hat{\prob}_0,\prob) + W_1(\prob,\hat{\prob}_T),$$
+where the first term is constant in $T$ and the second term, by measure concentration results, is upper bounded by $\epsnom_T$ with some probability $1-\beta_T$. Therefore, with probability $1-\beta_T$, $W_1(\hat{\prob}^0,\hat{\prob}_t)/T$ is $O(T^{-1})$.
+Lastly, by the triangle inequality,
+$$W_1(\hat{\prob}^K_t,\hat{\prob}^K_{t+1}) \leq W_1(\hat{\prob}^K_t,\prob^K_\star) + W_1(\prob^K_\star,\hat{\prob}^K_{t+1}) \leq 2\tilde{\epsnom}_{t},$$
+with probability $(1-\beta_{t})^2$.
+The average over $T$ is again $O(\epsnom_{T})$, with probability $\Pi_{t=1}^{T}(1-\beta_t)^2$.
+Combining all terms, we have $R(T,K) \leq O(\left(\log(\beta_T^{-1})/T\right)^{1/d})+ O(W_1(\prob,\prob^K_\star))$, with a consolidated probability $1-\zeta \geq \Pi_{t=1}^T(1-\beta_t)^4$. Again, we remark that the probability $1-\zeta$ can be constructed to be high, with well-chosen sequences $\beta_t$ and $\epsnom_t$. Note that their convergence rates are inversely related; the higher the desired probability $1-\zeta$, the slower the convergence with respect to $T$. Using the Bonferroni Inequality~\cite{Bonferroni}, the probability can be estimated as $1-\zeta \geq 1-\sum_{t=0}^T4\beta_t$.
+
+Corollary~\ref{cor:regret_beta} follows by setting $\beta_t = O(\exp(-\sqrt{n_t})$ and simplifying.
+\end{proof}
+
+
+\begin{proof}[Proof of Corollary~\ref{cor:regret}]
+    The asymptotic result for $T \rightarrow \infty$ follows from Lemma~\ref{lem:regret} and the results from Section~\ref{sec:general}.
+   As $t \to \infty$ and $T\to\infty$, by the almost sure convergence of 
+     $\underline{\psi}_t^K + \bar{\psi}_t^K$ to $\underline{\psi}_\star^K + \bar{\psi}_\star^K$,
+    % $d^K_{t,1}$ to $W_1(\prob,\prob^K_\star)$, 
+    $W_1(\hat{\prob}_0,\hat{\prob}_T)/T$ to $W_1(\hat{\prob}_0,{\prob})/T$ to $0$, and $ W_1(\hat{\prob}^K_t,\hat{\prob}^K_{t-1})$ to $0$, by the Ces\`aro Mean Theorem~\cite{cesaro}, 
+    $R(T,K)$ converges to some value that is $O(\underline{\psi}_
+    \star^K + \bar{\psi}_\star^K)$ with probability 1. 
+The result for $K \rightarrow \infty$ follows from Theorem~\ref{thm:clustering_conv}.
+\end{proof}
+
+% \ifpreprint
+
+\section{Proofs of Section~\ref{sec:bounded_perf} results}
+
+\label{app:bounded_perf_1}
+\begin{proof}[Proof of Lemma~\ref{lem:dist}]
+% Let the center of the $k$-th cluster be $a^k$.
+Bh definition of the Wasserstein metric,
+\begin{equation*}
+\begin{aligned}
+(\ld^K_{t,p})^p = W_p(\hat{\prob}_t, \hat{\mathbf{P}}^K_t)^p & = \inf_{\pi \in \Pi}\left \{\int_{{\supp}^2} \|\unc - \unc^\prime\|^p\pi(d\unc, d\unc^\prime)\right\}\\
+& \leq \sum_{k=1}^K \frac{n^t_k}{n_t} \int_{\supp^2}\|\unc-\bar{u}^k_t\|^p \hat{\prob}_t(\unc|\unc^\prime = \bar{u}^k_t)(du)\\
+& \leq \sum_{k=1}^K \frac{n_k^t}{n_t} \frac{1}{n_k^t} \sum_{ \hat{\unc}\in C^k_t}\|\hat{\unc} - \bar{u}^k_t\|^p\\
+& = \frac{1}{n_t}  \sum_{k=1}^K\sum_{\hat{\unc}\in C^k_t}\|\hat{\unc}- \bar{u}^k_t\|^p\\ 
+% & \leq \frac{1}{n_t}  \sum_{k=1}^K\sum_{\hat{\unc}\in C^k_t}(\|\hat{\unc} - a^k\| + \|a^k - \bar{u}^k_t\| )^p\\
+& \leq (2\eta_K)^p,
+\end{aligned}
+\end{equation*}
+where the final inequality follows from the cluster diameter of $2\eta_K$, using Definition~\ref{def:diam_cluster}. Next, by exploiting the triangular inequality, with probability $1-\beta$, we get
+\begin{equation}\label{eq:MRO}
+W_p(\mathbf{P}, \hat{\mathbf{P}}^K_t) \leq W_p(\mathbf{P}, \hat{\prob}_t) + W_p(\hat{\mathbf{P}}_t, \hat{\mathbf{P}}^K_t) \leq \epsnom_t + 2\eta_K,
+\end{equation}
+where $\epsnom_t$ is computed as in Theorem~\ref{explicit}. 
+\end{proof}
+
+\begin{proof}[Proof of Lemma~\ref{lemma:convergence:K}]
+As $\mathbf{Q}_t \in \mathbf{B}_{\eps_{t}}(\hat{\mathbf{P}}_{t}^K)$, from the triangular inequality,
+$$
+W_p(\mathbf{P}, \mathbf{Q}_t) \leq W_p(\mathbf{P}, \hat{\mathbf{P}}^K_{t}) + W_p(\hat{\mathbf{P}}^K_{t}, \mathbf{Q}_t) \leq W_p(\mathbf{P}, \hat{\mathbf{P}}^K_{t}) + \eps_{t} $$
+From \eqref{eq:MRO} we have $W_p(\mathbf{P}, \hat{\mathbf{P}}^K_{t}) \leq \epsnom_{t} + 2\eta_K = \eps_{t}$. Thus, we have $\mathbf{P}(W_p(\mathbf{P}, \mathbf{Q}_t) \leq 2\eps_{t}) \geq 1 - \beta_{t}$.
+Since by definition $\sum_{t=0}^\infty \beta_t < \infty$, then by the Borel-Cantelli Lemma we get
+$$
+\mathbf{P}^\infty\{W_p(\mathbf{P}, \mathbf{Q}_t) \leq 2\eps_{t} \text{~~for all large enough $t$}\} = 1.
+$$
+Since by definition
+$\lim_{t \rightarrow \infty} 2\eps_{t} = 4\eta_K$, we conclude $\lim_{t\rightarrow \infty}  W_p(\mathbf{P}, \mathbf{Q}_t) \leq 4\eta_K$ almost surely.
+\end{proof}
+
+
+\begin{proof}[Proof of Theorem~\ref{thm:asy_eta}]
+Bh the finite sample performance guarantee in Theorem~\ref{lemma:guarantees_fin} and the summability of $\beta_t$, the Borel–Cantelli Lemma implies that $$ \mathbf{P}^\infty\left\{ H_\star \leq \limsup_{t \rightarrow \infty } \Expect_\prob[f(\unc,z^K_{t})]\leq  \limsup_{t \rightarrow \infty } H^K_t\right\} = 1.$$
+Now, choose any $\gamma >0$, and fix a $\gamma$-optimal solution $z_{\gamma} \in \mathcal{Z}$ of~\eqref{eq:opt} such that $\Expect_{\prob}[f(z_{\gamma},u)] \leq H_\star + \gamma$. For each $t$, we choose a $\gamma$-optimal distribution $\mathbf{Q}_t \in \mathcal{P}^{t-1}$ such that $ \sup_{\mathbf{Q} \in \mathcal{P}^{t-1}}\Expect_{\mathbf{Q}}[f(z_{\gamma},u)] \leq \Expect_{\mathbf{Q}_t}[f(z_{\gamma},u)] + \gamma.$
+Then, we observe that
+\begin{equation*}
+\begin{aligned}
+    \limsup_{t \rightarrow \infty } H^K_t &\leq \limsup_{t \rightarrow \infty } \sup_{\mathbf{Q} \in \mathcal{P}^{t-1}}\Expect_{\mathbf{Q}}[f(z_{\gamma},u)]\\
+    &\leq \limsup_{t \rightarrow \infty }\Expect_{\mathbf{Q}_t}[f(z_{\gamma},u)] + \gamma\\
+     &\leq \limsup_{t \rightarrow \infty }\Expect_{\mathbf{\prob}}[f(z_{\gamma},u)] + \max_{j\leq J}M_jW_1(\mathbf{Q}_t,\prob)+ \gamma\\
+     &\leq H_\star + 4\max_{j\leq J}M_j\eta_K + 2\gamma,
+\end{aligned}
+\end{equation*}
+where the first inequality follows from the optimality of $z^K_{t}$ and $H^K_t$, and the third inequality follows from Kantorovich-Rubinstein duality~\cite{kantorovich_duality} and the Lipschitz condition of $f$. The final inequality follows from Lemma~\ref{lemma:convergence:K}. Since we chose $\gamma > 0$ arbitrarily, we can conclude that
+$\limsup_{t \rightarrow \infty } H^K_t \leq H_\star + 4\max_{j\leq J}M_j\eta_K $.
+\end{proof}
+
+
+
+
+\section{Online clustering algorithm (Section~\ref{sec:clustream})}
+\label{app:onlinecluster}
+We give details for the online clustering algorithm, introduced in Section~\ref{sec:clustream}.
+We keep track of two sets of clusters: a set of $Q \geq K$ {\it microclusters}, and a set of $K$ {\it macroclusters}. 
+For simplicity, below we assume the number of microclusters to be $Q$ and the number of macroclusters to be $K$; if the number of datapoints is smaller, \ie, $Q_t \leq Q$ and $K_t \leq K$, the arrival of new datapoints result in new clusters.
+
+% If this is less than $Q$, the microcluster merging step will not occur until the number reaches $Q$.
+
+
+\paragraph{Initialization}
+We initialize the problem by solving approximately the $k$-centers problem~\eqref{def:k_centers} with respect to $\hat{\prob}^0$, allowing up to $Q$ clusters. This set of centers is denoted $A^Q_0$. We assign all points to the closest center, and define the support of the $q$-th cluster $S^q_0$ as the Voronoi region around its center $a_0^q \in A^Q_0$. Note that the Voronoi regions need not be explicitly stored; they are implicitly defined by their centers. 
+For each cluster, we note its center, \RC{mean}, root-mean-squared-error (RMSE), and weight. These are denoted the {\it microclusters}. We refer to the RMSE of each cluster as $\eta^q_t$, and for clusters with only a single datapoint, heuristically initialize it as twice the minimum RMSE of all clusters. 
+% We also keep a threshold value $\eta$, which could be a given arbitrary value, or a function of the current clustering. For example, we can initialize it as the maximum distance between any data point and its cluster center, $\eta = \max_{\hat{u} \in \mathcal{D}_t}\min_{a\in A^Q_0}{\|\hat{u} - a\|}$, where . 
+
+To create $K$ {\it macroclusters}, we solve approximately the $k$-centers problem with respect to $A^Q_0$, and obtain a set of centers $A^K_0$. Each microcluster is assigned to the macrocluster with the closest center; each macrocluster then contains all the points of its constituent microclusters, and has their combined weight. The \RC{mean} of the macrocluster is therefore the weighted average of the \RC{means} of the constituent microclusters. The support of the $k$-th macrocluster is the Voronoi region around the $k$-th center $a_0^k \in A^K_0$, plus the datapoints assigned to it, and minus the datapoints assigned to other clusters, \ie,
+\begin{equation}
+\label{eq:update_sup}
+    S^k_t = (V(a_t^k) \cup \{C^k_t\})/\{C^{k'}_t\}_{k' \neq k}.
+\end{equation}
+In this manner, the set of supports $\mathcal{S}_t$ satisfy Assumption~\ref{ass:support}. The necessity of this adjustment of the support follows from the two-layer nature of the clustering algorithm. It is possible for a datapoint to be clustered into the $q$-th microcluster, which is assigned to the $k$-th macrocluster, but distance-wise is actually closer to the center of $k'$-th macrocluster for some $k' \neq k$.
+
+% \bnote{are the next two phrases necessary? }
+% We note that we can also initialize the problem with {\it any} $Q$-clustering of the initial dataset~$\mathcal{D}_0$. 
+% In the case the clusters overlap, the support of the $q$-th cluster is defined as in~\eqref{eq:update_sup}. 
+% However, we require that identical datapoints must be clustered together. 
+
+\paragraph{Online updating procedure}
+For $t \geq 1$, when we observe a new datapoint $\hat{u}$, we calculate its distance to the microcluster whose support it falls on, \ie, if it falls on support $S^q_{t-1},$
+$$d_t = \|\hat{u} - a^q_{t-1}\|.$$
+If this value is below $2\eta^q_{t-1}$, where $\eta^q_{t-1}$ is the RMSE, we assign it to this cluster. The multiplier of 2 is selected according to {\it CluStream} sensitivity analysis~\cite[Section 6.4]{clustream}. We then update all microclusters weights, as well as the \RC{mean} and RMSE of the assigned microcluster. The macroclusters are also adjusted accordingly, based on their constituent microclusters. 
+
+On the other hand, if $d_t > 2\eta^q_{t-1}$, we create a new microcluster with this datapoint as its center, and assign it the weight $1/n_t$. The weights of the other microclusters are decreased accordingly, following~\eqref{eq:cluster_update_dym}. The RMSE of this cluster is initialized heuristically to be twice the minimum RMSE of all other existing clusters. If the total number of microclusters exceeds $Q$ with this addition, we merge the two closest microclusters based on the distances between their centers. The center of the merged microcluster will be the weighted average of the centers of the two constituent microclusters, with the new \RC{mean}, RMSE, and weight calculated accordingly. The supports of the microclusters will be reassigned as in~\eqref{eq:update_sup}. 
+Then, we again perform approximate $k$-centers on the $Q$ microclusters, warm-staring at the previous centers, and generate $K$ macroclusters. The parameters of the macroclusters are assigned the same manner as in initialization. 
+
+At some time step $\tau < \infty$, we terminate the support updating procedure, and only cluster points based on the latest support $\hat{S}^K_\tau$. 
+
+The online \gls{DRO} algorithm with online clustering is summarized in Algorithm~\ref{alg:online_cluster}. If a parameter is not explicitly updated, we assume it inherits the value from the previous time step. 
+
+\paragraph{Remark}
+In the algorithm and description, the cluster assignments are assumed to use the cluster centers. The \RC{mean} can also be used, however, up to time $t\leq \tau$.  
+
+Overall, by keeping $Q\geq K$ microclusters, we allow for a finer clustering algorithm than keeping only $K$ clusters at all times. In this manner, the microclusters are allowed to switch macrocluster assignments when the $k$-centers update is performed, thereby minimizing the information loss induced by the $K$-cluster budget.
+
+% While the support information is required to verify that Assumption~\ref{ass:support} is satisfied, in Algorithm~\ref{alg:online_cluster} we usually do not need to store it. 
+% Above, we already noted that the Voronoi regions need not be explicitly stored. It remains to consider the dataset $\mathcal{D}^t$. For continuous distributions $\prob$, the probability of any point falling onto the set of already observed datapoints is 0, as that finite set has measure 0. 
+% Therefore, the cluster assignments can be done by using simply the Voronoi regions, \ie, clustering the points to the cluster with the closest center. 
+% If $\prob$ is discrete, however, the probability measure of individual datapoints will be nonzero, so the dataset $\mathcal{D}^t$ is required. 
+
+% When the support information does not need to be explicitly maintained, Algorithm~\ref{alg:online_cluster} only requires $O((Q+K)d)$ memory; we only need to store information on $Q$ microclusters and $K$ macroclusters. The individual datapoints can be discarded once they have been clustered. 
+
+
+% Note that once $t \geq \tau$, we discard the microclusters, and only keep the macroclusters. We assume to be confident enough in the current partitioning of the support $\hat{S}^K_\tau$, and will cluster all subsequent datapoints accordingly. 
+
+
+
+\begin{algorithm}[ht]
+\caption{OnlineClustering}\label{alg:online_cluster}
+	\begin{algorithmic}[1]
+	 \State {\bf given} $\mathcal{D}_0, K, Q, S,\tau, \{\eps_t\}_{t=0,1,\dots}$
+     \State $A^Q_0 \gets$ find $Q$ centers using approximate $k$-centers on $\mathcal{D}_0$
+     \State assign all datapoints to microclusters $C^q_0$, and compute $n^q_0$, $\theta^q_0$, $\bar{u}_0^q$, and $\eta^q_0$
+     \State $\hat{S}^Q_{0} \gets $~\eqref{eq:update_sup}
+     \State $A^K_0 \gets$ find $K$ centers using approximate $k$-centers on $A^Q_0$
+     \State assign corresponding microclusters to macroclusters $C^k_0$, and compute $n^k_0$, $\theta^k_0$, and $\bar{u}_0^k$
+     \State $\hat{S}^K_{0}\gets $~\eqref{eq:update_sup}
+\For{$t=1,2,\dots$}
+     \State  $\hat{\mathbf{P}}^K_{t} \gets \sum_{k=1}^{K}\theta_t^k\delta_{\bar{u}_t^k}$
+    \State observe datapoint $\hat{\unc}$, and set $d_t \gets \|\hat{u} - a^{q'}_{t-1}\|$, where $q'$ is chosen such that $\hat{u} \in S^{q'}_{t-1}$
+    \If{$t\geq \tau$}
+    \State $C_t^{k'} \gets C_t^{k'} \cup \{\hat{u}\}$ \Comment{assign $\hat{u}$ following  ~\eqref{eq:assign_ball}}
+     \State $\theta^k_t\gets$~\eqref{eq:cluster_update_dym} \Comment{update weights}
+    \State $\bar{u}^{k'}_t \gets (n^{k'}_{t-1}\bar{u}^{k'}_{t-1} + \hat{u})/n^{k'}_t$ \Comment{update \RC{mean}}
+    \ElsIf{$d_t \leq 2\eta^{q'}_t$}
+    \State $C_t^{q'} \gets C_t^{q'} \cup \{\hat{u}\}$
+    \State $\theta^q_t\gets$~\eqref{eq:cluster_update_dym} \Comment{update microcluster weights}
+    \State $\bar{u}^{q'}_t \gets (n^{q'}_{t-1}\bar{u}^{q'}_{t-1} + \hat{u})/n^{q'}_t$\Comment{update \RC{mean}}
+     \State $\eta^{q}_t \gets (n^{q'}_{t-1}\eta^{q'2}_{t-1} + \|\hat{u}-\bar{u}^{q'}_t\|_2^2 )/n^{q'}_t$\Comment{update RMSE}
+    \State $\theta^k_t\gets$~\eqref{eq:cluster_update_dym} \Comment{update macrocluster weights}
+    \State update $\bar{u}^{k'}_t$ for microcluster $k'$, where $C^{q'}_t \subseteq C^{k'}_t$
+    \State $\hat{S}^K_{t}\gets $~\eqref{eq:update_sup}
+    \Else
+    \State assign $\hat{u}$ to a new cluster $q^\star$, initialize $\eta^{q^\star}_t \gets \min_{q\leq Q}2\eta^q_{t-1}$
+    \State $\theta^q_t\gets$~\eqref{eq:cluster_update_dym} \Comment{update weights}
+    \State $A^Q_t \gets$ merge the two microclusters with the closest centers 
+    \State $\hat{S}^Q_{t}\gets $~\eqref{eq:update_sup}
+   \State $A^K_t \gets$ find $K$ centers using approximate $k$-centers on $A^Q_t$
+     \State assign microclusters to macroclusters $C^k_t$, and compute $n^k_t$, $\theta^k_t$, and $\bar{u}_t^k$
+     \State $\hat{S}^K_{t}\gets $~\eqref{eq:update_sup}
+    \EndIf
+  \EndFor
+	\end{algorithmic}
+\end{algorithm}
+
+
+\chapter{Proofs for Learning Decision-Focused Uncertainty Sets}
+\label{app:lro}
+
+\section{Uncertainty sets and general reformulations}
+% \fi 
+\label{appx:gen_sets}
+% \bsnote{keep only max of concave and have max of affine as a special case}
+We derive convex reformulations of~\eqref{eq:robust_prob} for a general class of constraints $g$ and common uncertainty sets. 
+We express $u$ as an affine transformation of an uncertain parameter $v$, \ie, \RC{$u = A(x)v + b(x)$, where $A(x) \in \reals^{m\times \hat{m}}$, and $\hat{m} \leq m$, and $b(x) \in \reals^m$.}
+% As using a reshaping matrix for $u$, $\ie,$ expressing $u$ as $Az + b$ can be more powerful than specifying the size of the uncertainty set, we include in $\theta$ the reshaping parameters $(A,b)$. 
+% We have $A \in \reals^{m\times \hat{m}}$, where $\hat{m} \leq m$, and $b \in \reals^m$. 
+The proofs are in
+Appendix~\ref{appx:reform}.
+% \bsnote{use ifpreprint else. If preprint, they are in the appendix of the main document. If not preprint, they are in the EC.}
+% The proofs are in Appendix~\ref{appx:reform}. 
+For notational simplicity, we suppress the dependency of $g$ on $x$ here and for all following sections on reformulations.
+We consider two types of functions $g$: the maximum of concave functions (left), where each $g_l$ is concave in $u$, and its special case, the maximum of affine functions (right), where $P_l(z)$ and $a_l(z)$ are convex functions in $z$:
+$$g(z,u) = \max_{l=1,\dots,L} g_l(z,u), \qquad g(z,u) = \max_{l=1,\dots,L} (P_l(z)u + a_l(z)).$$
+
+\paragraph{Box and Ellipsoidal uncertainty.}
+The ellipsoidal uncertainty set is defined as
+\RC{$$ \uncset(\theta,x) = \left\{u = A(x)v+b(x) \mid \| v\|_p \leq 1,\quad u \in S\right\},$$
+where $A(x)\in \reals^{m\times \hat{m}}$, $b(x)\in \reals^{m}$, $p \in \reals$}
+% \bsnote{sets should go outside the definition of $\theta$. Also, I do not think $\theta$ includes $p$ here since this is not something we tune. I have no idea how $p$ could be a differentiable parameter of the robust counterpart.}
+, and $S$ includes additional support information such as upper and lower bounds. We let $p$ be the order of the norm, which is any integer value $\geq 1$, or equal to $\infty$. In the latter case, this becomes the box uncertainty set. The trainable parameter \RC{$\theta = (A(\cdot),b(\cdot))$, the mapping from the context parameter to the reshaping matrices.} Note that if $A = \rho I$, $b = 0$, and~$S = \reals^m$, this is equivalent to the traditional ellipsoidal uncertainty set ${ \{ u \mid\| u\|_p \leq \rho \}}$. 
+For the maximum of concave constraint, we have the following reformulation,
+% The proofs are in Appendix~\ref{apx:boxproof}. 
+\begin{equation*}
+	\begin{array}{ll}
+	\text{minimize} & f(z)\\
+	\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b\RC{(x)}^T(h_l + \omega_l) + \|A\RC{(x)}^T(h_l + \omega_l) \|_q \leq 0, \quad l = 1,\dots,L,
+	\end{array}
+	\end{equation*}
+with auxiliary variables $\omega_l, h_l \in \reals^m$ for $l = 1,\dots,L$, and $g^\star(z,h)$ the conjugate function. This result follows from the theorem of infimal convolutions and composites for conjugate functions~\citep{rockafellar_wets_1998},~\citep{composites}. In the special (maximum of affine) case, we instead have
+\begin{equation*}
+	\label{eq:ellip_max}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & a_l(z) + \sigma_S(\omega_l)+ b\RC{(x)}^T(P_l(z) - \omega_l) +  \|A\RC{(x)}^T(\omega_l -P_l(z))\|_q \le 0, \quad l = 1,\dots,L.	\end{array}
+\end{equation*}
+
+\paragraph{Budget uncertainty.}
+The budget uncertainty set requires both box and ellipsoidal constraints,
+\RC{$$ \uncset_{\text{bud}}(\theta,x) = \{u = A\RC{(x)}v+b\RC{(x)} \mid \| v\|_\infty \leq \rho_1, \quad \| v \|_1 \leq \rho_2, \quad u \in S\},$$
+where $\theta = (A(\cdot),b(\cdot), \rho_1, \rho_2)$.}
+% For the two types of constraints, we have the following reformulations. The proofs are in Appendix~\ref{apx:budproof}. For max of concave:
+For the maximum of concave constraint, we have the following reformulation.
+\begin{equation*}
+	\begin{array}{ll}
+		{\text{minimize}} & f(z) \\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b\RC{(x)}^T(h_l + \omega_l) + \rho_1\|r_l - A\RC{(x)}^T(h_l + \omega_l)\|_1  + \rho_2\|r_l\|_\infty \leq 0,\\
+		&\hfill \quad l =  1, \dots,L,	\end{array}
+	\end{equation*}
+with $r_l \in \reals^{\hat{m}}$, $\omega_l, h_l \in \reals^m$ for $l = 1,\dots,L$ as auxiliary variables. The maximum of affine reformulation is 
+\begin{equation}
+	\label{eq:budget_max}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} &  a_l(z) + \sigma_S(\omega_l) + b\RC{(x)}^T(P_l(z) - \omega_l) + \rho_1\|r_l - A\RC{(x)}^T(P_l(z) +\omega_l)\|_1 + \rho_2\|r_l\|_\infty \leq 0,\\
+		&\hfill \quad l = 1,\dots,L.
+	\end{array}
+\end{equation}
+
+\paragraph{Polyhedral uncertainty.}
+The polyhedral uncertainty set is defined as
+\RC{\begin{equation*}
+    \uncset(\theta) = \{ u = A\RC{(x)}v+b\RC{(x)} \mid Dv \leq d, \quad u \in S\},\end{equation*}
+where $\theta = (A(\cdot),b(\cdot),D,d)$.}
+% For the two types of constraints, we have the following reformulations. 
+% The proofs are in Appendix~\ref{apx:polyproof}. 
+% For max of concave:
+For the maximum of concave constraint, we have the following reformulation.
+\begin{equation*}
+\begin{array}{ll}
+	{\text{minimize}} & f(z)\\
+	\mbox{subject to} & [-g_l]^\star(z,\omega_l) - b\RC{(x)}^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq 0, \quad l = 1,\dots,L\\
+	 &A\RC{(x)}^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L.
+\end{array}
+\end{equation*}
+with auxiliary variables $\gamma_l, \omega_l \in \reals^m$, $h_l \in \reals^{r}, $ for $l = 1,\dots,L$. The maximum of affine reformulation is
+\begin{equation*}
+	\label{eq:poly_max}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} &  a_l(z) + d^Th_l + b\RC{(x)}^T( P_l(z)-\gamma_l)\le 0, \quad l = 1,\dots,L\\
+		& A\RC{(x)}^T(P_l(z)-\gamma_l) = D^Th_l , \quad l = 1,\dots,L\\
+		& h_l \geq 0, \quad l = 1,\dots,L.
+	\end{array}
+\end{equation*}
+
+
+\paragraph{Mean robust uncertainty.}
+The Mean Robust Uncertainty (MRO)~\citep{mro} set
+% , a more general form for Wasserstein \gls{DRO}, 
+is defined as
+\begin{equation*}
+	\begin{aligned}
+		\uncset_{\text{mro}}(\theta) & = \left\{ u = A\RC{(x)}(v_{11},\dots,v_{LK})+ b\in \supp^{K\times L} \quad\middle|\quad \sum_{k=1}^K \sum_{l=1}^L \alpha_{lk} \| v_{lk} - \bar{d}_k \|^p \le \rho^p,\quad \alpha \in \Gamma \right\},
+	\end{aligned}
+\end{equation*}
+where $\Gamma = \{\alpha~|~\sum_{l=1}^L\alpha_{lk}= w_k, \alpha_{lk}\geq 0 ~\forall k,l\}$. 
+Here, we assume the constraint function $g$ of the \gls{RO} to be a maximum of $L$ pieces, indexed by $l$. 
+We assume A is square, with dimensions $\reals^{m\times m}$, and we have $\theta = (A(\cdot), b(\cdot))$. 
+This set depends on $U^N$, a dataset of $N$ samples.
+% \bsnote{Again, for me $\theta$ should only include the tuning parameters.} 
+We partition ${U}_N$ into $K$ disjoint subsets, with $\bar{d}_k$ the centroid of the $k$th subset. The weight we place upon each subset is $w_k$, and is equivalent to the proportion of points in the subset. We choose $p$ to be an integer exponent, and $\rho$ to be a positive radius. 
+For the maximum of concave constraint, we have the following reformulation,
+% The proofs are in Appendix~\ref{apx:mroproof}. 
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}{ll}
+	{\text{minimize}} & f(z)\\
+	\mbox{subject to} &\lambda \rho^p + \sum_{k=1}^K w_k s_k \leq 0\\
+	 & [-g_l]^\star(x,h_{lk}) -b\RC{(x)}^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A\RC{(x)}^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+& \qquad \qquad + \phi(q)\lambda \left\|A\RC{(x)}^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\quad  l = 1,\dots,L, \quad k = 1,\dots,K\\
+& \lambda \geq 0.
+	\end{array}
+	\end{aligned}
+	\end{equation*}
+with auxiliary variables  $s, h_{lk}, \omega_{lk} \in \reals^m$ for $j = 1,\dots,J$, $k = 1,\dots, K$, and $\lambda \in \reals$. For the special case of the maximum of affine constraint, we have
+\begin{equation}
+	\label{c4:eq:mro_max}
+	\begin{aligned}
+		\begin{array}{ll}
+			\text{minimize } & f(z)\\
+			\mbox{subject to} & \lambda\rho^p  + \sum_{k=1}^{K} w_{k} s_{k}  \le 0\\
+			& a_l(z) + \sigma_S(\omega_{lk}) - b\RC{(x)}^T(\omega_{lk} - P_l(x)) - (A\RC{(x)}^T(\omega_{lk} - P_l(z)))^T\bar{d}_k \\
+   &\qquad \qquad + \phi(r)\lambda \left\|A\RC{(x)}^T(\omega_{lk} - P_l(z))/\lambda \right\|^r_q \leq s_k, \quad l = 1,\dots, L, \quad k = 1,\dots, K\\
+			& \lambda \geq 0.
+		\end{array}
+	\end{aligned}
+\end{equation}
+
+% \ifpreprint
+\subsection{Linear transformation to cone programs in standard form}
+\label{sec:dpp}
+The convex optimization problems above can be transformed to the cone program~\citep{cvxpylayers2019}
+	\begin{equation}
+ \label{eq:conic}
+		\begin{array}{ll}
+			\mbox{minimize} & c^Tz\\
+			\mbox{subject to} & Gz+ s = h \\
+			& s \in \mathcal{K},
+		\end{array}
+	\end{equation}
+% \bsnote{it is not clear how $G$ appears.  }
+where $z \in \reals^{\bar{n}}$ is the primal variable, $s \in \reals^{\bar{m}}$ is a slack variable, and the set $\mathcal{K} \subseteq \reals^{\bar{m}}$ is a nonempty, closed, convex cone with dual cone $\mathcal{K}^\star \subseteq \reals^{\bar{m}}$.  So long as  the constituent functions $g_l$ of the constraint $g$ from the robust problem~\eqref{eq:robust_prob}
+% \bsnote{remind the reader where $g$ is first defined}
+are concave in the uncertain parameters, and that these functions satisfy the {\it (disciplined parametrized program) DPP} rules proposed by~\cite{cvxpylayers2019}, the cone program's data $(G,h,c)$ can be expressed as a linear function (\ie, tensor product) of the parameters~$\theta$ and $x$~\citep[Lemma 1]{cvxpylayers2019}. 
+The DPP rules depend on well-known composition theorems for convex functions, and ensure that every function in the program is convex in the decision variables, or affine if representing equalities.
+% \bsnote{add conic problem in standard form here.}
+
+% \bsnote{add a result stating that the problems are DPP. (according to cvxpylayers paper). Mention that canonicalization is a tensor product (linear)}
+
+% \ifpreprint
+% \subsection{Conservative Jacobians for the augmented Lagrangian}
+% \else 
+\section{Conservative Jacobians for the augmented Lagrangian}
+\label{appx:jacobians}
+We give the conservative Jacobians from Proposition~\ref{prop:jacobians}. 
+In this section, for simplicity,  we denote the solution of the optimization problem~\eqref{eq:robust_prob},~$z^i = z(\theta,x^i)$, and its conservative Jacobian, $ J_{z^i}(\theta)$, for each input pair $(\theta, x^i)$. 
+For the Lagrangian function $\hat{L}(\alpha,\theta,\lambda, \mu)$ over the batch $B = (U,X) \subseteq W^N$, where $|B|$ denotes the cardinality of the set, we have the following conservative Jacobians,
+\begin{equation*}
+\begin{aligned}
+J_{\hat{L}}(\theta) &= \frac{1}{|B|}\sum_{x^i \in Y} J_{\Phi_{\gamma}}(z^i)J_{z^i}(\theta) + \frac{\lambda}{\eta |B|}\sum_{(u^i,x^i)\in B}   M^i\ones\left\{g(z^i,u^i,x^i) \geq \alpha\right\} J_{g}(z^i)J_{z^i}(\theta) \\
+&+ \frac{\mu}{\eta|B|}\sum_{(u^i,x^i)\in B} M^i((g(z^i,u^i,x^i)- \alpha)/\eta + \alpha+s-\kappa)\ones\left\{g(z^i,u^i,x^i) \geq \alpha\right\}J_{g}(z^i)J_{z^i}(\theta) ,\\
+J_{\hat{L}}(\alpha) &= \frac{ \lambda}{|B|}\sum_{(u^i,x^i)\in B} M^i(1 - (1/\eta)\ones\left\{g(z^i,u^i,x^i) \geq \alpha\right\})\\
+&+ \frac{\mu}{|B|}\sum_{(u^i,x^i)\in B}  M^i (1 - (1/\eta)\ones\left\{g(z^i,u^i,x^i) \geq \alpha\right\} ) ((g(z^i,u^i,x^i)- \alpha)_+/\eta + \alpha +s-\kappa),
+\end{aligned}
+\end{equation*}
+% \bsnote{We did not define $\ones$, I think. We should do it.}
+where $M^i = \ones\left\{(g(z^i,u^i,x^i) - \alpha^k)_+/\eta + \alpha^k - \kappa \geq 0\right\}.$ For a condition $A$, we denote its indicator function $\ones\{A\}$, taking the value 1 when true and 0 when false. 
+% In addition, when the constraint $g$ is vector-valued, the indicator function $\ones\{g \geq \alpha\}$ is element-wise. 
+% \bsnote{remove statement on vector valued g. we will work with only a single constraint}
+When the Lagrangian function is defined over the entire dataset, we formulate the conservative Jabocian $J_L(\alpha,s,\theta)$ the same way as above, with $B = W^N$.
+
+% \ifpreprint
+% \subsection{Proof of conservative Jacobians for the robust optimization problem}
+% \else 
+\section{Proof of conservative Jacobians for the robust optimization problem}
+\label{appx:subdiff}
+% \bsnote{citations need to be fixed here.}
+To prove Theorem~\ref{thm:subdiff},
+% \bsnote{say a few more words about what that is}
+% \bsnote{Say what we are trying to do: characterize the differntiability of the function $x(\theta, y)$.}
+% \ifpreprint \begin{proof} \else
+% 	\proof{Proof.}
+% 	we characterize the path-differentiability of the function \RC{$z(\theta,x)$} by solving the inner optimization problem and obtaining conservative Jacobians using the results of~\cite{diffcp2019} and~\cite{path-diff}. 
+The optimization problem~\eqref{eq:robust_prob} is first reformulated into a convex and tractable problem in conic form~\eqref{eq:conic}, as shown in Appendix~\ref{sec:dpp}. 
+% where $x \in \reals^n$ is the primal variable, $s \in \reals^m$ is a slack variable, and the set $\mathcal{K} \subseteq \reals^m$ is a nonempty, closed, convex cone with dual cone $\mathcal{K}^\star \subseteq \reals^m$. 
+The conic program's data,~$(G,h,c)$, is parameterized by \RC{$(\theta,x)$}, through the mapping 
+\RC{$$(\theta,x) \rightarrow (G,h,c),$$}
+% which we require to be {\it linear} in $\theta$ and $y$. 
+% \bsnote{I think it is linear in $y$ as well since $y$ also enters according to DPP rules}.
+which is linear in $\theta$ and \RC{$x$} for all uncertainty sets in Appendix~\ref{appx:gen_sets}, given the disciplined parametrized program (DPP) requirement detailed in Appendix~\ref{sec:dpp}~\citep[Lemma 1]{cvxpylayers2019}, \RC{as well as the linear contextual mapping we defined in Section~\ref{sec:hyper}.}
+
+% \bsnote{reference the result in the previous appendix, and state again that with DPP you get nice canonicalization (cite Lemma 1 in other paper).}
+
+
+% This problem is ensured to have a unique solution by introducing suitable perturbations. From the structure of the inner optimization problem, our parameters $\theta$ and $y$ enter in $G(\theta,y)$ linearly. 
+This formulation has a corresponding dual, with dual variable $r \in \reals^{m}$, and solving the conic program amounts to solving the homogeneous self-dual embedding~\citep{cones-hist}
+% \bsnote{add citation here}
+of the primal-dual problem. 
+In the following, we define $N = \bar{n} +  \bar{m} + 1$. The overall procedure is split into three steps: mapping the problem data ($G,h,c$) onto a skew symmetric matrix $Q$:
+$$Q =  
+\left[\begin{array}{lll} 0 & G^T & c\\
+	-G & 0 & h \\
+-c^T & -h^T & 0\end{array} \right] \in \reals^{N\times N},$$
+finding the solution \RC{$y = (u,v,w) \in \reals^N$} to the homogeneous self-dual embedding, and mapping \RC{$y$} onto the solution of the primal-dual pair~\citep{diffcp2019}. We can express the chain of mappings as 
+\RC{$$(G,h,c) \rightarrow Q \rightarrow y \rightarrow (z,r,s).$$
+To solve for $y= \nu(Q)$, shown as the mapping $Q \rightarrow y$, we define the normalized residual map~\citep{cones}, given as
+$$\mathcal{N}(y,Q) = ((Q-I)\Pi + I)(y/|w|),$$}
+where $\Pi$ is the projection onto the convex cone $\mathcal{K}' = \reals^{\bar{n}} \times \mathcal{K}^\star \times \reals_+$.
+For a given $Q$, \RC{$y = \nu(Q)$} is a solution to the homogeneous self-dual embedding if and only if \RC{$\mathcal{N}(y,Q) =0$} and $w> 0$.
+% \bsnote{what is $w$. Do we define it?}
+Once this solution is obtained, the mapping \RC{$y \rightarrow (z,r,s)$ }is given by the function 
+\RC{$ \phi(y) = (u, \Pi(v), \Pi(v) - v)/w. $}
+We can now invoke proposition 4 of the work by~\cite{path-diff}, together with the results from~\cite{diffcp2019} to show that $\nu$ and $\phi$ are path-differentiable. 
+\begin{proposition}
+    Assume the functions $\Pi$ and $\mathcal{N}$ are path differentiable, with conservative Jacobians $J_\Pi$ and $J_\mathcal{N}$.  Assume, for all $Q$ constructed from the problem data $(G,h,c)$, and \RC{$y = \nu(Q) $ is the unique solution to $\mathcal{N}(y,Q)=0$}. Furthermore, assume all matrices formed by the first $N$ columns of \RC{$J_\mathcal{N}(y,Q)$} are invertible. Then, the functions $\nu$ and $\phi$ are path-differentiable, with conservative Jacobians
+    \RC{$$J_\nu(Q) = \{-U^{-1}V \mid [U~V] \in J_\mathcal{N}(y,Q)\},\qquad J_\phi(y) = \left[\begin{array}{ccc} I & 0 & -z\\
+	0 & J_\Pi(v) & -r\\
+0 & J_\Pi(v) - I & -s\end{array} \right].$$}
+\vspace{-1em}
+\end{proposition}
+The assumptions on $\Pi$ and $\mathcal{N}$ hold, as the cones we consider (zero cones, free cones, nonnegative cones, and second-order cones) are sub-differentiable~\citep{cones, cones1}. By Theorem 1 of the work by~\cite{path-diff}, which states that the Clarke Jacobian is a minimal conservative Jacobian, we conclude that the conic projections admit conservative Jacobians, and are thus path differentiable. It follows that $\mathcal{N}$, as a linear function of $\Pi$ and $Q$, is also path-differentiable. \RC{The invertibility of $U$ holds as $U = ((Q-I)J_{\Pi}(y)+I)/w$~\citep{diffcp2019}, which is nonsingular due to the PSD nature of the members of the set $J_{\Pi}(y)$ and the skew-symmetric nature of $Q$, so long as $(Q-I)J_{\Pi}(y)$ does not have eigenvalues of $-1$.} Lastly, the assumption of uniqueness holds from Assumption~\ref{ass:unique}. 
+
+With this result, and by the linear nature of the mappings from $\theta$ to $(G,h,c)$ and to $Q$, which preserves path-differentiablity, we can apply the chain rule to obtain
+$$J_\phi(\theta) = J_\phi(v(Q)) J_v(Q) J_Q(G,h,c) J_{(G,h,c)}(\theta).$$
+\RC{As $(z,r,s) = \phi(y)$}, we can partition $J_\phi(\theta)$ as $(J_{z}(\theta),J_{r}(\theta),J_{s}(\theta))$ where the first component is the conservative Jacobian of interest.  
+Therefore, we conclude that $z(\theta,x)$ is path differentiable, with nonempty conservative Jacobian $J_{z}(\theta)$.
+
+\RC{Lastly, we note that when the matrix $U$ is singular, we can still solve for the Jacobian using a least-squares approximation, as remarked in~\cite[Appendix B]{cvxpylayers2019}. In fact, for large matrices, the least-squares approximation is the most efficient solution method for all problems.}
+% \ifpreprint \begin{proof} \else
+% 	\proof{Proof.}
+% 	%  To verify the first statement, we consider our set of convex cones. 
+% We assume to work with zero cones, free cones, nonnegative cones, and second-order cones. Zero and free cones are duals of each other, and both differentiable everywhere. Nonnegative and second-order cones are self-dual, and are differentiable except at $x = 0$ for the former and at $(t,x)$ whenever $\|x\|_2 = t$ for the latter. At these points, they are subdifferentiable, with Clarke generalized gradients~\citep{cones, cones1}. Zero, free, and nonnegative cones admit nonnegative derivatives and subdifferentials~\citep{cones}, and second-order cones admit derivatives and subdifferentials that are symmetric and have nonnegative eigenvalues~\citep{cones, cones1}. 
+% By Theorem 1 of the work by~\cite{path-diff}, which states that the Clarke Jacobian is a minimal conservative Jacobian, we conclude that the conic projections admit conservative Jacobians, and are thus path differentiable. 
+% Therefore, at solutions $z$ where $\Pi(z)$ is differentiable, we have $J_{\Pi}(z)$ a symmetric block diagonal matrix with nonnegative eigenvalues. At the measure 0 set of solutions $z$ where $\Pi(z)$ is only subdifferentiable, we have $ J_{\Pi}(z)$ a set of symmetric block diagonal matrices with nonnegative eigenvalues.
+
+% Next, path differentiability of $\mathcal{N}$ holds so long $\Pi$ is path differentiable~\citep{path-diff} and $w > 0$. We observe the latter as $w > 0$ for valid solutions, and have shown the former. Therefore, both $\Pi$ and $\mathcal{N}$ are path differentiable. 
+
+% % \bsnote{what is the second proposition?}
+% For the second statement, we note that we assume uniqueness of the conic problem solution. Therefore, we consider $z(\theta,y) = (u,v,w)$ to be the unique solution to the homogeneous self-dual embedding, which then maps to the primal solution $x(\theta,y)$. 
+
+% To verify the third statement, we note that $J_\mathcal{N}(z,Q)$ takes the form $[M~V]$, where $M = ((Q-I)J_{\Pi}(z)+I)/w$, $V = \dif Q\Pi(z/|w|)$, and $$\dif Q =  
+% \left[\begin{array}{lll} 0 & \dif G^T & \dif c\\
+% 	-\dif G & 0 & \dif b\\
+% -\dif c^T & -\dif b^T & 0\end{array} \right].$$
+% This follows from the method of~\cite{diffcp2019} and Theorem 1 of~\cite{path-diff}.
+% It remains to show that all matrices $M$ are invertible. As $w > 0$, we take $w=1$ without the loss of generality, and consider the properties of $(Q-I)J_{\Pi}(z)+I$. As $Q$ is a skew-symmetric matrix, $Q-I$ is nonsingular, with positive eigenvalues. It follows that $(Q-I)J_{\Pi}(z) + I$ is either a single matrix or a set of matrices with positive eigenvalues, depending on the differentiability of $\Pi(z)$. The matrix $M$ (or the set of matrices $M$ for the subdifferentiable case) is therefore nonsigular and thus invertible, as desired.
+% \ifpreprint \end{proof} \else
+% \Halmos
+% \endproof
+% 
+
+% With the proposition verified, we can then apply~\cite[Proposition 4]{path-diff} to arrive at the conservative Jacobian of $z(\theta,y)$,
+% $$J_{z}(\theta) =J_{z}(Q) = -M^{-1}\dif Q\Pi(z/|w|).$$
+% Lastly, partitioning $J_{z}$ as $(J_{u},J_{v},J_{w})$ and using the mapping from $z(\theta,y)$ to $x(\theta,y)$~\cite[Section 3]{diffcp2019}, we have 
+% $$  J_{x}(\theta)= J_{u}(\theta) - J_{w}(\theta)x(\theta,y),$$
+% therefore $x(\theta,y)$ is path differentiable,  with nonempty conservative Jacobian $J_{x}(\theta)$.
+
+% \ifpreprint \end{proof} \else
+% \Halmos
+% \endproof
+% % We state, for completeness, key assumptions required for the convergence result. In particular, we give the boundedness, smoothness, and unbiasedness assumptions applied to our context. For more details, refer to~\cite{aug_lag}.
+% \begin{assumption}[structured bounded domain]
+% 	\label{assp_2}
+% 	The domain $\Theta$ of the decision variables $z = (\theta, \alpha)$ must be compact. In addition, there must exist finite constants $B_0$ and $B_h$ such that
+% 	$$B_0 \geq \max_{z \in \Theta} \max\{|F(z)|,\| \nabla F(z) \|\},\quad B_h \geq \max_{z \in \Theta} \|J_{H}(z) \| $$
+% \end{assumption}
+% \begin{assumption}[mean-squared smoothness, ~\cite{aug_lag}]
+% 	\label{assp_3}
+% 	 For any ${z_1,z_2 = (\theta_1,\alpha_1), (\theta_2, \alpha_2) \in \Theta}$, the functions $\ell(\cdot,w)$ and $h(\cdot,w)$ satisfy the mean-squared smoothness conditions:
+% 	$$\Expect_w[\|\nabla \ell(z_1,w) - \nabla \ell(z_2,w)\|^2]  \leq L^2_0\| z_1 - z_2\|^2,$$
+% 	$$\Expect_{w}[\|J_{{h}}(z_1, w) - J_{{h}}(z_2,w)\|^2]  \leq L^2_J\| z_1, z_2\|^2,$$
+% 	$$\Expect_{w_1, w_2}[\|J_{h}(z_1, w_1)^T{h}(z_1,w_2) - J_{{h}}(z_2, w_1)^T{h}(z_2,w_2)\|^2]\leq L^2_J\| z_1 - z_2\|^2, $$
+% where $w_1$ and $w_2$ are independent and drawn from $\prob_u\times\prob_y$.
+% \end{assumption}
+% \begin{assumption}[unbiasedness and bounded variance~\cite{aug_lag}]
+% 	\label{assp_4}
+% 	For any $z = (\theta,\alpha,s) \in \Theta$, the objective and constraints satisfy
+% 	$$\Expect_{w}[\nabla \ell(z,w)] = \nabla F(z), \quad \Expect_{w}[J_h(z,w)] = J_{H}(z).$$
+% 	Also, there exists $\sigma_f,\sigma_h > 0 $ such that for any $z = (\theta,\alpha,s) \in \Theta$,
+% 	$$ \Expect_{w}[\|\nabla \ell(z,w) - F(z)\|^2] \leq  \sigma_f^2,\quad \Expect_{w}[\|J_h(z,w) - J_{H}(z)\|^2] \leq \sigma_h^2, $$
+% 	$$\Expect_{w_1,w_2}[\|J_h(z,w_1)^Th(z,w_2) - J_{H}(z)^TH(z)\|^2] \leq \sigma_h^2, $$
+% 	where $(w_1)$ and $(w_2)$ are independent and drawn from $\mathbf{P_u}\times\mathbf{P_y}$.
+% \end{assumption}
+% % Under these assumptions, it can be shown that $F$ is $L_0$-smooth and $H$ is $L_J$-smooth~\cite{aug_lag}.
+% Under these assumptions, we achieve convergence results detailed in Theorem~\ref{thm:conv}.
+
+% \begin{theorem}
+% 	\label{thm:conv}
+% 	Let $\epsilon$ be such that $\epsilon \leq C_1\frac{3\sqrt{\sigma^2_f+ \mu_0^2\sigma_h^2}}{10}$. Then, under Assuptions~\ref{assp_1},~\ref{assp_2},~\ref{assp_3}, and~\ref{assp_4}, Algorithm~\ref{alg:learning} needs at most $k_{\rm max}$ outer iterations to find an $\epsilon$-KKT point in expectation of~\eqref{eq:bilevel}, where
+% 	$$k_{\rm max} = \max\left \{\left\lceil \log_{\sigma} \frac{\sqrt{8}\sqrt{\epsilon^2 + B_0^2}}{\mu_0 v \epsilon}\right \rceil,\left \lceil 2\log_{\sigma} \frac{\sqrt{8}B_h\gamma_{\rm max}}{\mu_0 v \epsilon}\right \rceil  \right \} + 1, $$
+% 	and $\gamma_{\rm max}$ is large enough such that it satisfies $\frac{\sqrt{8}B_h\gamma_{\rm max}}{\mu_0 v \epsilon} \geq \frac{8}{\ln{\sigma}}.$
+% 	In addition, the number of inner iterations $t^k_{\rm max}$ needed is at most
+% 	$$ t^k_{\rm max} = \left \lceil \frac{C_2 \left (\frac{L_k(L(z^k,\lambda^{k}, \mu^k) - L^{k*})_{1+}}{\gamma_k} + \frac{\sigma_k^2}{20 c_{0,k} \gamma_k^2} + \frac{24^2\sigma_K^2\gamma_k^2}{10M_2}\right )^{3/2}}{\epsilon^3} \right \rceil,$$
+% 	where
+% 	$$L_k = \sqrt{3L_0^2 + 3L_J^2\|\lambda_k\|^2 + 3\mu_k^2L_J^2},\quad \sigma_k = \sqrt{3\sigma_f^2 + 3\sigma_h^2\|\lambda_k \|^2+ 3\mu_k^2\sigma_h^2},$$
+% 	$$ \bar{\gamma}_k = \frac{\gamma_k}{L_k {t^k_{\rm max}}^{1/3}}, \quad \delta_k = \frac{4\gamma_k^2/M_2 + 10\gamma_k^2(2 - \gamma_k{t^k_{\rm max}}^{(-1/3)} )}{{t^k_{\rm max}}^{2/3} + 4\gamma_k^2/M_2},$$
+% 	$$\gamma_k = C_3 \frac{(L_k(L(z^k,\lambda^{k}, \mu^k) - L^{k*})_{1+})^{(1/3)}}{\sigma_k^{2/3}}, c_{0,k} = C_4\frac{\sigma_k^{2/3}}{20(L_k(L(z^k,\lambda^{k}, \mu^k) - L^{k*})_{1+})^{4/3}}.$$
+% 	Here, $C_1, C_2, C_3, C_4$ are constants, $(a)_{1_+}$ represents $\max\{a,1\}$, and $L^{k*} = \min_z L(z,\lambda^k, \mu^k)$. The expression $(L(z^k,\lambda^{k}, \mu^k) - L^{k*})_{1+}$ can be upper bounded by known quantities. See the exact constants and bounds in~\cite[Theorem 1, Theorem 2]{aug_lag} and~\cite[Corollary 2]{aug_lag2}.
+% \end{theorem}
+
+
+% \ifpreprint \subsection{Proof of convergence of the augmented Lagrangian algorithm}
+% \else 
+\section{Proof of convergence of the augmented Lagrangian algorithm}
+\label{appx:converge_stationary}
+We prove Theorem~\ref{thm:convergence}, the convergence of the augmented Lagrangian algorithm to a stationary point.
+% \ifpreprint \begin{proof} \else
+% \proof{Proof.}
+% \fi 
+% \bsnote{remove proof environment if the entire section is a proof. (remove everywhere)}
+We separate the procedure into three steps. In the first step, we show for Algorithm~\ref{alg:learning_inner} with fixed $\lambda,\mu$, the convergence of $\{\alpha^t,\theta^t\}$ to a stationary point of the augmented Lagrangian function~\eqref{eq:lagrangian} as $t \to \infty$.
+In particular, we note that by Theorem 1 of~\cite{conservative}, conservative Jacobians are gradients almost everywhere, so by~\cite{path-diff}, the iterates of the algorithm is a Clarke stochastic subgradient sequence almost surely. 
+We thus use the Clarke differential~\citep{Clarke},
+% \bsnote{is this what they do in \cite{path-diff}? If yes, I would mention that.} 
+$\partial^cf(z) \define {\rm conv}\{\lim_{z_i \rightarrow z} \nabla f(z_i) \mid z_i \in {\rm dom}(\nabla f)\}$ to denote the subdifferentials
+% \bsnote{subgradients or subdifferentials?}
+in our analysis, instead of using $J_f(z)$.
+% In the third step, we show the convergence of $\{\alpha^t, s^t,\theta^t\}$ to a stationary point of the augmented Lagrangian function~\eqref{eq:lagrangian}. 
+In the next two steps, we show for Algorithm~\ref{alg:learning}, either the convergence of 
+$\{\theta^k\}$ to a feasible point of condition~\eqref{eq:sampled_cvar}, or the convergence of $\{\alpha^k,\theta^k\}$ to a stationary point of the constraint violation function. 
+
+\paragraph{Step 1: Convergence of ($\alpha$,  $\theta$).}  In this step, we consider the augmented Lagrangian function with fixed $\lambda$ and $\mu$.
+% As $H$ is convex in $\alpha$, $L$ is convex in both $\alpha$ and $s$. We stack together $\alpha$ and $s$, and treat them as a single variable. As they converge on the fastest timescale, we analyze the convergence of $\alpha$ and $s$ for fixed $\theta,\lambda,\mu$~\cite[Chapter 6 Lemma 1]{borkar}. 
+By Assumptions~\ref{ass:bounded} and~\ref{ass:step_size} on the boundedness and step sizes of the iterates, by the definability of the augmented Lagrangian function, and by the existence of its conservative Jacobians, we apply Theorem 3 of~\cite{path-diff}, on the convergence of SGD for path-differentiable functions.
+% \bsnote{what does that theorem state? Shall we restate it?}.
+The projection onto the nonnegative orthant for $s$ does not affect the convergence results, as proximal SGD with conservative Jacobians also converges, subject to the same assumptions~\citep[Theorem 6.2]{Davis}.
+Let $L(\alpha,\theta) = L(\alpha,\theta,\lambda,\mu)$, as the suppressed variables are fixed, and let $(\alpha^\star,\theta^\star)$ be a 
+% \bsnote{strict?}
+% \bsnote{RO problem is cvx and has unique solution $x$ given $\theta$ and $y$. Training problem is convex in $x$, $\alpha$ and $s$. Is it unique in $\alpha$ and $s$? Strongly convex in $s$ so yes. In $\alpha$? Reference a result from Non-linear param opt book (Corollary 4.2.4.1)}
+local 
+% {\color{blue} Bart: Does this not have to be the  unique minimizer?}
+minimum point of this function.
+By the aforementioned theorems, we can show
+% \bsnote{are we showing it? If not please cite the results that can be shown} 
+that 
+% \bsnote{maybe better to use another letter instead of using the same $L$ for the Lyapunov function (maybe $V$?)}
+$V_{\lambda,\mu}(\alpha,\theta) \define L(\alpha,\theta) - L(\alpha^\star,\theta^\star)$ is a Lyapunov function for the differential inclusion $(\dot{\alpha},\dot{\theta}) \in -\partial^cL(\alpha,\theta)$. 
+Specifically, there exist a ball of radius $r$ around $(\alpha^\star,\theta^\star)$ such that for $(\alpha,\theta) \in \mathbf{B}_{\alpha^\star,\theta^\star}(r)$, the Lyapunov function is locally positive definite. 
+% Specifically, for $(\alpha,s)\in \mathcal{D}_\alpha \times \mathcal{D}_s$, the Lyapunov function is positive definite. 
+This function is decreasing along solutions strictly outside of the set of Clarke-critical points $\{(\alpha,\theta) \in \reals^{p+1}, 0 \in \partial^c L(\alpha,\theta)\}$.
+% \bsnote{Do you need to talk about $\partial^c L(...)$? Can we just use Jacobians? If not let's define things properly}
+Then, for almost all initializations $(\alpha^0,\theta^0) \in \mathcal{D}_\alpha \times \mathcal{D}_\theta$, the objective $L(\alpha^t,\theta^t)$ converges almost surely and all stationary points $(\bar{\alpha},\bar{\theta})$ of $\{\alpha^t,\theta^t\}$ are Clarke-critical in the sense that $0 \in \partial^c L(\bar{\alpha},\bar{\theta})$~\citep{path-diff}.
+We thus conclude that, with almost any initial point $(\alpha^0,\theta^0) \in \mathbf{B}_{\alpha^\star,\theta^\star}(r) \subseteq  \mathcal{D}_\alpha \times \mathcal{D}_\theta$, the sequence $\{\alpha^t,\theta^t\}$ converges to a stationary point $(\alpha^\star,\theta^\star)$, satisfying $0 \in J_L(\alpha^{\star},\theta^{\star})$.
+% , satisfying $$L(\alpha^\star,\theta,s,\lambda,\mu) \leq L(\alpha^t,\theta,s,\lambda,\mu) \leq L(\alpha^0,\theta,s,\lambda,\mu)$$ for any $t \geq 0$.
+% \paragraph{Step 2: Convergence of $\theta$.}
+% By~\cite{borkar}, we analyze the convergence of $\theta$ for $\alpha^t,s^t$ and arbitrary $\lambda,\mu$.
+% In particular, we assume from step 1 that $\|(\alpha^t,s^t) - (\alpha^\star(\theta),s^\star(\theta))  \| \rightarrow 0$ almost surely, where $\alpha^\star(\theta)$ is the optimal value of $\alpha$ given the current $\theta$ and constant $\lambda,\mu$.
+% Again by our assumptions, we can apply Theorem 3 of~\cite{path-diff}. 
+% Let $L(\theta) = L(\alpha^\star(\theta),s^\star(\theta),\theta,\lambda,\mu)$.
+% It could be shown that $L_{\lambda,\mu}(\theta) \define L(\theta) - L(\theta^\star)$, where $\theta^\star$ is a local minimum point, is a Lyapunov function for the differential inclusion $\dot{\theta} \in -\partial^cL(\theta)$. Specifically, there exist a ball of radius $r$ around $\theta^\star$ such that for $\theta \in \mathbf{B}_{\theta^\star}(r)$, the Lyapunov function is locally positive definite. This function is decreasing along solutions strictly outside of the set of Clarke-critical points $\{\theta \in \reals^{p}, 0 \in \partial^c L(\theta)\}$.
+% For almost all $\theta^0 \in \mathcal{D}_\theta$, the objective $L(\theta^t)$ converges almost surely and all stationary points $\bar{\theta}$ of $\{\theta^t\}$ are Clarke-critical in the sense that $0 \in \partial^c (\bar{\theta})$.
+% We conclude that for almost all initial points $\theta^0\in \mathbf{B}_{\theta^\star}(r) \subseteq  \mathcal{D}_\theta$, the sequence $\{\theta^t\}$ converges to the stationary point $\theta^\star$.
+% , satisfying $$L(\alpha^\star(\theta^\star,s^\star),\theta^\star,s^\star,\lambda,\mu) \leq L(\alpha^\star(\theta^t,s^t),\theta^t,s^t,\lambda,\mu) \leq L(\alpha^\star(\theta^0,s^0),\theta^0,s^0,\lambda,\mu)$$ for any $t \geq 0$.
+% \paragraph{Step 3: $\gamma$-stationary point.} Next, we show that when $\gamma \geq 0$, the sequence $\{\alpha^t,s^t,\theta^t\}$ converges to a $\gamma$-stationary point of $L(\alpha,s,\theta,\lambda,\mu)$ for fixed $\lambda, \mu$.  
+% From the previous steps, we see that when $\gamma = 0$, $(\alpha^t,s^t,\theta^t)$ converges to $(\alpha^\star,s^\star,\theta^\star) \define (\alpha^\star(\theta^\star),s^\star(\theta^\star),\theta^\star)$, where $\alpha^\star(\theta^\star)$ is the optimal solution for $\alpha$ given the optimal solution $\theta^\star$ of $\theta$, with $\lambda, \mu$ held constant. This stationary point satisfies $\dist(0,J_L(\alpha^{\star},s^{\star},\theta^{\star})) =0$.
+% and for almost any initial condition, is a local minimum point of the augmented Lagrangian function, \ie~$L(\alpha^\star,s^\star,\theta^\star,\lambda,\mu) \leq L(\alpha^\star(\theta^t,s^t),\theta^t,s^t,\lambda,\mu) \leq L(\alpha^\star(\theta^0,s^0),\theta^0,s^0,\lambda,\mu)
+% \leq L(\alpha^t,\theta^0,s^0,\lambda,\mu)
+% \leq L(\alpha^0,\theta^0,s^0,\lambda,\mu)$ for any $t \geq 0$. 
+% Suppose, by contradiction, that $(\alpha^\star,s^\star,\theta^\star)$ is not a local minimum point. Then, there exists some point in its neighborhood $(\bar{\alpha},\bar{\theta},\bar{s}) \in C_1 \times C_2 \cap \mathbf{B}_{(\alpha^\star, \theta^\star,s^\star)}(r)$ for some $r > 0$, that attains the minimum. 
+% This minimum is attained by the Weierstrass extreme value theorem~\citep{cvar_markov}. 
+% However, choosing the initialization $(\alpha^0,\theta^0,s^0) = (\bar{\alpha},\bar{\theta},\bar{s})$, we note using the proven relations that~$L(\bar{\alpha},\bar{\theta},\bar{s},\lambda,\mu) \leq L(\alpha^\star,s^\star,\theta^\star,\lambda,\mu) \leq  L(\alpha^0,\theta^0,s^0,\lambda,\mu) = L(\bar{\alpha},\bar{\theta},\bar{s},\lambda,\mu),$ which is a contradiction. 
+% % This can be shown through a proof by contradiction~\citep{cvar_markov}.
+% Therefore, for any $\gamma \geq 0$, the algorithm converges to a $\gamma$-stationary point $(\alpha^t,s^t,\theta^t)$ satisfying the condition $\dist(0,J_L(\alpha^{t},s^{t},\theta^{t})) \leq \gamma$ (equation~\eqref{eq:lagrangian_stationarity}), in the neighborhood $\mathcal{D}_\alpha \times \mathcal{D}_s \times \mathcal{D}_\theta \cap \mathbf{B}_{(\alpha^\star, s^\star,\theta^\star)}(r)$ of a stationary point $(\alpha^\star,s^\star,\theta^\star)$. 
+
+
+\paragraph{Step 2: Convergence of $\lambda$.}
+From step 1, we have a stationary point $(\alpha^k,\theta^k)$ of the augmented Lagrangian function at iteration $k$ of Algorithm~\ref{alg:learning}, with fixed multiplier and penalty parameters $\lambda^{k-1}$ and $\mu^{k-1}$. Further properties of this stationary point depend on the convergence, or lack thereof, of the sequence $\{\lambda^k\}$. 
+% \bsnote{This is a $\gamma^k$-local minimum. Not the true one unless $k \to \infty$}.
+% Here, we temporarily disregard the termination condition. 
+As the step size parameter of $\lambda$ is the penalty $\mu$, we consider the two cases, (a) where the sequence of penalty parameters $\{\mu^k\}$ is bounded, and (b) where $\{\mu^k\}$ is unbounded. We first analyze case (a). By lines 6-12 of Algorithm~\ref{alg:learning}, we note that for $\{\mu^k\}$ to be bounded, the penalty parameter must remain constant from some iteration onwards. By the condition on line 6, with $\tau < 1$, this implies $\lim_{k \rightarrow \infty}\|H(\alpha^k,\theta^{k})\|_2 = 0$, which in turn implies $\lim_{k \rightarrow \infty} \mu^k(H(\alpha^k,\theta^{k})) = 0$. This sequence of updates for $\lambda$ is geometric and summable, so the sequence $\{\lambda^k\}$ is bounded, with a convergent subsequence. Given the boundedness assumption on the true Lagrangian multiplier $\lambda^\star$ in Assumption~\ref{ass:bounded}, we conclude 
+% without loss of generality {\color{blue} Bart: what does this mean here?} 
+that the whole sequence converges, $\ie,$ $\{\lambda^k\} \rightarrow \lambda^\star$. 
+% \bsnote{make argugment that, if $\mu^k$ is bounded, at some point we must fall in the first part of the loop where $\|H + s - \kappa\|$ decreases geometrically. }
+We now turn to case (b), where $\{\mu^k\}$ is unbounded. In this case, $\{\lambda^k\}$ may not converge. However, by the $\lambda$ update rule in lines 7 of Algorithm~\ref{alg:learning}, we note that while $\{\mu^k\} \rightarrow \infty$, $\{\lambda^k\}$ is bounded between $\lambda^{\rm{min}}$ and $\lambda^{\rm{max}}$, the safeguard values. 
+
+% that the equality constraint of~\eqref{eq:bilevel} is satisfied at $(alpha^k,\theta^{k},s^k)$
+\paragraph{Step 3: convergence of the outer loop.}
+We now show that either the sequence $\{\theta^k\}$ converges to a feasible point of the $\widehat{\CVaR}$ condition, or $\{\alpha^k,\theta^k\}$
+converges to a stationary point of the constraint violation function. 
+We begin with the former. 
+Suppose the sequence of penalty parameters $\{\mu^k\}$ is bounded, and converges to $\mu^\star$.
+Then, as $k \to \infty$, $\{\lambda^k\}$ converges to the stationary point $\lambda^\star$.
+From step 1, we have that $\{\theta^t\} $ in the inner loop converges almost surely to $\theta^k = \theta^\star(\lambda^{k-1},\mu^{k-1})$ along each step of $\lambda$ and $\mu$'s convergence. 
+In order to establish the convergence of $\{\theta^k \}$ in the outer loop to a stationary point $\theta^\star(\lambda^\star, \mu^\star)$,  a feasible point of the $\widehat{\CVaR}$ condition~\eqref{eq:sampled_cvar}, we must ensure that $\theta^\star(\lambda, \mu)$ is well-behaved, by showing its continuity with respect to $(\lambda, \mu)$.
+
+
+
+Recall Assumption~\ref{ass:unique} on the uniqueness of the inner~\gls{RO} solutions $z(\theta,y)$, Assumption~\ref{ass:bounded} on the compactness of the set $\mathcal{Z}$, and the convexity (and therefore continuity) of the objective and constraint functions $f$ and $g$ in $x$. Suppose these assumptions hold. By Theorem 4.2.1 of~\cite{parametric_stability}, we establish the continuity of $L(\alpha,\theta,\lambda,\mu)$ in $\theta$, for $\theta \in \mathcal{D}_\theta$. As $L$ is bilinear and therefore continuous in $(\lambda, \mu)$, we obtain our desired stability results, \ie, as $\{\lambda^k\}$ and $\{\mu^k\}$ converge to $\lambda^\star$, $\mu^\star$, the optimal solution with respect to $\theta$ is continuous, and converges almost surely to the local minimizer $\theta^\star$. 
+Note that $\{\alpha^k\}$ does not necessarily converge to a stationary point, as the minimum over $\alpha$ is not necessarily unique~\cite[Theorem 2]{cvaropt}.
+However, by the convergence of the inner loop in step 1 and by the convergence condition of $\mu$ in step 2, as $k\to \infty$ in Algorithm 1, we have a point $(\alpha^k,\theta^\star,\lambda^\star,\mu^\star)$ satisfying $0 \in J_L(\alpha^k,\theta^\star)$ and $H(\alpha^k,\theta^\star) = 0$.  
+We can conclude that $ \{\theta^k\}$ converges almost surely to 
+% a stationary point $\theta^\star$ of the augmented Lagrangian function, which in this case is also 
+a feasible point  $\theta^\star$ of the $\widehat{\CVaR}$ condition, where the minimizer over $\alpha$ takes some value $\alpha^\star \leq \alpha^k$.
+
+
+% and $\{\alpha^k,s^k,\theta^k\}$ converges to $(\alpha^\star,s^\star,\theta^\star)$, a stationary point of the augmented Lagrangian function at $\mu^\star$ and $\lambda^\star$. 
+% {\color{blue} Bart: you do need continuity of $\alpha^\star, s^\star, \theta^\star$ with respect to $(\lambda, \mu)$ for this?}
+% Together with the first 3 steps, the sequence $\{\alpha^k,s^k,\theta^k\}$ converges to $(\alpha^\star,s^\star,\theta^\star) \define (\alpha^\star(\lambda^\star), \theta^\star(\alpha^\star(\lambda^\star),\lambda^\star),s^\star(\alpha^\star(\lambda^\star),\lambda^\star) )$, a local minimum of $L(\alpha,s,\theta,\lambda^\star,\mu^\star)$ over the set $(\alpha,s,\theta)\in C_1 \times C_2 \cap \mathbf{B}_{(\alpha^\star, \theta^\star,s^\star)}(r)$ for some $r > 0$. 
+
+% \bsnote{show stability in terms of $s^\star, \theta^\star$. \ie, if you vary $\mu$ and $\lambda$ the optimal solution with  respect to $\theta$ is continuous.}
+% , the constraints of~\eqref{eq:bilevel_sampled} are satisfied. 
+% This stationary point $(\alpha^\star,s^\star,\theta^\star)$ is thus a feasible solution of problem~\eqref{eq:bilevel_sampled}. 
+% As this stationary point is attainable when the $\mu$ iterates are bounded, we must be able to attain a point $(\alpha^k,s^k,\theta^k)$ such that $\|H(\alpha^k,\theta^k)+s^k - \kappa\|_2 \leq \epsilon$ and $\gamma^k \leq \epsilon$, where $\epsilon \geq 0$.
+% We note that when $\gamma^k \leq \epsilon$, the condition~$\dist( 0,J_L(\alpha^k,s^k,\theta^k)) \leq \gamma^k$ implies~$\dist(0, J_F(\theta^k) + \lambda^k J_{H + s - \kappa}(\alpha^k,s^k,\theta^k)) \leq \epsilon$. Therefore, $(\alpha^k,s^k,\theta^k)$ is by definition, from equation~\eqref{eq:stationary}, an $\epsilon$-stationary point of problem~\eqref{eq:bilevel_sampled}.
+
+On the other hand, suppose the sequence of penalty parameters $\{\mu^k\}$ is unbounded. By step 1, for any $\lambda^k$ and $\mu^k$, we have obtained a stationary point of the augmented Lagrangian function, satisfying $0 \in J_L(\alpha^k,\theta^k)$.
+% Now, dividing all of the above by $\mu^k$, we have,
+% \begin{align*}
+% 0 &\in (1/\mu^k)\frac{1}{|Y|}\sum_{y\in Y}J_{x^\star}(\theta^\star) J_{f}(x^\star) \\
+% &\quad + (1/\mu^k)\frac{1}{\eta|W|}\sum_{(u,y)\in W} J_{x^\star}(\theta^\star) \lambda^{kT}J_{g}(x^\star)\ones\left\{g(x^\star,u,y) \geq \alpha^\star\right\} )\\
+% &\quad + (1/\mu^k)\frac{1}{\eta|W|}\sum_{(u,y)\in W} J_{x^\star}(\theta^\star) J_{g}(x^\star)\ones\left\{g(x^\star,u,y) \geq \alpha^\star\right\} ) \mu^k (h(\alpha^\star,\theta^\star,u,y)+s-\kappa),\\
+% 0 &\in (1/\mu^k)\frac{1}{|W|}\sum_{(u,y)\in W} \lambda^{kT}(1 - (1/\eta)\ones\left\{g(x(\theta^\star,y),u,y) \geq \alpha^\star\right\})\\
+% &\quad + (1/\mu^k)\frac{1}{|W|}\sum_{(u,y)\in W} (1 - (1/\eta)\ones\left\{g(x(\theta^\star,y),u,y) \geq \alpha\right\} )\mu^k (h(\alpha^\star,\theta^\star,u,y)+s-\kappa),\\
+% 0 &\in  (1/\mu^k)\lambda^k +(1/\mu^k)\frac{1}{|W|}\sum_{(u,y)\in W} \mu^k (h(\alpha^\star,\theta^\star,u,y)+s-\kappa).
+% \end{align*}
+Note that, with $\{\mu^k\}$ unbounded and $\{\lambda^k\}$ bounded, we observe $\lim_{k \rightarrow \infty} \lambda^k/
+\mu^k = 0$. 
+Therefore, dividing both sides of the conservative Jacobian by $\mu^k$ and taking the limit, we obtain:
+\RC{\begin{equation*}
+\begin{aligned}
+0 & \in \lim_{k \rightarrow \infty}  \frac{1}{\eta N}\sum_{x^i \in X^N} \ones\left\{(g(z^i,u^i,x^i) - \alpha^k)_+/\eta + \alpha^k - \kappa \geq 0\right\} \ones\left\{g(z^i,u^i,x^i) \geq \alpha^k\right\}\\
+&\hspace{3cm}((g(z^i,u^i,x^i)- \alpha^k)_+/\eta + \alpha^k - \kappa) J_{g}(z^i) J_{z^i}(\theta^k),\\
+0 & \in \lim_{k \rightarrow \infty} \frac{1}{N}\sum_{(u^i,x^i)\in W^N} \frac{1}{\eta N}\sum_{x^i \in X^N} \ones\left\{(g(z^i,u^i,x^i) - \alpha^k)_+/\eta + \alpha^k - \kappa \geq 0\right\}\\
+&\hspace{3cm}\left(1 - (1/\eta)\ones\left\{g(z^i,u^i,x^i) \geq \alpha^k\right\} \right)((g(z^i,u^i,x^i)- \alpha^k)_+/\eta + \alpha^k - \kappa).\\
+\end{aligned}
+\end{equation*}}
+These are the stationary conditions for the constraint violation function $V(\alpha,\theta) = (1/2)\|H(\alpha,\theta)\|^2$, \ie, $0 \in J_V(\alpha^k,\theta^k)$. 
+% \bsnote{sort out notation for jacobian}
+We thus converge to a stationary point of the constraint violation function, as desired. 
+
+
+\section{Direct reformulation for~\eqref{eq:bilevel_sampled}}
+\label{appx:bilinear}
+We can directly reformulate the bi-level problem into a single-level problem using the KKT conditions. 
+At a fixed $\theta$ and for any context $x_i$, the inner level problem~\eqref{eq:robust_prob} with respect to the $1$-norm uncertainty set with a polyhedral support $S=\{u \in \reals^m~|~Cu \leq d \}$, that is, 
+\begin{equation*}
+\label{unc_set}
+    \uncset(\theta,x) = \left\{u = A(x)v+b(x) \mid \|v\|_1 \leq \rho ,~ u \in S\right\},
+\end{equation*} 
+can be reformulated as follows:
+\begin{equation*}
+	\label{eq:single}
+  \begin{array}[t]{ll}
+		\underset{z_i,\tau_i,v_i,\omega_i,\lambda_i}{\mbox{minimize}} & \tau_i \\
+		\mbox{subject to} &[-g_l]^*(z_i,\tau_i,v_{il}-C^T\omega_{il},x_i) + 
+        d^T\omega_{il} + b(x_i)^Tv_{il} + \rho\lambda_{il} \leq 0 \quad l = 1,\dots,L \\
+         & \|A(x_i)^Tv_{il}\|_\infty \leq \lambda_{i} \quad l = 1,\dots,L\\
+        & Wz_i \leq h,~\omega_i \geq 0,\\
+	\end{array}
+\end{equation*}
+where we parametrized $\mathcal{Z} = \{z\mid Wz\leq h\}$. For conciseness, let us express, for all $l=1,\dots,L, j=1,\dots,m,$ and $i=1,\dots,N$:
+\begin{align*}
+    \tilde{g}_{1,il} &= [-g_l]^*(z_i,\tau_i,v_{il}-C^T\omega_{il},x_i) + 
+        d^T\omega_{il} + b(x_i)^Tv_{il} + \rho\lambda_{il} \\
+        \tilde{g}_{2,ilj} &= (A(x_i)^Tv_{il})_j - \lambda_i\\
+        \tilde{g}_{3,ilj} &= -(A(x_i)^Tv_{il})_j - \lambda_i\\
+        \tilde{g}_{4,i} &= Wz_i - h.
+\end{align*}
+Then, in addition to the primal feasibility constraints, the KKT conditions of this problem include the following stationarity, dual feasibility, and complementary slackness constraints,
+\begin{equation}
+	\label{eq:KKT}
+	\tag{KKT}
+\begin{aligned}
+&\nabla_{(\tau_i,z_i,v_i,\omega_i,\lambda_i)} \left(\tau_i + \sum_{j}\delta_{1,il}\tilde{g}_{1,il} + \sum_{lj}\delta_{2,ilj}\tilde{g}_{2,ilj}+ \sum_{lj}\delta_{3,ilj}\tilde{g}_{3,ilj} + \delta_{4,i}^T\tilde{g}_{4,i}\right) = 0\\
+&\delta_1,\delta_2,\delta_3,\delta_4 \geq 0\\
+& \sum_{l=1}^{L} \left (-\delta_{1,il}\tilde{g}_{1,il} -\sum_{j=1}^{m} (\delta_{2,ilj}\tilde{g}_{2,ilj} -\delta_{3,ilj}\tilde{g}_{3,ilj})\right ) -\delta_{4,i}^T\tilde{g}_{4,i} = 0,
+\end{aligned}
+\end{equation}
+where $\delta$ are the additional dual variables. We use this to formulate the single-level problem
+\begin{equation}
+	\begin{array}{ll}
+			\label{eq:singlelevel-bilinear}
+ \underset{\theta,\alpha,z,\tau,\omega,v,\delta}{\mbox{minimize}} & \frac{1}{N}\sum_{i=1}^N (\gamma f(z_i,u_i,x_i) +\tau_i )\\
+		\mbox{subject to} 
+        &[-g_l]^*(z_i,\tau_i,v_{il}-C^T\omega_{il},x_i) + 
+        d^T\omega_{il} + b(x_i)^Tv_{il} + \rho\lambda_{il} \leq 0 \quad l = 1,\dots,L,~i=1,\dots,N \\
+        &  \frac{1}{N}\sum_{i=1}^N (g(z_i,\tau_i,u_i,x_i)- \alpha)_+/\eta + \alpha \leq \kappa \\
+ & \|A(x_i)^Tv_{il}\|_\infty \leq \lambda_{i} \quad l = 1,\dots,L,~i=1,\dots,N\\
+    & Wz_i \leq h,~\omega_i \geq 0,\quad i = 1,\dots,N\\
+        & \eqref{eq:KKT}
+	\end{array}
+\end{equation}
+where KKT encodes the additional constraints from~\eqref{eq:KKT}.
+This formulation includes bilinear terms $b(x_i)^Tv_{il}$, $A(x_i)^Tv_{il}$, and similar trilinear terms involving $\delta$ in the KKT constraints, and is thus intractable.
+
+% \ifpreprint 
+% \end{proof} 
+% \else
+% \Halmos
+% \endproof
+% 
+% \bsnote{move set derivations to the beginning of the appendix}
+
+
+
+% \ifpreprint
+% \subsection{Linear reformulations}
+% \else 
+% \section{Linear reformulations}
+% % \label{sec:RO_reform_linear}
+% We now consider a simple linear constraint $g(x,u) = (Pu + a)^Tx$, and derive the reformulation of~\eqref{eq:robust_prob} for the common uncertainty sets given above. The proofs are in Appendix~\ref{appx:reform}.
+
+% \paragraph{Box uncertainty.}
+% For the given linear uncertain constraint, we obtain the reformulation
+% \begin{equation}
+% 	\label{eq:box}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(x)\\
+% 		\mbox{subject to} & a^Tx + b^TP^Tx + \|A^TP^Tx\|_1 \le 0.\\
+% 	\end{array}
+% \end{equation}
+% \paragraph{Ellipsoidal uncertainty.}
+% The reformulation is
+% \begin{equation}
+% 	% \label{eq:ellip}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(x)\\
+% 		\mbox{subject to} & a^Tx + b^TP^Tx + \|A^TP^Tx\|_q  \le 0	\end{array}
+% \end{equation}
+% where $q$ is the conjugate number for $p$.
+
+% \paragraph{Budget uncertainty.}
+% The reformulation is
+% \begin{equation}
+% 	% \label{eq:budget}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(x)\\
+% 		\mbox{subject to} & a^Tx + b^TP^Tx +\rho_1\|r+A^TP^Tx\|_1 + \rho_2\|r\|_\infty  \le 0
+% 	\end{array}
+% \end{equation}
+% where $r \in \reals^m$ is an auxiliary variable.
+
+% \paragraph{Polyhedral uncertainty.}
+% The reformulation is
+% \begin{equation}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(x)\\
+% 		\mbox{subject to} & a^Tx + d^Th -b^TP^Tx\le 0,\\
+% 	& D^Th = A^TP^Tx\\
+% 	& h \geq 0,
+% 	\end{array}
+% \end{equation}
+% where $h\in \reals^m$ is an auxiliary variable.
+
+% \paragraph{Mean robust uncertainty.}
+% The reformulation is
+% \begin{equation}
+% 	\label{eq:mro}
+% 	\begin{aligned}
+% 		\begin{array}{ll}
+% 			\text{minimize } & f(x)\\
+% 			\mbox{subject to} & \lambda + \sum_{k=1}^{K} w_k s_k  \le 0\\
+% 			& a^Tx + b^TP^Tx + (A^TP^Tx)^T\bar{d}_k  + \phi(r)\lambda \left\|A^TP^Tx/\lambda \right\|^r_q \leq s_k, \quad k = 1,\dots, K\\
+% 			& \lambda \geq 0,
+% 		\end{array}
+% 	\end{aligned}
+% \end{equation}
+% where $r$ is the conjugate number of $\rho$, $q$ is the conjugate number of $p$, and $\lambda \in \reals$ is an auxiliary variable. The function ${\Phi(r) =  (r-1)^{(r-1)}/r^r}$ for $r > 1$.
+
+
+% \ifpreprint
+% \subsection{Nonlinear example}
+% \else 
+% \section{Nonlinear example}
+% % We give an example of a nonlinear uncertain function $g(x,u)$, for the ellipsoidal uncertainty set.
+% \paragraph{Quadratic concave.}
+% We consider the concave uncertain function $$g(x,u) = \sum_{i=1}^n g_i(x,u), \quad \text{where } \quad g_i(x,u) = -(1/2)u^T(P_ix_i)u.$$ We have each $P_i\in \reals^{n\times n}$ a symmetric positive definite matrix, $u = Az+b \in \reals^n$ from an ellipsoidal set, and $x \in \reals^{n}_{+}$. We apply~\eqref{eq:ellip_gen} to arrive at the inner problem of the bi-level formulation
+% \begin{equation}
+% 	\label{eq:ellip_quad}
+% 	\begin{array}{lll}
+% 		\Phi(\theta) = &\mbox{argmin} & f(x)\\
+% 		&\mbox{subject to} & (1/2)\sum_{i=1}^n (h_i^TP_i^{-1}h_i)/x_i - b^Th_i + \sigma_S(\omega) - b^T\omega + \|\sum_{i=1}^n A^Th_i + A^T\omega\|_q \le 0\\		&& x \geq 0,
+% 	\end{array}
+% \end{equation}
+% where we have $ \omega \in \reals^n, h_i \in \reals^n$, $i = 1,\dots,n$, as auxiliary variables.
+
+\section{General reformulation proofs}
+\label{appx:reform}
+\subsection{Conjugate of a general function}
+We first derive the conjugate of general functions, which can then be used in the upcoming reformulations.
+\paragraph{Linear function.}
+For a linear function $g(z,u) = (Pu + a)^Tz$, we compute the conjugate as
+\begin{equation*}
+	\label{c4:eq:conj_affine}
+	[-g]^\star(z,h) =  \sup_u h^Tu - (a + Pu)^Tz =
+	\begin{dcases}
+            a^Tz  & \text{ if}\; h = -P^Tz \\
+		\infty & \text{ otherwise}.
+	\end{dcases}
+\end{equation*}
+\paragraph{Sum of concave functions.}
+For a general function $g(z,u) = \sum_{j=1}^J g_j(u,z)$, where each $g_j$ is concave in $u$, by the theorem of infimal convolutions~\cite[Theorem 11.23(a), p. 493]{rockafellar_wets_1998}, we compute the conjugate as
+\begin{equation*}
+	\begin{aligned}
+	\label{eq:conj_gen}
+	[-g]^\star(z,h) =  \begin{cases}  \underset{h_j,\dots,h_J}{\inf} & \sum_{j=1}^J [-g_j]^\star(z,h_j) \\
+		\mbox{subject to} & \sum_{j=1}^J h_j = h.
+	\end{cases}\\
+\end{aligned}
+	\end{equation*}
+
+\paragraph{Maximum of concave functions.}
+We also consider the maximum of concave functions, $$g(z,u) = \max_{l=1,\dots,L} g_l(z,u).$$ In practice, these functions $g(z,u)$ are often affine functions. For all the reformulations below, we assume $g(z,u)$ to be of this maximum of concave form.
+
+\subsection{Box and Ellipsoidal reformulations}
+\label{apx:boxproof}
+Rewriting the robust constraint as optimization problem, we have
+{\allowdisplaybreaks \begin{align*}
+& \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} & g(z,Av+b) \\
+	\mbox{subject to} & \|v\|_p \le 1
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup}  ~\underset{\lambda \geq 0}{\inf}~g(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
+	\end{array}\\
+	&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~\underset{l}{\max}~g_l(z,Av+b)  - \lambda\|v \|_p  + \lambda\\
+		\end{array}\\
+		&= \begin{array}[t]{ll}
+			\underset{l}{\max}~ \underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~g_l(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
+				\end{array}\\
+			&= \begin{array}[t]{ll}
+					\underset{l}{\max}~ \underset{\lambda \geq 0}{\inf} ~ \underset{Av+b\in S}{\sup}~ g_l(z,Av+b)  - \lambda\| v \|_p  + \lambda\\
+						\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{\lambda_l \geq 0, \tau}{\inf} & \tau\\
+	\mbox{subject to} & \lambda_l + \underset{Av+b\in S}{\sup } g_l(z,Av+b) - \lambda_l  \|v \|_p \leq \tau, \quad l = 1,\dots,L,
+\end{array}
+\end{align*}}
+where $p = \infty$ for box uncertainty and $p \geq 1$ otherwise. We used the Lagrangian in the first equality, and decomposed $g(z,Av+b)$ into its constituents for the second equality. As $l$ and $\lambda$ are separable, in the third step we interchanged the $\inf$ and the $\max$. Next, for each $l$, as the expression is convex in $\lambda$ and concave in $u$, we used the Von Neumann-Fan minimax theorem to interchange the $\inf$ and the $\sup$. We then express the $\max$ in epigraph form by introducing an auxiliary variable $\tau$.
+
+Now, if we define the function $c(v) = \|v\|_p$, then using the definition of conjugate functions, we have, for each $l$, the left-hand-side of the constraint equal to
+\begin{equation*}
+\begin{aligned}
+		\lambda_l + [-g_l(z,A\cdot+b) +\chi_S(A\cdot+b) + \lambda_l c]^\star(0).\\
+\end{aligned}
+\end{equation*}
+We then borrow results from~\cite[Theorem 11.23(a), p. 493]{rockafellar_wets_1998},~\cite[Lemma C.9]{zhen2021mathematical}, and~\cite[Proposition 13.24]{composites} with regards to the inf-convolution of conjugate functions, the conjugate functions of norms, and the conjugate of linear compositions, to note
+\begin{align*}
+	[-g_l(z,A\cdot+b)   +\chi_S(A\cdot+b)+ \lambda_l c]^\star (0) =  \underset{\omega_l, h_l, y_l}{\inf} ([-g_l]^\star(z,h_l) &- b^T(h_l + \omega_l) + \sigma_S(\omega_l)+\indicator_{\|y_l\|_q \leq \lambda_l}\\
+  &+ \indicator_{A^T(h_l + \omega_l)= y_l}),
+\end{align*}
+where  $h_l\in\reals^{m}$, $y_l \in \reals^{\hat{m}}$, $\omega_l \in \reals^{m}$, and $q$ is the conjugate number of $p$. Substituting these back, we arrive at
+\begin{equation*}
+\begin{aligned}
+\begin{array}[t]{ll}
+\underset{z,\tau, h, \omega, y}{\inf} & \tau\\
+\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b^T(h_l + \omega_l) + \|y_l\|_q \leq \tau, \quad l = 1,\dots,L \\
+ & A^T(h_l + \omega_l)= y_l,  \quad l = 1,\dots,L.
+\end{array}
+\end{aligned}
+\end{equation*}
+Recall that this optimization problem upper bounds our original robust constraint, which we constrain to be nonpositive. Therefore, we only need $\tau \leq 0$. For the final step, we can now write the original minimization problem~\eqref{eq:robust_prob} in minimization form for both the objective and constraints, to arrive at
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+	\underset{z, h, \omega}{\text{minimize}} & f(z)\\
+	\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b^T(h_l + \omega_l) + \|A^T(h_l + \omega_l) \|_q \leq 0, \quad l = 1,\dots,L.	\end{array}
+	\end{aligned}
+	\end{equation*}
+
+\subsection{Budget reformulation}
+\label{apx:budproof}
+Rewriting the robust constraint as optimization problem, we have
+\begin{equation*}
+	\begin{aligned}
+& \begin{array}[t]{ll}
+	\underset{Az+b\in S}{\sup} & g(z,Av+b) \\
+	\mbox{subject to} & \| v \|_\infty \le \rho_1\\
+	 & \| v \|_1 \le \rho_2\\
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup}~ \underset{\lambda \geq 0}{\inf} ~\underset{l}{\max} ~ g_l(z,Av+b)  - \lambda_1\| v \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
+	\end{array}\\
+ &=  \begin{array}[t]{ll}
+	\underset{l}{\max} ~\underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf} ~g_l(z,Av+b)  - \lambda_1\| z \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
+	\end{array}\\
+	&= \begin{array}[t]{ll}
+		\underset{l}{\max}~\underset{\lambda \geq 0}{\inf}~\underset{Av+b\in S}{\sup} ~g_l(z,v)  - \lambda_1\| v\|_\infty  + \lambda_1\rho_1 - \lambda_2\| v \|_1  + \lambda_2\rho_2,\\
+		\end{array}\\
+\end{aligned}
+\end{equation*}
+where we again used the Lagrangian, separated $g$ into its constituents, and applied the minimax theorem. We now express the max in epigraph form,
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+		\underset{\lambda_{l} \geq 0, \tau}{\inf} & \tau \\
+		\mbox{subject to} & \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + \underset{Av+b\in S}{\sup } g_l(z,Av+b) -\lambda_{l1}\| v \|_\infty - \lambda_{l2}\| v \|_1 \leq \tau, \quad l = 1,\dots,L.
+	\end{array}
+	\end{aligned}
+	\end{equation*}
+
+If we define the functions $c_1(v) = \|v\|_\infty$, $c_2(v) = \|v\|_1$, then using the definition of conjugate functions, we have for each $l$ the left-hand-side of the constraint equal to
+\begin{equation*}
+\begin{aligned}
+		& \lambda_{l1}\rho_1 +  \lambda_{l2}\rho_2 +  [-g_l(z,A\cdot+b) +\chi_S(A\cdot+b) + \lambda_{l1} c_1 + \lambda_{l2} c_2]^\star(0)\\
+		&= 	\underset{h_l,\omega_l, y_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l) + \sigma_S(\omega_l)  +  [\lambda_{l1} c_1 + \lambda_{l2} c_2 ]^\star(-y_l) \\
+  &\hspace{12cm}+ \indicator_{A^T(h_l + \omega_l) = y_l} \\
+		&= \underset{h_l,\omega_l, y_l, r_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l)+ \sigma_S(\omega_l)  + \indicator_{\|r_l-y_l\|_1 \leq \lambda_{l1}} + \indicator_{\|r_l\|_\infty \leq \lambda_{l2}} \\
+  & \hspace{12cm} + \indicator_{A^T(h_l + \omega_l) = y_l}
+\end{aligned}
+\end{equation*}
+We can express this as
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+		\underset{z, h_l,\omega_l, y_l, r_l, \tau}{\inf} & \tau \\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - y_l\|_1  + \rho_2\|r_l\|_\infty \leq \tau, \\
+  &\hfill k =  1, \dots,K \\
+	 & A^T(h_l + \omega_l) = y_l,  \quad l =  1, \dots,L.
+	\end{array}
+	\end{aligned}
+	\end{equation*}
+ We can then let $\tau = 0$ and substitute the new constraints in for the robust constraint in~\eqref{eq:robust_prob},
+\begin{equation*}
+	\begin{array}[t]{ll}
+		{\text{minimize}} & f(z) \\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - A^T(h_l + \omega_l)\|_1  + \rho_2\|r_l\|_\infty \leq 0,\\
+  &\hfill l =  1, \dots,L.	\end{array}
+	\end{equation*}
+
+\subsection{Polyhedral reformulation}
+\label{apx:polyproof}
+Rewriting the robust constraint as an optimization problem, we have
+\begin{equation*}
+	\begin{aligned}
+& \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} & g(z,Av+b) \\
+	\mbox{subject to} & Dz \le d
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} ~\underset{h \geq 0}{\inf} ~g(z,Av+b)  - (Dv)^Th   + d^Th\\
+	\end{array}\\
+	&= \begin{array}[t]{ll}
+		\underset{Av+b\in S}{\sup}~\underset{h \geq 0}{\inf}~\underset{l}{\max}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+		\end{array}\\
+		&= \begin{array}[t]{ll}
+			\underset{l}{\max}~\underset{Av+b\in S}{\sup}~\underset{h \geq 0}{\inf}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+			\end{array}\\
+		&= \begin{array}[t]{ll}
+				\underset{l}{\max}~\underset{h \geq 0}{\inf}~\underset{Av+b\in S}{\sup}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+				\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{h\geq 0,\tau}{\inf} & \tau \\
+	\mbox{subject to}& d^Th_l + \underset{Av+b\in S}{\sup } g_l(z,Av+b) - (Dv)^Th_l \leq \tau, \quad l = 1,\dots,L
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{h \geq 0, \omega,\tau, y, \gamma}{\inf} &\tau\\
+	\mbox{subject to}& d^Th_l + [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) + \indicator_{D^Th_l = -y_l} \\
+ &\hfill  + \indicator_{A^T(\omega_l+ \gamma_l) = y_l} \leq \tau, \quad l = 1,\dots,L
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{h \geq 0,\omega,\tau,\gamma}{\inf} &\tau\\
+	\mbox{subject to}& [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq \tau, \quad l = 1,\dots,L\\
+	& A^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L,
+\end{array}\\
+\end{aligned}
+\end{equation*}
+where we again used the Lagrangian, the Von Neumann-Fan minimax theorem, the infimal convolution of conjugates, and the conjugate of affine compositions. The final reformulation~\eqref{eq:robust_prob} is then
+\begin{equation*}
+\begin{array}[t]{ll}
+	{\text{minimize}} & f(z)\\
+	\mbox{subject to} & [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq 0, \quad l = 1,\dots,L\\
+	 &A^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L.
+\end{array}
+\end{equation*}
+
+\subsection{Mean Robust Optimization reformulation}
+\label{apx:mroproof}
+We adapt the proof from~\cite[Appendix A.3]{mro}. 
+To simplify notation, we define $c_k(v_{lk}) \define   \|v_{lk} - \bar{d}_k \|^p - \epsilon^p$.
+We also note that $u_{lk} = Av_{lk}+b$. 
+Then, we have
+\begin{equation*}
+	\begin{aligned}
+& \begin{array}[t]{ll}
+	\underset{u_{11}, \dots, u_{LK} \in \supp, \alpha \in \Gamma}{\sup} &\sum_{k=1}^K \sum_{l=1}^L \alpha_{lk} g_l(z,u_{lk}) \\
+	\mbox{~~~~subject to} & \sum_{k=1} ^K \sum_{l=1}^L \alpha_{lk} c_k(v_{lk}) \le 0
+\end{array}\\
+&=\begin{array}[t]{ll}
+	\underset{u_{11}, \dots, u_{LK} \in \supp, \alpha \in \Gamma}{\sup} & \underset{\lambda \geq 0}{\inf}~\sum_{k=1}^K \sum_{l=1}^L \alpha_{lk}g_l(z,u_{lk}) - \lambda\sum_{k=1} ^K \sum_{l=1}^L \alpha_{lk} c_k(v_{lk})\\
+\end{array}\\
+&=\begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf}~\underset{u_{11}, \dots, u_{LK} \in \supp}{\sup} &\sum_{k=1}^K \sum_{l=1}^L \alpha_{lk} g_l(z,u_{lk}) - \lambda\sum_{k=1} ^K \sum_{l=1}^L \alpha_{lk} c_k(v_{lk}).\\
+\end{array}\\
+\end{aligned}
+\end{equation*}
+We applied the Lagrangian in the first equality. Then, as the summation is over upper-semicontinuous functions $g_l(x,u_{lk})$ concave in $u_{lk}$, Lagrangian strong duality allows us to interchange the inf and the sup for all $\epsilon > 0$. Next, we rewrite the formulation using an epigraph trick, and apply the definition of conjugate functions.
+\begin{equation*}
+	\begin{aligned}
+&= \begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}~\underset{u_{11}, \dots, u_{LK} \in \supp}{\sup}& \sum_{l=1}^L \alpha_{lk}(g_l(z,u_{lk}) - \lambda c_k(v_{lk})) \le s_k, \quad k = 1,\dots,K
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}& \sum_{l=1}^L \alpha_{lk}[-g_l(z, A\cdot + b) +\chi_{\supp}(A\cdot + b) + \lambda c_k]^\star(0) \le s_k, \quad k = 1,\dots,K.
+\end{array}\\
+\end{aligned}
+\end{equation*}
+% In the last step, we rewrote $u_{lk} = (\alpha_{lk}u_{lk})/\alpha_{lk}$, $v_{lk} = (\alpha_{lk}v_{lk})/\alpha_{lk}$, and maximized over $\alpha_{lk}u_{lk} \in S'$, where $S'$ is the support transformed by $\alpha_{lk}$. See~\cite{mro} for details. 
+% Next, we make substitutions $h_{ij} = \alpha_{lk}u_{lk}$, $y_{ij} = \alpha_{lk}v_{lk}$, and define functions $g_l'(z,h_{lk}) = \alpha_{lk}g_l(z,h_{lk}/\alpha_{lk})$, $c_k'(y_{lk}) = \alpha_{lk}c_k'(y_{lk}/\alpha_{lk})$.
+% \begin{equation*}
+% 	\begin{aligned}
+% &= \begin{array}[t]{ll}
+% 	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+% 	\mbox{subject to}~\underset{h_{11}, \dots, h_{lk} \in \supp'}{\sup}& \sum_{l=1}^L g_l'(z,h_{lk})- \lambda c_k'(y_{lk}) \le s_k, \quad k = 1,\dots,K
+% \end{array}\\
+% &= \begin{array}[t]{ll}
+% 	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+% 	\mbox{subject to}& \sum_{l=1}^L [-g_l'(z, A\cdot + b) +\chi_{\supp'}( A\cdot + b) + \lambda c_k']^\star(0) \le s_k, \quad k = 1,\dots,K.
+% \end{array}\\
+% \end{aligned}
+% \end{equation*}
+% For the new functions defined, we applied the definition of conjugate functions.
+% Now, using the conjugate form $f^\star(y) = \alpha g^\star(y)$ of a right-scalar-multiplied function $f(z) = \alpha g(z/\alpha)$, we rewrite the above as 
+% \begin{equation*}
+% 	\begin{aligned}
+% &= \begin{array}[t]{ll}
+% 	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+% 	\mbox{subject to}& \sum_{l=1}^L \alpha_{lk}[-g_l(z, A\cdot + b) +\chi_{\supp}(A\cdot + b) + \lambda c_k]^\star(0) \le s_k, \quad k = 1,\dots,K.
+% \end{array}\\
+% \end{aligned}
+% \end{equation*}
+% We note that while the support of $h_{lk}$ is $\supp'$, the support of $h_{lk}/\alpha_{lk}$, which is the input of $g_l$, is still $\supp$.  
+Now, again using properties of conjugate functions, we note that:
+\begin{equation*}
+	\begin{aligned}
+		\alpha_{lk}[(-g_l(z, A\cdot + b) +\chi_{\supp}(A\cdot + b) + \lambda c_k)]^\star (0) &= \alpha_{lk}\underset{\omega_{lk}, h_{lk}, y_{lk}}{\inf} ([-g_l]^\star(z,h_{lk}) - b^T(h_{lk} + \omega_{lk})\\
+  &+ \indicator_{A^T(h_{lk} + \omega_{lk})= y_{lk}} + \sigma_S(\omega_{lk})+[\lambda c_k]^\star (-y_{lk}))
+	\end{aligned}
+\end{equation*}
+and
+\begin{equation*}
+\begin{aligned}
+	[\lambda c_k]^\star (-y_{lk}) =-y_{lk}^T\bar{d}_k + \phi(q)\lambda {\|}y_{lk}/\lambda{\|}^q_* + \lambda \epsilon^p.
+ \end{aligned}
+\end{equation*}
+Substituting these back, we arrive at
+\begin{equation*}
+	\begin{aligned}
+\begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0, h_{lk},\omega_{lk}, s_k}{\inf} & \sum_k^K s_k\\
+	\mbox{subject to} & \sum_{l=1}^L \alpha_{lk}([-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk})\\
+	& + \sigma_{\supp}(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k + \phi(q)\lambda {\|}A^T(h_{lk} + \omega_{lk})/\lambda{\|}^q_* + \lambda \epsilon^p ) \le s_k, \\
+	&\hspace{2cm} \quad k = 1,\dots,K, \quad j = 1,\dots,J.
+\end{array}
+\end{aligned}
+\end{equation*}
+Taking the supremum over $\alpha$, noting that $\sum_{l=1}^L \alpha_{lk} = w_k$ for all $k$, we arrive at
+\begin{equation*}
+\begin{aligned}
+\begin{array}[t]{ll}
+\underset{\lambda \geq 0, h_{lk},\omega_{lk}, s_k}{\inf} & \lambda \epsilon^p + \sum_k^K w_k s_k\\
+\mbox{s.t.} & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+& \hfill + \phi(q)\lambda \left\|A^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\\
+& \hfill l = 1,\dots,L, \quad k = 1,\dots,K,
+\end{array}
+\end{aligned}
+\end{equation*}
+for which the final reformulation of~\eqref{eq:robust_prob} is
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+	{\text{minimize}} & f(z)\\
+	\mbox{subject to} &\lambda \epsilon^p + \sum_k^K w_k s_k \leq 0\\
+	 & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+& \hfill + \phi(q)\lambda \left\|A^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\\
+& \hfill l = 1,\dots,L, \quad k = 1,\dots,K.
+	\end{array}
+	\end{aligned}
+	\end{equation*}
+
+
+	\chapter{Proofs for CVXRO}
+\label{app:cvxro}

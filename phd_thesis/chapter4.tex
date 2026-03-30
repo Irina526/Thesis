@@ -1,0 +1,1582 @@
+\chapter{Fast Online Distributionally Robust Optimization via Data Compression}
+\label{chap:online_dro}
+
+\glsresetall
+
+\section{Introduction}
+% This framework assumes the underlying probability distribution to be unknown, but lies in a known {\it ambiguity set} of probability distributions, from which the worst-case is taken. Such an approach is attractive in its ability to provide out-of-sample performance guarantees with a finite number of data-samples.
+% By hedging against the ambiguity, it out-performs non-robust approaches such as~\gls{SAA}, with respect to worst-case performance. 
+
+% Since its appearance, significant effort has been devoted to constructing ambiguity sets primarily in static settings, \RC{using either structural assumptions on the distribution (\eg, moments~\cite{moment,moment_1}) or training data directly~\cite{kuhn2019wasserstein,gao2016distributionally}.}
+% % where a single set is used throughout; see~\cite{OPT-026,dro_survey,mohajerin2018data,gao2016distributionally}, and the references therein. 
+% However, many real-time settings, such as healthcare resource allocation, air traffic control, and energy trading, are dynamic and new data becomes available sequentially over time.
+% \RC{Despite its potential,~\gls{DRO} has been largely underdeveloped in such scenarios.
+% Most~\gls{DRO} approaches construct a static ambiguity set, and model time progression through {\it adjustable wait-and-see variables}~\cite{adro2,adro,robustadaptopt}.}
+% % Even in multi-stage~\gls{DRO}, where uncertain data is revealed sequentially, a single ambiguity set is typically constructed, with time progression modeled through {\it adjustable wait-and-see variables}~\cite{adro2,adro,robustadaptopt}. 
+% % Fundamentally, this approach determines decisions based on {\it a priori} information.
+% % Even in data-driven cases, the focus is on a fixed dataset from which the ambiguity set is constructed~\cite{}. 
+% % However, in many real-time applications---such as healthcare resource allocation, air traffic control, and energy trading---new data becomes available sequentially over time. 
+% % As a result, the optimizer's confidence in the nominal distribution can improve through the continuous assimilation of new data. 
+% % More broadly, any application where an optimization problem is continuously re-solved for improved solutions can benefit from streaming data. %% Commented out after Marta's comment
+% % into the ambiguity set.
+% There are limited works focusing on how to adapt the ambiguity sets dynamically over time, where they pose strict assumptions on the problem: either by restricting the distribution to a finite set of scenarios~\cite{drotime}, or by requiring continuous variables and objective functions with local strong concavity~\cite{assim}.
+% % In the few cases where it has been studied, updates to the~\gls{DRO} problem rely on gradient-based methods that either restrict the distribution to a finite set of scenarios~\cite{drotime}, or require continuous decision variables and objective functions with local strong concavity~\cite{assim}. 
+% % To our knowledge, no online approach directly re-solves the \gls{DRO} problem as new data arrives, primarily due to the associated computational complexity.  % Commented out after Marta's comment
+% % To our knowledge, there has not been online approaches where the \gls{DRO} problem is re-solved directly with the incorporation of streaming data, due to the increase in computational complexity. 
+% \RC{In particular, streaming data settings can be challenging for the popular Wasserstein-based \gls{DRO}~\cite{mohajerin2018data,kuhn2019wasserstein,gao2016distributionally}, where the ambiguity set is defined as a Wasserstein ball around the empirical distribution of a dataset.}
+% As new datapoints arrive, the problem dimension grows, increasing computational complexity~\cite{kuhn2019wasserstein,mro}.
+% \RC{While a larger dataset improves confidence in the empirical measure as an approximation of the true distribution, the reduction in the ambiguity set’s radius is not enough to offset this complexity; for mixed-integer problems, even \gls{SAA} is difficult to solve with large amounts of data, without any added complexity from ambiguity. This leads to computational bottlenecks that are especially limiting for real-time applications.}
+% % really don't like the word crippling
+
+
+% , each increase in the sample size leads to an increase in the problem dimension. 
+% Therefore, even though a larger number of datapoints leads to a higher confidence in the empirical measure as an approximation of the true distribution, the curse of dimensionality~\cite{gaoFiniteSampleGuaranteesWasserstein2023} dictates that the reduction in the ambiguity set radius is too slow to lead to a reduction in computational complexity, even with uncertain parameters of moderate dimensions. 
+% In this work, we thus propose an online data compression approach to efficiently solve \gls{DRO} problems with streaming data, while ensuring guarantees on out-of-sample performance.
+% the number of samples required before the~\gls{SAA} can be used as a reliable solution 
+
+
+% Among the different settings proposed in recent years, we shall consider optimal transport-based \gls{acr:dro}, where the discrepancy between probability distributions is measured via an optimal transport distance.
+
+
+% \bnote{Need to add story. An idea here
+%     \begin{itemize}[noitemsep]
+%     	\item DRO important, data-driven, but can be very expensive. Specifically with mixed-integer programs
+% 	\item This is particularly true in streaming data settings where more and more samples arrive and increase the problem dimensions
+% 	\item In this work, we propose a data compression approach to efficiently solve distributionally robust optimization problems with streaming data.
+%     \end{itemize}
+% }
+% Here, $\epsnom_t > 0$ is a parameter that encapsulates our trust in the reference distribution.
+
+% However, this comes at the expense of an increased computational burden as the reformulation of Problem \eqref{eq:DRO} is found to scale with the number of data $n_t$ employed in the construction of $\mathcal{P}_t$ \cite[Prop.~2.12]{shafieezadeh2023new}. 
+% As a result, online \gls{DRO} with streaming data poses a fundamental \textit{dilemma} between statistics and computation. 
+In this chapter, we extend the results of Chapter~\ref{chap:mro} to the online setting, where we consider access to streaming data. 
+We formalize the problem-structure-dependent finite-sample probabilistic guarantees implied by the results of Section~\ref{sec:conservatism}, and further extend them to the asymptotic setting. 
+For simplicity, we take the~\gls{DRO} view of the~\gls{MRO} problem, as noted in Section~\ref{sub:connectionsdro}, and restrict ourselves to an uncertain objective function $f$.
+
+\subsection{Our contributions}%
+\label{c3:sub:our_contributions}
+% \bnote{briefly state how it overcomes the limitations that we just mentioned above}
+We propose an {\rm online data compression approach} for efficiently solving Wasserstein~\gls{DRO} problems with streaming data, while also maintaining out-of-sample performance guarantees.
+\RC{We allow for mixed-integer formulations, and a broad class of underlying distributions.}
+Our key contributions are:
+% \bnote{adjust abstract, conclusions, cover and nomination letters.}
+\begin{itemize}
+    % \item {\bf Online \gls{DRO} with data compression:} We develop an online algorithm that balances computational efficiency (through data compression) and solution quality. By adjusting the number of clusters, we trade off computational effort and performance adaptively. 
+    % Online algorithm for DRO with streaming data, based on data-compression. Balance computational effort (number of clusters) and performance.
+    \item {\it Adaptive ambiguity sets via online clustering:} We apply online clustering to construct {\it adaptive} ambiguity sets, formulated as Wasserstein balls of any order around a clustered empirical distribution.
+    % adjusting a clustered empirical distribution over time to accurately capture the true underlying distribution. 
+    We establish theoretical conditions on clustering algorithms to ensure the robustness of our framework, 
+    which is compatible with any online clustering method that meets these conditions. 
+    % Up to a finite time, the number of clusters and cluster assignments are allowed to shift freely, to accurately capture the underlying distribution.
+    We relate to the concept of {\it optimal clustering},
+     and provide  three  fast and memory-efficient  approximation algorithms suitable for our purposes. 
+    
+    \item {\it Clustering effect analysis:}  
+    % \item {\bf Finite-sample and asymptotic guarantees:} 
+    % We provide certificates, \ie, upper bounds on the out-of-sample performance of our algorithm, and
+    \RC{We prove that the performance gap between our compressed solution and the non-compressed (nominal) \gls{DRO} solution can be written in terms of the discrpancy between the true distribution and its clustered approximation, together with the ambiguity set radius. Under mild assumptions, this radius can decay at a rate independent of the uncertainty dimension.}~We also show that our objective converges to a value dependent on the number of clusters and the quality of the clustering algorithm. 
+    This quantifies the impact of data compression, and highlights the {\it trade-off between computational effort and optimality.}
+    \RC{We provide both finite-sample and asymptotic performance guarantees for our solution.}
+    % and establishes the number of clusters as an adjustable parameter. 
+    % by adjusting the number of clusters, we trade off computational effort and 
+% \ifpreprint
+    \item {\it Online regret analysis:} 
+    % \item {\bf Regret analysis:} 
+    We provide a regret analysis comparing the performance of our algorithm to the one of non-compressed \gls{DRO} {\it in hindsight}, \ie, with access to the subsequent realization of the uncertainty. 
+    We show that the regret converges sublinearly to a function of the Wasserstein distance between the true and compressed distributions, and with probability 1, the difference induced by the time-discrepancy converges to 0.
+%     % : 
+%     % ensuring that our online approach successfully approximates the non-compressed \gls{DRO} solution.
+% \fi
+    \item {\it Computational gains in numerical experiments:} We demonstrate the efficiency of our approach in sparse portfolio optimization. Our results show significant computational savings, even compared to~\gls{SAA}, with minimal loss in solution quality.
+    We also demonstrate the possibility for the online framework to be memory-efficient, allowing the optimizer to discard datapoints once seen, with minimal impact on solution times and quality.  
+
+\end{itemize}
+
+% \bnote{still need to complete this}
+% \begin{itemize}
+% \item fast and memory efficient online clustering algorithm for distributionally robust optimization.
+% \item performance guarantees, finite-sample and asymptotic, for both bounded and unbounded support. We give both upper and lower bounds, and show convergence of the online solutions to some clustering-dependent value, at the same rate of convergence as nominal \gls{DRO}.
+% These work with any clustering algorithm satisfying mild assumptions, and for any computational budget $K$.
+% \item the number of clusters do not need to be constant throughout the algorithm for the finite sample results. For the asymptotic results, we only require the number of cluster and cluster supports to be constant after some finite time $\tau$
+% \item dynamic regret bounds where we assume information latency
+% \item works for mixed-integer optimization problems
+% \item numerical experiments where we demonstrate computational speedups
+% \end{itemize}
+
+% \bnote{I would try to highlight the contributions without introducing too many math symbols yet since we haven't defined anything so far. I brought some of this to the contributions already}
+% For each of the online decisions, dependent on the adaptive radius $\eps_t$, we obtain finite sample performance guarantees similar to~\eqref{c3:eq:prob_guarantees1}, as well as asymptotic guarantees as $t \to \infty$.
+% Specifically, we show the relationship between the performance of our online decision, the optimal \gls{DRO} solution, as well as the true optimal solution, and note that the gap in performance converges to a function of the data-compression loss: the distance $W_p(\prob,\prob^K_\star)$ between the true distribution $\prob$ and a converged data-compressed distribution $\prob^K_\star$.
+
+% We show that with probability $1$, the regret again converges to a function of $W_p(\prob,\prob^K_\star)$, and the convergence to this value is sublinear in $T$. The sublinear convergence certifies that the considered online algorithm successfully approximates the \gls{DRO} solution with an average gap that decreases over time.
+
+% \subsection{Related work}%
+% \label{c3:sub:related_work}
+
+% \bnote{The selection committee is Jim Luedtke (University of Wisconsin-Madison, chair), Milo\v{s} Kopa (Charles University in Prague), and Karmel S. Shehadeh (Lehigh University). Let's make sure we cite their papers. The first and last one especially have several papers on stochastic programming/DRO/etc}
+
+% \paragraph{Online saddle-point tracking.}
+
+
+% In this work, we adapt two algorithms for our purposes. 
+% Specifically, CluStream works in two phases: an online phase where it maintains a set of micro-clusters (i.e., summary statistics of the observed data), and and offline phase that periodically applies traditional clustering methods on the micro-clusters to generate macro-clusters. \MartaNote{Comment on the differences w.r.t. our version? Is it going to be cut?}
+
+% \bnote{change layout}
+\subsection{Layout of the chapter}
+In Section~\ref{sec:problem_intro}, we state the problem and introduce our online algorithm, and in Section~\ref{sec:general_intro}, analyze the clustering effect by providing finite sample and asymptotic performance guarantees.
+% , for distributions satisfying light-tailed assumptions, and with arbitrary online clustering algorithms satisfying mild requirements. 
+In Section~\ref{sec:regret}, we give dynamic regret bounds, and 
+introduce the notion of dynamic regret, and give corresponding bounds. 
+% in Section~\ref{sec:bounded_perf}, we examine the special case of bounded support.
+% , and give alternative performance guarantees. 
+In Section~\ref{sec:bounded_perf}, we give theoretical results for the specific case of bounded support. 
+In Section~\ref{sec:algos}, we describe various online clustering algorithms, and
+% with different runtime and space complexities.
+in Section~\ref{sec:hyper_param}, give guidelines for choosing the number of clusters and the ambiguity set radii experimentally. In Section~\ref{sec:exampless} we demonstrate our results on a portfolio optimization example. 
+% We summarize our conclusions in Section~\ref{c3:sec:conclusions}.
+
+\section{The online stochastic problem}
+\label{sec:problem_intro}
+% \RC{In this section, we introduce our problem setting and standing assumptions. For conciseness, these assumptions will not be explicitly imposed in subsequent theorems.}
+Following the notation and general setting of Chapter~\ref{chap:prelim}, we consider a \gls{SO} problem of the form
+\begin{equation}
+\label{eq:opt}
+ H_\star  = \min_{z\in \mathcal{Z}} \mathbf{E}_{\unc \sim \mathbf{P}}[f(\unc,z)],
+\end{equation}
+where $z \in \mathcal{Z} \subseteq \reals^n$ is the decision variable, $\unc \in \supp \subseteq \reals^m$ the vector of uncertain parameters governed by $\prob$, and $H_\star$ the optimal objective value.
+The assumptions on the support and domain of $f$ follow exactly from Chapter~\ref{chap:mro}.
+%  and we assume that Assumption~\ref{assp:dom} on the $\dom{f}$ holds throughout the chapter. 
+% We assume that the support $\supp$ of $\prob$ lives within the domain of $f$ for the variable $u$, which we will refer to as $\dom{f}$, \ie, $\supp \subseteq \dom{f}$.
+The function $f:\mathcal{Z}\times \supp \rightarrow (-\infty, \infty]$ is again assumed to be of the maximum-of-concave form satisfying Assumption~\ref{ass:convex_l}, \ie,
+$f(u, z) = \max_{j\leq J}f_j(u,z),$
+with each $f_j$ being proper, concave, and upper-semicontinuous in~$u$ for all $z$.
+Additionally, we require the functions $f_j$ to be either Lipschitz or smooth for all $z \in \mathcal{Z}$, according to the following definitions. We assume the existence of the global constants independent of $z$ by the compactness of $\mathcal{Z}$.
+% \bnote{Should this result hold for any $x$? Otherwise, we would need $M_x$.}
+% \begin{definition}[Lipschitzness]
+% 	\label{def:lip}
+% 	A function $f(u,x)$ is $M$-Lipschitz on its domain with respect to the $\ell_2$-norm, if for all $x \in \mathcal{X}$,
+%     \vspace{-0.6em}
+% 	\begin{equation*}
+% 	\textstyle	\left |f(v,x) - f(u,x)\right| \leq M\| u - v\|_2, \quad \forall u,v \in \dom f.
+% 	\end{equation*}
+%  %    In addition, it is $L^{(2)}$-Lipschitz on its domain, with constant $L^{(2)}$, with respect to the $\ell_2$-norm and for a given $u$, if 
+% 	% \begin{equation*}
+% 	% \textstyle	\left |f(u,x) - f(u,x')\right| \leq L^{(2)}\| x - x'\|_2, \quad \forall x,x' \in \mathcal{X}.
+% 	% \end{equation*}
+% \end{definition}
+% \begin{definition}[Smoothness]
+% 	\label{def:smooth}
+% 	A differentiable function $f(u,x)$ is $L$-smooth on its domain, with respect to the $\ell_2$-norm, if for all $x \in \mathcal{X}$, 
+%     \vspace{-0.6em}
+% 	\begin{equation*}
+% 	\textstyle	\left\|\nabla f(v,x) - \nabla f(u,x)\right\|_2 \leq L\| u - v\|_2, \quad \forall u,v \in \dom f.
+% 	\end{equation*}
+% \end{definition}
+\begin{assumption}[Lipschitzness and smoothness]
+\label{ass:general_ass_lip} \RC{Let at least one hold.
+    \begin{enumerate}
+        \item For all $z \in \mathcal{Z}$, the constituent functions $f_j$ of $f$ are Lipschitz continuous with constants~$M_j$, \ie, $\left |f_j(v,z) - f_j(u,z)\right| \leq M_j\| u - v\|_2, \; \forall u,v \in \dom f$.
+        \item For all $z \in \mathcal{Z}$, the constituent functions $f_j$ of $f$ are smooth with constants~$L_j$, \ie, $\left\|\nabla f_j(v,z) - \nabla f_j(u,z)\right\|_2 \leq L_j\| u - v\|_2,\; \forall u,v \in \dom f$.
+        \item For all $z \in \mathcal{Z}$, $f$ is smooth with constant ~$L$, \ie, $\left\|\nabla f(v,z) - \nabla f(u,z)\right\|_2 \leq L\| u - v\|_2,\; \forall u,v \in \dom f$.
+    \end{enumerate}}
+\end{assumption}
+% \RC{Note that if clause 3 is satisfied and $f$ is concave, clause 2 is also satisfied with $J = 1$.}
+
+% $\dom{f}$ to be independent of $x$, and satisfies the following.
+% We assume $f$ is either element-wise monotonically increasing in $u$ and only has a (potentially) lower-bounded domain, or element-wise monotonically decreasing in $u$ and only has a (potentially) upper-bounded domain.
+% Otherwise, we assume $\dom{f}$ is $\reals^m$.}
+% \begin{assumption}
+% 	\label{assp:dom}
+% 	The domain $\dom{f}$ is $\reals^m$. Otherwise, $f$ is either element-wise monotonically increasing in $u$ and only has a (potentially) lower-bounded domain, or element-wise monotonically decreasing in $u$ and only has a (potentially) upper-bounded domain. In all cases, the domain $\dom{f}$ is independent of $x$.
+% \end{assumption}
+
+% Despite that stochastic optimization problems are ubiquitous in many research areas \cite{shapiro2021lectures}, their practical deployment 
+% is hindered by a fundamental
+% challenge, namely that the distribution $\mathbf{P}$ governing $\unc$ is rarely accessible to the decision maker. 
+% \bnote{the phrase before is good but more suited for the intro. I would just start with ``we assume $\prob$ to be ..., and only accessible through streaming data...''}
+
+
+% Analogously to~\cite{mro}, we make the following assumptions on $\prob$, that commonly apply in practice.
+
+\paragraph{Streaming data}
+We assume the distribution $\prob$ to be unknown, and that the value $H_\star$ cannot be calculated as is. 
+However, we have access to a {\it streaming dataset} of i.i.d.\ realization of $u$, which we use to construct an uncertainty framework. 
+We begin with an initial dataset with $n_0 \geq 1$ datapoints, \ie, $\mathcal{D}_0 = \{\hat{u}^i\}_{i=1}^{n_0}$. Then, at the end of each time step $t \geq 1$, the dataset is updated to be $\mathcal{D}_t = \{\hat{\unc}^{i}\}_{i=1}^{n_0 + t}$, with $|\mathcal{D}_t| = n_t = n_0 + t$. That is, we assume w.l.o.g. that one realization gets disclosed at the end of each time step. Furthermore, we define the empirical distribution $\hat{\prob}_t = (1/{n_t})\sum_{i=1}^{n_t} \delta_{\hat{\unc}^{i}},$
+where $\delta_u$ is the Dirac distribution concentrating unit mass on $u$, and $\prob^t$ the product distribution of the dataset. 
+
+
+
+% \RC{We denote by $r$ the specific order chosen for the Wasserstein ambiguity set.}
+% \bnote{mention what $\delta$ is}
+% \IrinaNote{done}
+
+\subsection{\Gls{DRO} over time}
+\label{sec:over_time}
+% Using the Wasserstein distance $W_p$ defined in Chapter~\ref{chap:prelim} (see~\eqref{eq:wass_dist}), let $\Xi_{\barp}(S)$ be the space of all probability distributions $\mathbf{Q}$ defined on the support~$\supp$, with bounded $\barp$-th moments, \ie,
+% $\Expect_\mathbf{Q}[\|u\|^{\barp}] = \int_S\|u\|^{\barp}\mathbf{Q}(du) < \infty$, where $\|\cdot\|$ is an arbitrary norm on $\reals^m$, \RC{and either $\barp\geq 1$ or $\barp = \infty$.
+% }
+In this work, to differentiate from the analysis on general Wasserstein-$p$ distances in Section~\ref{sec:cluster_prop}, we always refer to $r$ as the order of the Wasserstein distance used within an ambiguity set.
+As introduced in Section~\ref{sec:dro_def}, at each time $t$, the~\gls{DRO} approach under the Wasserstein metric constructs an ambiguity set \RC{of order $r$} around $\hat{\prob}_t$ of radius $\epsnom_t \geq 0$, \ie,
+\begin{equation}\label{empirical:ball}
+\mathcal{P}_t = \mathbf{B}_{\epsnom_t}^r(\hat{\prob}_t)=\left\{\mathbf{Q} \in \mathcal{M}_{r}({\supp}) \mid W_r(\hat{\prob}_t, \mathbf{Q}) \leq \epsnom_t\right\},
+\end{equation}
+% \RC{In this work, we always refer to $r$ as the order of the Wasserstein distance used within an ambiguity set. For other Wasserstein distances used in the analysis, we refer to order $p$.
+% In addition, whenever we use a distance metric of order~$p$ on a distribution $\mathbf{Q}$, we assume that the distribution itself has finite~$\barp$-th moments.}
+% \RC{We suppress the dependency of $\mathcal{P}_t$ on $r$ for conciseness, and note that unless otherwise specified, $r$ is of an arbitrary order and $\|\cdot\|$ is an arbitrary norm.}
+and the~\gls{DRO} solution $z_t \in \mathcal{Z}$ is computed by solving the optimization problem
+\begin{equation}\label{eq:DRO}
+H_t = \min_{z \in \mathcal{Z}} \max_{\mathbf{Q} \in \mathcal{P}_{t}}\mathbf{E}_{\unc \sim \mathbf{Q}}[f(\unc,z)].
+\end{equation}
+% where we seek to minimize the worst-case (w.r.t.\ \textit{any} distribution in the ambiguity set) expected value of $f$. 
+% Note that we use the ambiguity set $\mathcal{P}_{t-1}$ constructed at time $t-1$: in the online framework, we assume to solve the problem {\it before} the new datapoint is revealed. 
+\label{subsec:nom_perf}
+As~$t$ increases, our confidence in $\hat{\prob}_t$ increases, allowing us to safely reduce the radius~$\epsnom_t$, which can be interpreted as a measure of trust in the data.
+\RC{With suitable choices of $\epsnom_t$ (given in Theorems~\ref{thm:measure_gen},~\ref{theorem-inf},~\ref{thm:informal_curse}), which we from here on refer to as the {\it nominal radius}, we obtain
+{\it finite sample performance guarantees} of the form}
+\begin{equation}
+	\label{c3:eq:prob_guarantees1}
+	\RC{\prob^{t}\left( H_\star \leq \mathbf{E}_{\prob}[f(u, z_t)] \le H_t + \rho_{t}\right) \ge 1 - \beta_{t},}
+\end{equation}
+where for all $t\geq 1$, $\beta_{t} > 0$ is a specified time-varying
+probability of constraint violation, and $\rho_{t}$ is a residual term.
+Following the results of Section~\ref{sec:dro_def}, for $\epsilon_t$ chosen from Theorems~\ref{thm:measure_gen} and~\ref{theorem-inf}, $\rho_t = 0$, and for $\epsilon_t$ chosen from Theorem~\ref{thm:informal_curse}, $\rho_t = \tilde{O}(n_t^{-1/2})$.
+
+As noted in the previous chapters, while powerful, such a formulation is susceptible to prohibitive solution times as $N$ grows. This leads to computational bottlenecks that are especially limiting for real-time applications. We thus adapt our~\gls{MRO} approach from Chapter~\ref{chap:mro} to this real-time setting, which enjoys cost-savings in every iteration. 
+% \RC{Specifically, under mild assumptions, choosing $\epsnom_t \sim \text{o}(t^{-\frac{1}{d}})$ ensures that the true distribution $\mathbf{P} \in \mathcal{P}_t$ with high probability, which gives the above guarantee with $\rho_{t-1} = 0$~\cite{fournier2015rate,mohajerin2018data}.}  
+% The in-sample objective value $H_t$ is then a {\it certificate} for the out-of-sample performance $\Expect_{\prob}[f(u, x_t)]$.
+% \RC{In this work, we make use of two such choices of $\epsnom_t$, which require the distribution $\prob$ to satisfy distinct assumptions. We summarize them here.}
+
+% \paragraph{Dimension-dependent} \RC{One choice is to impose a light-tailed assumption, which is satisfied by sub-Gaussian distributions and by bounded distributions.}
+% % \begin{assumption}[Light-tailed distribution]
+% % \label{ass:light_tail}
+% %     There exists an exponent \RC{$\alpha > 1$, such that
+% %     $R = \Expect_\prob[\exp(\|u\|^{\alpha})] = \int_S \exp(\|u\|^{\alpha})\prob(du) < \infty.$}
+% % \end{assumption}
+% \RC{Then, measure concentration results for Wasserstein-$\barp$ distances imply the following.}
+% % \RC{Satisfaction of this assumption for the case $\barp \geq 1$, and the satisfaction of analogous but stronger assumptions for the case $\barp = \infty$~\cite{wass-p-guarantee}, gives the following guarantee:}
+% % \begin{theorem}[Measure concentration, light-tailed~\cite{fournier2015rate}]
+% % \label{thm:measure_gen}
+% % \RC{Let $\barp \geq 1$. If Assumption~\ref{ass:light_tail} holds with $r > \barp$ for the distribution $\prob$ and empirical distribution $\hat{\prob}^N$ supported on $N$ points, we have
+% %   $$  \mathbf{P}^N(W_{\barp}(\mathbf{P},\hat{\mathbf{P}}^N) \geq \epsnom)
+% %   \leq \begin{cases}
+% %     c_1 \exp(-c_2N \epsnom^{\max\{d/{\barp},2\}}) \quad \textit{if } \epsnom \leq 1\\
+% %     c_1 \exp(-c_2N \epsnom^{r/{\barp}}) \quad \textit{if }  \epsnom > 1,
+% %   \end{cases}$$
+% %   for all $\epsnom >0$, $m \neq 2{\barp}$, and $N \geq 1$. If Assumption~\ref{ass:light_tail} holds with $r \in (1,\barp)$, we have
+% %     $$  \mathbf{P}^N(W_{\barp}(\mathbf{P},\hat{\mathbf{P}}^N) \geq \epsnom)
+% %   \leq \begin{cases}
+% %     c_1 \exp(-c_2N \epsnom^{\max\{d,2{\barp}\}}) + \exp(-c_2 (N\epsnom^{\barp})^\frac{r-s}{\barp})  \\
+% %     \hfill \textit{if } \epsnom \leq 1, \forall s \in (0,r)\\
+% %     c_1 \exp(-c_2 (N \epsnom^{\barp})^{r/{\barp}}) \quad \textit{if }  \epsnom > 1,
+% %   \end{cases}$$
+% % for all $\epsnom > 0$, $m \neq 2\barp$, and $N \geq 1$. For all cases, $c_1,c_2$ are positive constants depending only on $R,r,s,$ and $d$.}
+% % \end{theorem}
+% % For the special case $\barp = \infty$, we point to~\cite[Theorem 1.1]{wass-p-guarantee} for an analogous result, which assumes a stronger condition than Assumption~\ref{ass:light_tail}.
+% % Using these relations, the radius for a Wasserstein~\gls{DRO} ambiguity set with $N = n_{t-1}$ points \RC{and order $\barp = p$} can be chosen by setting the right-hand-side to $\beta_{t-1}$, then solving for $\epsnom_{t-1}$. See~\cite[Theorem 3.4]{mohajerin2018data} for the case $\barp=1$. The procedure for $\barp > 1$ follow similarly. \RC{We summarize them as follows.} 
+% \begin{theorem}[Guarantees using Wasserstein measure concentration~\cite{fournier2015rate,kuhn2019wasserstein}]
+%     \label{thm:calc_eps}
+%     \RC{Let $\barp$ be an arbitrary order. 
+%     Under Assumption~\ref{ass:light_tail} for the case $\barp \geq 1$, and under analogous assumptions for $\barp =\infty$~\cite{wass-p-guarantee}, for $n_t \rightarrow \infty$ we can choose confidence levels $\beta_t \in (0,1)$ and corresponding radii $\epsnom_t=O((\log(\beta^{-1}_t)/{n_t})^{\min(\barp/m,1/2)})$ such that $\sum_{t=1}^\infty \beta_t < \infty$,
+%     $\prob^{t}(W_{\barp}(\prob,\hat{\prob}_t) \geq \epsnom_t) \leq \beta_t,$ and $\lim_{t \rightarrow \infty} \epsnom_t = 0.$ The~\gls{DRO} problem~\eqref{eq:DRO} solved with $r = \barp$ and these radii gives the finite-sample guarantee~\eqref{c3:eq:prob_guarantees1} with $\rho_{t} = 0$.}
+%     % $$\prob^{t-1}\left( H_\star \leq \Expect_{\prob}[f(u, x_t)] \le H_t\right) \ge 1 - \beta_{t-1}.$$
+% \end{theorem}
+% % In all cases, we note that the radius is inversely related to the number of datapoints, \ie, the larger the number $n_t$, the smaller $\epsnom_t$ can be. 
+% % With the radius chosen in this way, we obtain the~\gls{DRO} performance guarantees~\eqref{c3:eq:prob_guarantees1} using~\cite[Theorem 3.5]{mohajerin2018data}.
+
+% % \begin{theorem}[Nominal \gls{DRO} guarantee]
+% % \label{thm:dro_nom}
+% % The solution $x_t$ and optimal value $H_t$ of the \gls{DRO} problem with radius $\epsnom_{t-1}$ implies the finite sample performance guarantee 
+% % \begin{equation*}
+% % 	\prob^{n_{t-1}}\left( H_\star \leq \Expect_{\prob}[f(u, x_t)] \le H_t \right) \ge 1 - \beta_{t-1}.
+% % \end{equation*}
+% % \end{theorem}
+% \RC{We point to the cited works~\cite{fournier2015rate,wass-p-guarantee,kuhn2019wasserstein} for the constants involved.}
+
+% In Section~\ref{sec:bounded_perf}, we further calculate explicit radii for the specific case of bounded support $\supp$. 
+
+% From the above characterization, it is evident that larger datasets are beneficial for reducing the distributional ambiguity around the nominal distribution. 
+% Indeed, we can \RC{use Theorem~\ref{thm:calc_eps}} to conclude that $\mathbf{P}^\infty \{ \lim_{t \rightarrow \infty} W_r(\mathbf{P}, \hat{\mathbf{P}}_t)\RC{ =0} \} = 1$, which implies \RC{$\mathbf{P}^\infty \{\lim_{t \rightarrow \infty}H_t \downarrow H_\star\}=1$ under the Lipschitz condition of Assumption~\ref{ass:general_ass_lip}~\cite[Theorem 3.7]{mohajerin2018data}.} \RC{However, as the radius scales with $O(n_t^{-r/m})$, even for moderately sized $m$ this bound suffers from the curse of dimensionality.}
+% \RC{The slow decrease in the required radius while the dataset grows} makes the resolution of the \gls{DRO} problem in \eqref{eq:DRO} computationally challenging, as a constraint needs to be added for each datapoint constituting the empirical distribution  $\hat{\mathbf{P}}_t$ (see formulation~\eqref{c3:eq:robustopt_p_max}). 
+% Clearly, for $t \rightarrow \infty$, we would end up with an infinite-dimensional problem that cannot be solved. 
+
+% \paragraph{Dimension-free} 
+% \RC{Recent work~\cite{gao2016distributionally} decouples the radii $\epsnom_t$ from the dimension $m$ by providing finite sample guarantees for type-$r$ Wasserstein~\gls{DRO}, $r \in [1,2]$, with radii scaling as $\tilde{O}(n_t^{-1/2})$~($\tilde{O}$ suppresses logarithmic terms). %, breaking the curse of dimensionality. 
+% These result require $\prob$ to satisfy a transportation-information inequality, and $f$ to satisfy certain curvature conditions, stated below for completeness.
+% \begin{assumption}
+% \label{ass:gao}
+%     If we consider $r= 1$ for~\eqref{empirical:ball}, then $\prob$ satisfies the transportation-information inequality $T_1(\alpha)$ for some positive constant $\alpha$, \ie, for all $\mathbf{Q}\in \Xi_1(\supp)$, $W_1(\mathbf{Q},\prob) \leq \sqrt{\alpha H(\mathbf{Q}\|\prob)}$, where $H(\mathbf{Q}\|\prob)$ denotes the relative entropy. Furthermore, $f$ satisfies clause 1 of Assumption~\ref{ass:general_ass_lip}. If $r=2$, then $\prob$ satisfies $T_2(\alpha)$ for some positive constant $\alpha$, and $f$ satisfies clause 3 of Assumption~\ref{ass:general_ass_lip}.
+% \end{assumption} If the objective function class $\mathcal{F}=\{f(\cdot,x)\mid x\in\mathcal{X}\}$ additionally satisfies certain assumptions on its Rademacher complexity~\cite[Assumption 5]{gao2016distributionally}, the following holds.}
+% \RC{\begin{theorem}[Dimension-free performance guarantees~\cite{gao2016distributionally}]
+% \label{thm:informal_curse} 
+% For orders $r =1$ and $r=2$, under Assumption~\ref{ass:gao} and a Rademacher complexity condition~\cite[Assumption 5]{gao2016distributionally}, we can choose confidence levels $\beta_t \in (0,1)$, radii $\epsnom_t=\tilde{O}(n_t^{-1/2})$, and residual terms $\rho_{t} = \tilde{O}(1/n_t)$ such that for all $x \in \mathcal{X}$, 
+% \begin{equation}
+% 	\label{eq:informal_x}
+% 	\prob^{t}\left(\Expect_{\prob}[f(u, x)] \le  \max_{\mathbf{Q} \in \mathcal{P}_{t}}\mathbf{E}_{ \mathbf{Q}}[f(\unc,x)]+ \rho_{t}\right) \ge 1 - \beta_{t}.
+% \end{equation}
+% This implies the finite-sample guarantee~\eqref{c3:eq:prob_guarantees1} with the above parameter values.
+%     % $$\prob^{t-1}\left( H_\star \leq \Expect_{\prob}[f(u, x_t)] \le H_t+\rho_{t-1}\right) \ge 1 - \beta_{t-1}.$$
+% \end{theorem}}
+% \RC{In exchange for dimension-free radii $\epsnom_t$, this result introduces a nonzero residual~$\rho_t$. However, even with smaller radii, the difficulty of solving the DRO problem with a large number of datapoints can be high. We are thus motivated to introduce an additional tradeoff, where a separate residual term is established in exchange for a more compact \gls{DRO} formulation. This leads to our framework below. }
+
+
+
+
+ % Mohajerin Esfahani and Kuhn~\cite{mohajerin2018data} prove that appropriately decreasing choices of $\epsnom_t$ and $\beta_t$ as $t \to \infty$ also lead to {\it asymptotic} guarantees on the convergence of $H_t$ to the true value $H_\star$. 
+ % These results imply, by incorporating streaming data into~\eqref{eq:DRO}, we can \textit{adapt} the ambiguity set and gradually reduce the cost of robustness. 
+
+\subsection{Our online algorithm}
+\label{subsec:ours}
+% While incorporating streaming data improves the solution quality, it also increases the computational burden.
+% scaling with the number of datapoints~\cite{mohajerin2018data}.
+%(See also~\eqref{c3:eq:robustopt_p_max} below\bnote{I would remove citation to future parts}). 
+We propose a data-compression framework for fast online \gls{DRO}. 
+Our goal is to solve an adjusted \gls{DRO} problem over time, \RC{where $K$ is the chosen number of data clusters, and}
+\begin{equation}\label{eq:dro:time}
+H^K_t = \min_{z \in \mathcal{Z}} \max_{\mathbf{Q} \in \mathcal{P}^K_{t}}\mathbf{E}_{\unc \sim \mathbf{Q}}[f(\unc,z)],\quad t=1,2,\dots
+\end{equation}
+with $\mathcal{P}^K_{t}$ an {\it adaptive ambiguity set}, with adaptive radius $\eps_{t} \geq 0$, constructed from the data $\mathcal{D}_{t}$ observed so far. 
+From here onward, we refer to the solution $z^K_t$ as the {\it online} solution, and the solution $z_t$ from~\eqref{eq:DRO} as the {\it nominal}~\gls{DRO} solution.
+\begin{definition}[Adaptive ambiguity set]
+The adaptive ambiguity set at the end of time period $t$, with radius $\eps_{t}\geq0$ and reference distribution $\hat{\mathbf{P}}^K_{t}$, is given by
+\begin{equation}\label{empirical:ball_t}
+\mathcal{P}^K_t = \mathbf{B}_{\eps_{t}}^r(\hat{\mathbf{P}}^K_{t})=\left\{\mathbf{Q} \in \mathcal{M}_r({\supp}) \mid W_r(\hat{\mathbf{P}}^K_{t}, \mathbf{Q}) \leq \eps_{t}\right\}.
+\end{equation}
+\end{definition}
+Unlike the standard \gls{DRO} ambiguity set, the adaptive ambiguity set is {\it compressed} in that we allow the reference distribution to be supported on only $K \leq n_t$ points.
+% , to greatly reduce the computational burden. 
+With access to the dataset $\mathcal{D}_t$, the reference distribution is formulated by {\it clustering} the datapoints into sets $C^k_t$, $k = 1, \dots,K_t,$ where $K_t \leq K$.
+% consisting of cluster weights $\theta^k_t$ and cluster centroids $\bar{\unc}^k_t$. 
+The weight $\theta^k_t$ of a cluster $C^k_t$ is defined as the proportion of total points in the cluster, and the cluster \RC{mean}~$\bar{\unc}^k_t$ is the mean of these points. These values characterize the clustered empirical distribution~$\hat{\prob}^K_t$,~\ie,
+$$\theta_t^k = \frac{n^k_t}{n_t},\quad \bar{u}^k_t = \frac{1}{n^t_k} \sum_{\hat{u} \in C^k_t} \hat{u},\quad \hat{\mathbf{P}}^K_t = \sum_{k=1}^{K_t}\theta_t^k\delta_{\bar{u}_t^k},$$ 
+where $n^k_t = |C^k_t|$.
+In Section~\ref{sec:shared_cluster}, we provide additional details on our clustering requirements, and in Section~\ref{sec:algos}, provide efficient online clustering methods. 
+
+With an adaptive ambiguity set $\mathcal{P}^K_{t}$, we solve the online compressed~\gls{DRO} problem~\eqref{eq:dro:time} through a direct reformulation approach (as introduced in Section~\ref{sec:max_concave}), given as
+\begin{equation}
+	 \label{c3:eq:robustopt_p_max}
+	\begin{array}{lll}
+ \!\!H^K_t \!= \!\!\!&\underset{z\in\mathcal{Z},\lambda_t\geq0,s_t,y_t,h_t}{\mbox{minimize}} & \sum_{k=1}^{K_t} \theta^k_{t} s^k_t\\
+&\mbox{subject to}  & [-f_j]^*(y^{jk}_t-h^{jk}_t , z) + \sigma_{{\supp}}(h^{jk}_t) - (y{^{jk}_t})^T\bar{\unc}^k_{t} + \phi(q)\lambda_t \|y^{jk}_t/ \lambda_t \|_*^q   \\
+	&	&\hspace{8em}   +\lambda_t \epsnom_{t}^p \leq s^k_t,\quad k = 1,\dots, K_t, \, j =1, \dots, J.\\	\end{array}\!\!\!\!\!\!\!\!\!\!\!\!\!
+\end{equation}
+In addition to the primal variables $z \in \mathcal{Z}$, we introduce dual and auxiliary variables $\lambda_t \in \reals$, $s^k_t \in \reals$, $y^{jk}_t \in \reals^{m}$, and $h^{jk}_t \in \reals^m$, for $k=1,\dots,K_t$ and $j=1,\dots,J$.
+Here, $[-f_j]^*(y, z) \define \sup_{u\in \dom f} y^Tu - [-f_j(u, z)] $ is the conjugate of $-f_j$, $\sigma_\supp(h) \define\sup_{u \in  \supp}  y^Tu$ is the support function of $ \supp \subseteq \mathbf{R}^m$, $\| \cdot \|_*$ is the dual norm of  $\| \cdot \|$, and $\phi(q) = (q-1)^{(q-1)}/q^q$ for $q > 1$~\cite[Theorem 8]{kuhn2019wasserstein}.
+Note that $q$ is the conjugate number of $r$, satisfying $1/r + 1/q = 1$, \ie, $q = r/(r - 1)$. The above reformulation is for $r <\infty$; the case for $r = \infty$ is given in~\cite[Appendix B]{mro}. The case for $r = 1$ is also special, and is described in Section~\ref{sub:direct}.
+
+We remark that the computational complexity of this problem is directly correlated to the value $K_t$, as it controls the number of constraints required. 
+Furthermore, as the problem structure does not change once $K_t$ is fixed at $K$, certain optimization software (such as CVXPY~\cite{diamond2016cvxpy}) can reuse the same problem framework for all time steps, which decreases the computational and memory overhead.
+
+% the parameters $\theta^k_t$ and $\bar{u}^k_t$ do not change dimensions are $N$ grows, so the problem does not need to be 
+
+
+In summary, the online problem follows a sequential process for $t \ge 0$:
+\begin{enumerate}
+\item We compute decision $z^K_{t}$ by solving \eqref{c3:eq:robustopt_p_max} with ambiguity set $\mathcal{P}^K_{t}$;
+\item We observe a new realization of the uncertainty $\unc$, denoted as $\hat{\unc}$;
+\item We update the ambiguity set to $\mathcal{P}^K_{t+1}$ with the new data point.
+\end{enumerate}
+\paragraph{Remark on the re-optimization frequency} \RC{Above, we proposed to update the ambiguity set and solve~\eqref{c3:eq:robustopt_p_max} after each new datapoint is collected. This could be adjusted, however, depending on the frequency of data collection and the complexity of~\eqref{c3:eq:robustopt_p_max}. If the frequency is high, or if the data arrives in batches, step 1 (and 3, if desired) of the sequential process could instead be performed once a threshold number of datapoints has been observed. 
+This does not affect the theoretical results in Section~\ref{sec:general}, and we do so in the example in Section~\ref{sec:exampless}.
+We can also choose to solve the robust problem only after a large enough adjustment to $\hat{\prob}^K_t$ has been observed: if solving~\eqref{c3:eq:robustopt_p_max} is time-consuming relative to data-collection, we might wish to re-optimize only if a center $\bar{u}^k_t$ or a probability $\theta^k_t$ undergoes a change beyond a predetermined threshold $\delta > 0$, \ie, when $|\bar{u}^k_{t} - \bar{u}^k_{\text{prev-solve}}| \geq \delta$ for some cluster $k$. Checking for this is at most $O(K)$ at each time step.
+Overall, since the computational complexity of our problem can be controlled by $K$, while the complexity of nominal~\gls{DRO}, and even~\gls{SAA}, increases over time, our method enjoys much higher flexibility in choosing a re-optimization threshold.
+}
+
+
+% This procedure is formalized in Section~\ref{sec:adaptive}.
+% Note that this fits the framework of online optimization, where we rely
+% exclusively on the sequentially gathered data. 
+\paragraph{Our performance guarantees} To assess the performance of our online solutions, in Section~\ref{sec:gen_gau} we provide finite-sample and asymptotic performance guarantees similar to~\eqref{c3:eq:prob_guarantees1}, with adjustments due to clustering. 
+A key strength of our approach is its ability to utilize established performance guarantees for Wasserstein~\gls{DRO}, with minimal additional assumptions.
+Informally, if we choose~$\epsnom_t^K = \epsnom_t$ for a nominal radius~$\epsnom_t$ (given in Theorems~\ref{thm:measure_gen},~\ref{theorem-inf},~\ref{thm:informal_curse}), we obtain
+\begin{equation}
+\label{eq:informal}
+\prob^{t}\left( H_\star \leq \Expect_{\prob}[f(u, z^K_t)] \le H^K_t + \rho_{t}+\psi^K_{t} \leq H_t +  \rho_{t}+\gamma^K_{t}\right) \ge 1 - \beta_{t},
+\end{equation}
+where $\psi^K_{t}$ and $\gamma^K_{t}$ are additional residual terms of order $O(\epsnom_{t}+d(\hat{\prob}_{t},\hat{\prob}_{t}^K))$,
+for some discrepancy $d(\cdot)$.
+In other words, the difference between our certificates and the nominal~\gls{DRO} certificates converges, with rate $O(\epsnom_t)$, to a discrepancy between the empirical and clustered empirical distributions. This rate depends on the radius $\epsnom_t$, which we have shown to scale with $O(n_t^{-r/m})$(dimension-dependent), or with $\tilde{O}(n_t^{-1/2})$ for $r \in [1,2]$ and any $m$ (dimension-free).
+% \RC{In Section~\ref{sec:general}, 
+% we present the performance guarantees achieved with these two rates for $\epsnom_t$. 
+% \RC{While we do not present them, we note that other~\gls{DRO} performance guarantees (achieved by other $\epsnom_t$ choices) can be adapted in an analogous manner.} 
+\RC{Our residual terms can be interpreted as the price for higher computational efficiency.}
+In Section~\ref{sec:bounded_perf}, we also derive guarantees specific for bounded distributions~$\prob$, which features a similar tradeoff. 
+
+% \ifpreprint
+In Section~\ref{sec:regret}, we further consider the {\it dynamic regret}, which  measures the performance gap between our online solution
+% \bnote{Not sure I would highlight so much the information delay. We just have one time step shift. A proper analysis of information delay would be with arbitrary delays, which is not what we are interested in. So I would not mention information delay but just mention that the decision is based on the previous ambiguity set as you properly do below.}
+and the \gls{DRO} solution {\it in hindsight} at time step $t$, both evaluated with respect to the non-compressed and updated 
+ambiguity set $\mathcal{P}_{t+1}$.
+The notion of regret is in line with literature on online learning~\cite{drotime,regret, regret2}, where a time-discrepancy (which indicates an information-discrepancy) is introduced between the online solution and an oracle. 
+Formally, we quantify this gap as
+\begin{equation}
+\label{regret}
+R(T,K) = \frac{1}{T}\sum_{t=0}^{T-1} \left(\max_{\mathbf{Q} \in \mathcal{P}_{t+1}} \mathbf{E}_{\mathbf{Q}}[f(\unc,z^K_{t})] - \min_{z \in \mathcal{Z}} \max_{\mathbf{Q} \in \mathcal{P}_{t+1}} \mathbf{E}_{\mathbf{Q}}[f(\unc,z)]\right),
+\end{equation}
+where we compare the average performance of our online solution $z^K_{t}$ against the average performance of the oracle: the \gls{DRO} solution in hindsight.
+% , $x^{\rm hind}_{t} = \argmin_{x \in \mathcal{X}} \max_{\mathbf{Q} \in \mathcal{P}_t} \mathbf{E}_{\mathbf{Q}}[f(\unc,x)]$. 
+
+
+
+% \bnote{I would rename this "Clustering effect analysis"}
+\section{Clustering effect analysis}
+\label{sec:general_intro}
+% In Section~\ref{sec:bounded_cover_performance}, under the assumption of bounded support, we computed finite sample and asymptotic performance guarantees for the online algorithm~\eqref{alg:sup_cover}. 
+% Making use of the known radius of $S$, we gave adjustments to the radii $\eps_t$ that recovered finite-sample performance guarantees for the nominal \gls{DRO}. problem. The enlargement of the radii, however, might have introduced additional conservatism to the problem. 
+
+% In this section, we consider the case where the online algorithm uses the nominal \gls{DRO} radius $\epsnom_t$, and derive the resultant performance guarantees. 
+% Specifically, we compare the data-compressed solution with both the true optimal solution and the nominal \gls{DRO} solution, and give both lower and upper bounds. 
+%  These result work with any sequence of clustered empirical distributions $\hat{\prob}^K_t$, given that the support $S$ is partitioned in a manner satisfying Assumption~\ref{ass:support}. 
+% % We also introduce the notion of {\it dynamic regret}, where we compare the performance of our online solution to that of the optimal~\gls{DRO} solution, across all time steps. 
+% We will no longer rely on the boundedness of the support $S$; we instead impose a light-tailed assumption. Note that bounded distributions trivially satisfy this assumption. 
+% \bnote{I would definitely start from general performance guarantees with light-tailed distributions and then do bounded support as a special case.}
+
+
+% \bnote{Break into analysis of measure concentration, clustering behavior, and performaance guarantees}
+
+% \bnote{Outline the flow and repeat the outline later. We ened to group or tie together the results in this section since there are many}
+% \bnote{make it clear that we are analyzing the effects of clustering (this is the static solution).}
+In this section, we formally show the effect of clustering on the finite samples and asymptotic performance guarantees for the online algorithm. 
+% These are confidence bounds, similar to~\eqref{c3:eq:prob_guarantees1}
+% \ifpreprint, on the in-sample and out-of-sample performance of the online solution $x^K_{t}$\fi.
+% 
+% In Section~\ref{subsec:measure}, we state key measure concentration results, and 
+In Section~\ref{sec:shared_cluster}, we provide requirements on the online clustered distribution $\hat{\prob}^K_t$, and in Section~\ref{sec:cluster_prop}, provide theoretical results pertaining this distribution. 
+% We also provide a reformulated version of~\eqref{eq:dro:time}, which is the~\gls{DRO} problem we solve with respect to the ambiguity set $\mathcal{P}^K_t$.
+In Section~\ref{sec:gen_gau}, we  state our performance guarantees. 
+
+% \subsection{Measure concentration and nominal results}
+% \label{subsec:measure}
+
+\subsection{Clustering procedure requirements}
+\label{sec:shared_cluster}
+% The above results are for the nominal \gls{DRO} problem, which does not cluster datapoints. 
+The key of our approach is the adaptive ambiguity set $\mathcal{P}^K_t$, which is constructed using a {\it compressed} representation of the available data, $\hat{\prob}^K_t$.
+Below, we formalize the requirements on generating $\hat{\prob}^K_t$, and note that the decision-maker has the flexibility to use {\it any} method to generate $\hat{\prob}^K_t$, provided it satisfies the given assumptions.
+These requirements ensure the validity of the asymptotic performance guarantees established later in this section, and can be satisfied by any partitioning of the support set $\supp$.
+% Regardless of the method, the overall goal is to find the clustering that minimizes the discrepancy between the clustered empirical distribution $\hat{\prob}^K_t$ and the true distribution $\prob$, which is approximated by the empirical distribution~$\hat{\prob}_t$.
+In this section, we also outline the theoretical procedure to find the optimal clustering, and note that the goal of the online clustering procedure is to find a good approximation of the optimal clustering, while also maintaining low computational complexity.
+
+
+% This approach both reduces the computational burden of the \gls{DRO} problem and ensures robust performance guarantees.
+% Two key parameters define $\mathcal{P}^K_t$: the reference distribution~$\hat{\prob}^K_t$, and the radius~$\eps_t$, both of which affect its performance. 
+% In this section, we describe efficient online updating procedures for $\hat{\prob}^K_t$.
+
+
+% We emphasize that these are only {\it potential} updating procedures; the decision-maker can choose to use {\it any} online updating procedure to produce $\hat{\prob}^K_t$, so long as it satisfies the shared characteristics given below in Section~\ref{sec:shared_cluster}. The general performance guarantees given in Section~\ref{sec:general} will work with any such algorithm.  
+\subsubsection{Requirements}
+Let $K$ denote the maximum number of data points (that is, of constraints) that we can handle based on the available computational budget.
+We thus {\it cluster} data points together, and allow up to $K$ distinct clusters. 
+For all methods and time periods $t$, we then maintain a set of $K_t \leq K$ clusters $\{C_t^k\}_{k=1}^{K_t}$ and a corresponding set of supports $\mathcal{S}_t = \{S_t^k\}_{k=1}^{K_t},$  where each one is defined as follows.
+% We employ the following definition for the support, and impose an accompanying assumption.
+\begin{definition}[Cluster support]
+\label{def:cluster_supp}
+    For each cluster $k$ and time $t$, the {\it cluster support} $S_t^k \subset \supp$ is defined as a region in $\supp$ such that any datapoint $\hat{u} \in \mathcal{D}_t$ that falls within this region is contained in cluster $C_t^k$.
+    We also call these clusters the clustering induced by the cluster support. 
+\end{definition}
+The cluster supports must satisfy the following assumption. 
+\begin{assumption}
+\label{ass:support}
+The following holds for any time step $t$,
+\begin{itemize}
+    \item The elements in the set $\mathcal{S}_t = \{S_t^k\}_{k=1}^{K_t}$ have pairwise disjoint interiors, \ie, $ \mathrm{int}(S^k_t) \cap \mathrm{int}(S^{k'}_t) = \emptyset,~\forall S_t^k,S_t^{k'}\in \mathcal{S}_t, k \neq k'.$
+    \item The cluster supports cover $\supp$, \ie, $\supp  = \cup_{k\leq K_t}S_t^k$.
+    \item The cluster supports have nonzero measure, \ie, $\prob(S^k_t) > 0$ for $k=1,\dots,K_t$.
+    \item \RC{The cluster boundaries have measure 0.}
+    % \item Each region $S^k_t$ has a Lipschitz boundary, except on a set of measure 0.
+\end{itemize}
+Furthermore, there is some finite time $\tau < \infty$ such that $\mathcal{S}_t = \mathcal{S}_\tau$ for all $t \geq \tau$.
+    \end{assumption}
+ These assumptions ensure that all datapoints fall in a single cluster support, and could be satisfied by any partitioning of the original support set $\supp$.  Note that until some finite time $\tau$, the datapoints are allowed to switch cluster assignments, which increases the flexibility of the clustering algorithm. 
+Bh Assumption~\ref{ass:support}, the cluster weights $\sum_{k=1}^{K_t}\theta^k_t = 1$, and $\hat{\mathbf{P}}^K_t$ represents an approximation of the non-clustered empirical distribution $\hat{\mathbf{P}}_t$, supported on $K_t \leq n_t$ atoms.
+% Note that we do not assume convexity for the individual cluster supports. 
+% The remaining assumptions are required for asymptotic analysis in Section~\ref{sec:general}. 
+
+
+% It follows that we want to find the best approximation, \ie, find the cluster supports that minimize the Wasserstein distance between $\hat{\prob}^K_t$ and $\hat{\prob}_t$, and in turn minimize the distance $W_p(\hat{\prob}^K_t,\prob)$.
+
+\subsubsection{Optimal clustering} 
+\label{sec:optimal_cluster}
+If the distribution $\prob$ is known, then for any~$K$, the optimal set of supports can be determined using $k$-centers clustering~\cite[Chapter 1]{quantization}. 
+% If the distribution $\prob$ is given, there is a well-known procedure for finding the optimal set of supports. 
+% We solve the $k$-centers problem for an optimal set of centers $A^\star \subset S$, then define the optimal set of supports as the Voronoi diagram of $A^\star$~\cite[Chapter 1]{quantization}. Each cluster support, or Voronoi region, is defined
+% $$ S^k_\star = V(a^k) =\{u \in S~|~\|u - a^k\| = \min_{a \in A^\star}\|u - a\| \},$$
+% where all points $u$ are assigned to the set with the closest center $a^k$.
+\begin{definition}[$k$-centers]
+    \label{def:k_center}
+    The $k$-centers problems, with respect to a distribution \RC{$\mathbf{Q}$ with support $Z$, and orders $\barp \geq 1$ (left), $\barp=\infty$ with compact $Z$} (right) are
+\begin{equation}
+    \label{def:k_centers}
+    \RC{\inf_{A \subset \reals^m, |A|\leq K}\Expect_\mathbf{Q}\left[\min_{a \in A}\|u - a\|^{\barp}\right], ~\quad\text{and}\quad \inf_{A \subset \reals^m, |A|\leq K}\sup_{u \in Z}\min_{a \in A}\|u - a\|,}
+\end{equation}
+where $A^\star$ is the set that achieves this infimum. 
+\end{definition}
+
+\begin{definition}[Minimum quantization error{~\cite[Chapter 1]{quantization}}]
+\label{def:quantization}
+\RC{The minimum quantization error of a distribution $\mathbf{Q}$ with support $Z$ is the minimum Wasserstein-$\barp$ distance between $\mathbf{Q}$ and any discretization of $\mathbf{Q}$ to at most $K$ atoms, given as
+$$\ld^K_{\star,\barp}(\mathbf{Q}) = \left(\Expect_{\mathbf{Q}}\left[\min_{a \in A^\star}\|u - a\|^{\barp}\right]\right)^{1/{\barp}},\quad\text{and} \quad \ld^K_{\star,\infty}(\mathbf{Q})  = \sup_{u\in Z}\min_{a \in A^\star}\|u - a\|,$$
+    \RC{with $\barp \geq 1$ (left), $\barp=\infty$ with compact $Z$} (right), and $A^\star$ the set of optimal centers. }
+\end{definition}
+% \begin{proposition}
+% \label{prop:quantization}
+%     % When $p=2$ and $\|\cdot\|$ is the $\ell_2$-norm, 
+%     For any $\barp$ and $\|\cdot\|$,
+%     $d^K_{\star,\barp}(\prob)  \leq  W_{\barp}(\prob^{K}_t,\prob).$
+% \end{proposition}
+% \begin{proof}
+%     This holds since $\hat{\prob}^K_t$ is a particular discretization of $\prob$ to $K$ atoms. 
+%     % is constructed from the centroids of the cluster supports. 
+% \end{proof}
+
+Specifically, we solve the $k$-centers problem to obtain an optimal set of centers \RC{$A^\star \subset \reals^m$}, then construct the Voronoi diagram of $A^\star$: 
+each cluster support is defined as  
+$ S^k =\left\{u \in S\,\middle|\,\|u - a^k\| = \min_{a \in A^\star}\|u - a\| \right\},$
+where each point $u$ is assigned to the region corresponding to its closest center $a^k$. 
+\RC{This achieves the {\it minimum quantization error},~\ie, $\ld^K_{\star,\barp}(\prob)  \leq  W_{\barp}(\hat{\prob}^{K}_t,\prob)$ for any valid $\hat{\prob}^K_t$.}
+
+Without knowledge of $\prob$ but having access to a dataset $\mathcal{D}_t$, the optimal clustering with respect to the empirical distribution $\hat{\mathbf{P}}_t$ can also be found through the above process.
+However, the $k$-centers problem is NP-hard~\cite{k-centers}, and is therefore inefficient to solve. 
+Furthermore, with $\hat{\mathbf{P}}_t$ as the reference distribution, when $t \rightarrow \infty$, the computational complexity of the $k$-centers problem increases, conflicting with our goal of decreasing computational effort. 
+Thus, the goal of the online clustering algorithm is to find a good approximation of the $k$-centers problem. In Section~\ref{sec:algos}, we give  three  algorithms that satisfy the given requirements. 
+
+
+\subsection{Clustered distribution analysis}
+\label{sec:cluster_prop}
+Since the performance bounds will be affected by the sequence of clustered empirical distributions $\hat{\prob}^K_t$, we first derive some results pertaining these distributions. 
+In particular, we formalize their discrepancies from the empirical distributions $\hat{\prob}_t$, and prove their convergence to a limiting distribution $\prob^K_\star$.
+% In fact, as there will also be a-posteriori bounds that depend on the dual variables of the compressed \gls{DRO} problem, we first state the reformulated problem solved in the online procedure. 
+We define the following values. \RC{Note that the orders and norms below are independent of the order and norm of the ambiguity set~\eqref{empirical:ball_t}.}
+\begin{definition}
+\label{def:cluster_value}
+    For any clustered configuration of the dataset $\mathcal{D}_t$, with clusters $C^k_t$, cluster \RC{means} $\bar{u}^k_t$, and clustered empirical distribution $\hat{\prob}^K_t$, for any $p\geq 1$, we define the Wasserstein cost $\ld^K_{\barp} $ and clustering value $D^K_{t,\barp} $ as follows. 
+    % \RC{follows, for any $\barp$ such that $\prob$ has finite $\barp$-th moments. }
+    % \vspace{-1em}
+    \begin{equation*}
+        \ld^K_{t,\barp}= W_{\barp}(\hat{\prob}_t,\hat{\prob}^K_t), \quad D^K_{t,\barp} = \left(\frac{1}{n_t}\sum_{k=1}^{K_t}\sum_{\hat{\unc} \in C^k_t}\left\| \hat{\unc} - \bar{u}^k_t\right\|_2^{\barp}\right)^{1/{\barp}}.
+         \end{equation*}
+    At each time step, we also define a function of dual variables $y^{jk}_t$ of~\eqref{c3:eq:robustopt_p_max}, 
+    \begin{equation*}\Phi^K_t = \ones\{J\geq2\}\frac{1}{n_t}\sum_{k=1}^{K_t}\sum_{\hat{\unc} \in C^k_t}\max_{j\leq J} (-y_t^{{jk}})^T(\hat{\unc} - \bar{\unc}^k_t), \end{equation*}
+   where $\ones\{\cdot\}$ is the $0$-$1$ indicator function. Note that $\Phi^K_t = 0$ when $J=1$, \ie, when $f$ is a concave function. 
+\end{definition}
+\RC{Bh construction, the above values all quantify the discrepancy between the clustered and the non-clustered empirical distributions; the first two are distance metrics, while the third is a nonnegative cost function.}
+ We establish a hierarchy between these discrepancies and provide a few bounds, making use of the following definition.  
+
+\begin{definition}
+    \label{def:diam_cluster}
+    The diameter of a set $S$ is defined
+    $$\mathrm{diam}_q(\supp) = \max\{\|u - v\|_q\mid u,v \in S\}.$$
+\end{definition}
+
+\begin{proposition}
+\label{prop:values}
+For all $K$, $t$, and $\barp$, with $\|\cdot\|$ the $\ell_2$-norm,
+    $\ld^K_{\star,\barp}(\hat{\prob}_t) \leq  \ld^K_{t,\barp} \leq D^K_{t,\barp}.$ 
+    \RC{Under Assumption~\ref{ass:support}}, if $K \geq n_t$,
+$D^K_{t,\barp}=\ld^K_{t,\barp}=\Phi^K_t = 0.$
+
+In addition, if $\supp$ is bounded, with radius $\rho = (1/2)\mathrm{diam}_\infty(\supp) < \infty$, we have that for all~$K$ and~$t$, and any $\|\cdot\|$,
+    $$ D^K_{t,p} \leq 2\rho,  \quad \Phi^K_t \leq  \ones\{J\geq2\}\max_{k\leq {K_t}}\max_{j\leq J}2\rho\|y^{jk}_t\|.$$
+    
+\end{proposition}
+\begin{proof}
+The Wasserstein distance is computed with the optimal (minimizing) coupling (joint distribution) between the two reference distributions, while $D^K_{t,\barp}$ is calculated from one particular coupling. Therefore, $\ld^K_{t,\barp} \leq D^K_{t,\barp}$. \RC{The lower bound on $ \ld^K_{t,\barp} $ follows by Definition~\ref{def:quantization}}, and the equalities follow from  the fact that  $\hat{\prob}^K_t = \hat{\prob}_t$ when $K\geq n_t$.  The final inequalities follow from the boundedness of the support. 
+\end{proof}
+
+Furthermore, we can derive asymptotic bounds, for $t \to \infty$. 
+This relies on Assumption~\ref{ass:support}, that for $t \geq \tau$, where $\tau < \infty$ is some finite time, we fix the cluster supports $S_t^k$. We make use of the following lemma. 
+\begin{lemma}[Clustering consistency]
+\label{lem:cluster_converge}
+Under Assumption~\ref{ass:support}, the sequence of clustered empirical distributions~$\hat{\prob}^K_t$ converges~$\prob^\infty$-almost surely to a distribution $\prob^K_\star$. Furthermore, the distributions achieve almost sure convergence with respect to the Wasserstein metric, that is, for any $\barp$ such that $\prob$ has finite $\barp$-th moments,
+    $$\prob^{\infty} \left \{ \lim_{t \to \infty} W_{\barp}(\prob^K_\star, \hat{\prob}^K_t) = 0\right\} = 1.$$
+\end{lemma}
+\begin{proof}
+W.l.o.g., let $K_\tau = K$. 
+\RC{Bh Assumption~\ref{ass:support} and the Strong Law of Large Numbers (SLLN)~\cite{slln}}, for each cluster $k \leq K$,
+    $$\prob^\infty\left\{ \lim_{t\to\infty}\frac{1}{n_t} \sum_{i=1}^{n_t}\mathbf{1}\{\hat{u}^i \in S^k_\tau\} = \theta_\star^k\right\}=1. $$
+     This shows that the cluster weights converge almost surely to $\prob(S^k_\tau) = \theta_\star^k$, the true weights on each cluster support. 
+Next, as $\prob(S^k_\tau) >0$ for all clusters $k$, we note that $n^k_t \to \infty$ when $t \to \infty$. 
+Furthermore, since $\prob$ has finite $\barp$-th moments, the conditional distributions of $\prob$ on these supports $S^k_\tau$ must also have finite $\barp$-th moments. We denote these conditional distributions $\prob^k$, and their means $\bar{u}^k_\star$. Then, by the SLLN,
+$$\prob^\infty\left\{ \lim_{n_t^k\to\infty} \frac{1}{n_t^k} \sum_{\hat{u} \in C^k_\tau}\hat{u} = \bar{u}^k_\star\right\} = 1,$$
+ \ie, the cluster \RC{means} converge almost surely to the true (finite) means of the conditional distributions $\prob^k$.
+\RC{Since both the probabilities and the means converge almost surely to finite limits, it follows that}
+ $$\prob^\infty\left\{ \lim_{t\to\infty} \hat{\prob}^K_t =\lim_{t\to\infty}\sum_{k=1}^K\theta^k_t\delta_{\bar{u}_t^k} = \sum_{k=1}^K\theta^k_\star\delta_{\bar{u}_\star^k} =\prob^K_\star\right\} = 1, $$
+ where $\prob^K_\star$ is \RC{constructed to be} a discretized distribution of $\prob$ onto $K$ atoms. 
+ Since $\prob^K_\star$ has finite $\barp$-th moments by construction, this implies almost sure convergence with respect to the Wasserstein-$\barp$ metric~\cite[Theorem 6.9]{optimal_transport_wass}.
+\end{proof}
+
+We can then give an asymptotic bound on $d^K_{t,p} $ for $t\to\infty$.
+
+\begin{theorem}[Asymptotic clustering bounds]
+\label{thm:clustering_conv}
+Under Lemma~\ref{lem:cluster_converge}, we have
+\RC{$$
+\mathbf{P}^\infty\left\{  \ld^K_{\star,\barp}(\prob) \leq \lim_{t \rightarrow \infty }  \ld^K_{t,\barp} = \ld^K_{\star,\barp} = W_{\barp}(\prob,\prob^K_\star)\right\} = 1.
+$$} 
+% Furthermore, if $p=2$ and $\|\cdot\|$ is the $\ell_2$-norm,
+% $$
+% \mathbf{P}^\infty\left\{d^\star_{W_2}(\prob,K) \leq \lim_{t \rightarrow \infty } d_{W_2}(K,t)\leq W_2(\prob,\prob^K_\star)\right\} = 1.
+% $$ 
+Furthermore,
+     $\lim_{K \rightarrow \infty} W_{\barp}(\prob,\prob^K_\star) = 0$ for all $\barp$.
+\end{theorem}
+\begin{proof}
+\RC{Bh the continuity of the Wasserstein-$\barp$ metric, and by the almost-sure convergence of the empirical distributions to the respective true distributions (\cite{fournier2015rate} and Lemma~\ref{lem:cluster_converge}), we obtain $\mathbf{P}^\infty\{ \lim_{t \rightarrow \infty } \ld^K_{t,\barp}   = W_{\barp}(\prob,\prob^K_\star)\} = 1$~\cite[Theorem 7.12]{Villani2003Topics}.}
+% By the triangle inequality, we note that for all $t$, $$d^K_{t,\barp} =W_{\barp}(\hat{\prob}_t,\hat{\prob}^K_t) \leq W_{\barp}(\hat{\prob}_t,\prob) + W_{\barp}(\prob,\prob^K_\star) + W_{\barp}(\prob^K_\star,\hat{\prob}^K_t), $$
+% that is, the distance between the two empirical distributions is bounded by the sum of the distances between the nominal empirical distribution and $\prob$, between $\prob$ and the converged clustered distribution, and between converged clustered distribution and the clustered empirical distribution. 
+% Taking the limit as $t \to \infty$,
+% we have 
+% $$\lim_{t \to \infty} d^K_{t,\barp}  \leq \lim_{t \to \infty} W_{\barp}(\hat{\prob}_t,\prob) + W_{\barp}(\prob,\prob^K_\star) + \lim_{t \to \infty} W_{\barp}(\prob^K_\star,\hat{\prob}^K_t). $$
+% Theorem~\ref{thm:calc_eps} implies 
+% \ifpreprint
+% \begin{equation}
+% \label{eq:wass_converge}
+%     \mathbf{P}^\infty\left\{ \lim_{t \rightarrow \infty } W_p(\mathbf{P}, \hat{\prob}_t) = 0\right\} = 1,
+% \end{equation}
+% \else $\mathbf{P}^\infty\left\{ \lim_{t \rightarrow \infty } W_{\barp}(\mathbf{P}, \hat{\prob}_t) = 0\right\} = 1,~$\fi 
+%  and together with Lemma~\ref{lem:cluster_converge}, we obtain
+%
+For the lower bound, recall that by Definition~\ref{def:quantization},
+$ \ld^K_{\star,\barp}(\hat{\prob}_t) \leq \ld^K_{t,\barp} . $
+The result then holds by the asymptotic consistency of finite quantizations, given in~\cite[Corollary 4.24]{quantization}.
+Specifically,
+we note that
+$ \mathbf{P}^\infty\{ \lim_{t \rightarrow \infty }  \ld^K_{\star,\barp}(\hat{\prob}_t) =  \ld^K_{\star,\barp}(\prob)\} = 1.
+$
+Lastly, the asymptotic result for $K \to \infty $ holds from~\cite[Lemma 6.1]{quantization}.
+\end{proof}
+
+\RC{The asymptotic limit of $D^K_{t,\barp}$ and the limit superior of $\Phi^K_t$ follows similarly.} 
+\begin{theorem}[Asymptotic clustering values]
+\label{thm:asy_cluster}
+Under Lemma~\ref{lem:cluster_converge}, we have that 
+$$\prob^{\infty}\left\{\lim_{t\to\infty} D^K_{t,\barp} = D^K_{\star,\barp}= \left(\mathbf{E}_{\prob}\left[\sum_{k=1}^{K}\ones\{u \in S^k_\tau\}\|u - \bar{u}^k_\star\|^{\barp}_2 \right]\right)^{1/{\barp}} \right\} = 1.$$
+\RC{Furthermore, if there exist accumulation points of $y_t^{jk}$ for all $j\leq J,k\leq K$, then}
+% $ \hat{z}^{jk}_\star = \limsup_{t \to\infty}z_t^{jk}$ for all $j\leq J,k
+% \leq K$},
+$$\prob^{\infty}\left\{\RC{\limsup_{t\to\infty}}~\Phi^K_t = \Phi^K_\star = \ones\{J\geq2\}\mathbf{E}_{\prob}\left[\sum_{k=1}^{K}\ones\{u \in S^k_\tau\}\max_{j\leq J}(-y^{jk}_\star)^T(u - \bar{u}^k_\star) \right] \right\} = 1,$$
+\RC{where $\hat{y}^{jk}_\star$ are the accumulation points that achieve the limit superior.}
+\end{theorem}
+\begin{proof}
+\RC{Bh the consistency of our clustering procedure (Lemma~\ref{lem:cluster_converge}), the 0-measure of the cluster boundaries (Assumption~\ref{ass:support}), the continuity of linear functions and $\|\cdot\|^{\barp}$, and the existence of the accumulation points, the limit (or limit superior, for the second result) of the functions within the summations of Definition~\ref{def:cluster_value} converge almost surely to the functions within the expectations above, for $\prob$-almost every $u$. That is, defining 
+  $\omega_t(u) =  (\sum_{k=1}^{K_t}\ones\{u \in C^k_t\}\| u - \bar{u}^k_t\|_2^{\barp})^{1/{\barp}}$ for the first result, by the given assumptions, we have that $\lim_{t\to\infty} \omega_t(u) = \sum_{k=1}^{K}\ones\{u \in S^k_\tau\}\|u - \bar{u}^k_\star\|^{\barp}_2 = \omega_\star(u)$, for $\prob$-almost every $u$.
+  Next, to conclude that $\lim_{t\to\infty} \mathbf{E}_{\hat{\prob}_t}[\omega_t(u)] = \mathbf{E}_{\prob}[\omega_\star(u)]$, we require the function $\omega_t(u)$ to have an integrable dominating function.
+  W.l.o.g., let $u$ belong in the cluster $k$. Bh the triangle inequality, $|\omega_t(u)| = \|u - \bar{u}^k_t\|^{\barp}_2 \leq (\|u\|_2 + \|\bar{u}\|^k_t )^{\barp} \leq \bar{C}(1+\|u\|_2^{\barp} )$ for some constant $\bar{C}$. Bh the assumption of finite $\barp$-th moments, this dominating function is integrable. The result then follows from \cite[Theorem 7.12(iv)]{Villani2003Topics}, which establishes a generalized convergence of expectation. Since we have shown almost sure pointwise convergence in the first step, the cited theorem holds even without the assumption on continuity. }  
+% {By Definition~\ref{def:cluster_value}, $D^K_{t,\barp}$ and $\Phi^K_t$ are continuous functions of the distributions $\hat{\prob}_t,\hat{\prob}^K_t$. By the almost-sure convergence of the empirical distributions to the distributions $\prob,\prob^K_\star$, respectively, the aforementioned functions then converge to functions of $\prob,\prob^K_\star$, which are given by the above expressions. }
+\end{proof}
+From Lemma~\ref{lem:cluster_converge}, we established that the clustered empirical distribution $\hat{\prob}^K_t$ converges almost surely to the distribution $\prob^K_\star$. We can also prove that its convergence rate follows the convergence rate of the non-clustered empirical distribution. 
+\begin{theorem}[Clustering convergence rate]
+\label{lem:conditional_Conv}
+Suppose Assumption~\ref{ass:support} holds, and we have a sequence $\epsnom_t$, computed using Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf} for a order $\barp$, such that $\lim_{t \rightarrow \infty} \epsnom_t = 0$ and the confidence sequence $\beta_t \in (0,1)$ satisfies $\sum_{t=1}^\infty {\beta_t < \infty}$. Then, for $t \geq \tau$, the distance $W_{\barp}(\hat{\prob}^K_t,\prob^K_\star)$ converges to 0 with rate $O(\epsnom_t)$.
+\end{theorem}
+\begin{proof}
+    We prove the result for $\epsilon_t$ computed using Theorem~\ref{thm:measure_gen}, and note that the result for Theorem~\ref{theorem-inf} holds similarly.
+    Bh assumption, all cluster supports have nonzero measure, \ie, $\prob(S^k_\tau) > 0$. 
+    Since $\prob$ is light-tailed, we also know that for some $\alpha > 1$, there is some finite $R <\infty$ defined by Assumption~\ref{ass:light_tail}.
+    % $$A = \Expect_\prob[\exp(\|u\|^a)] = \int_S \exp(\|u\|^a)\prob(du) < \infty.$$
+    It follows that the conditional distributions of $\prob$ on the supports $S^k_\tau$, denoted $\prob^k$, are also light-tailed, with the same $\alpha$ and a constant $R^k \leq O(R)$, \ie,
+    $R^k = \int_{S_\tau^k} \exp(\|u\|^{\alpha})\prob(u|u\in S^k_\tau)(du) < \infty.$
+    Bh Theorem~\ref{thm:measure_gen},
+    $$\prob^{t}(W_{\barp}(\prob^k,\hat{\prob}^{t,k})\leq O(\epsnom_t)) \geq 1-\beta_t,$$
+    where $\hat{\prob}^{t,k}$ is the conditional distribution of $\hat{\prob}_t$ on support $S^k_\tau$.
+    Bh Kantorovich-Rubinstein duality and the ordering of Wasserstein distances, 
+    $$\left|\Expect_{\prob^k}[u_i] - \Expect_{\hat{\prob}^{k,t}}[u_i] \right| \leq W_1(\prob^k,\hat{\prob}^{k,t}) \leq W_{\barp}(\prob^k,\hat{\prob}^{k,t}), \quad i =1,\dots,d.$$
+    This implies that the \RC{means} $\bar{u}^k_t$ converge to the true means $\bar{u}^k_\star$ with rate $O(\epsnom_t)$, with respect to the infinity norm, \ie, 
+    $\| \bar{u}^k_t - \bar{u}^k_\star\|_\infty \leq O(\epsnom_t).$
+    \RC{Then, by the equivalence of norms on $\reals^m$ and the definition of the Wasserstein distance on discrete distributions,}
+    $$W_{\barp}(\hat{\prob}^K_t,\prob^K_\star) \leq \left(\sum_{k=1}^K\max(\theta^k_t,\theta^k_\star) \| \bar{u}^k_t - \bar{u}^k_\star\|^{\barp}\right)^{1/{\barp}} \leq O(\epsnom_t),$$
+    since the weights $\theta$ are bounded by 1. 
+\end{proof}
+
+\subsection{Performance guarantees}
+\label{sec:gen_gau}
+We can now derive performance guarantees for the online problem. We begin by summarizing the assumptions.
+% where we use the nominal~\gls{DRO} radius $\epsnom_t$ for the adaptive ambiguity set $\mathcal{P}^K_t$.
+\begin{assumption}
+\label{ass:general_ass} \RC{Fix an order $r$ and} let the following hold.
+    \begin{enumerate}
+        \item \RC{For the chosen order $r$ and all $t$, $\epsnom_t,\beta_t$, and $\rho_t$ are constructed according to either Theorem~\ref{thm:measure_gen},Theorem~\ref{theorem-inf}, or Theorem~\ref{thm:informal_curse}, under their respective assumptions. }
+        \item The distribution $\hat{\prob}^K_t$ is constructed using $\mathcal{S}^k$ that satisfy Assumption~\ref{ass:support}.
+        \item The adaptive ambiguity set $\mathcal{P}^K_{t}=\mathbf{B}_{\eps_{t}}^r(\hat{\mathbf{P}}^K_{t})$, \RC{with $\eps_{t} = \epsnom_{t}$ and the Wasserstein distance defined with an arbitrary norm $\|\cdot\|$.}
+    \end{enumerate}
+\end{assumption}
+% \ifpreprint
+% In addition, either the Lipschitz or smoothness condition must hold. 
+% \fi
+% We note that the Lipschitz and smoothness conditions not need be global,~\ie, hold for all $x \in \mathcal{X}$. 
+% We only require it to hold around the considered \gls{DRO} solutions,
+% This is less restrictive, but may be difficult to verify a-priori.
+
+\subsubsection{Concave case}
+\label{sec:concave}
+\RC{We first present a simplified set of results for a concave objective function $f$, with unbounded support $\supp = \reals^m$. The proofs can be derived from the general case, which will be presented subsequently.} 
+\RC{\begin{theorem}[Concave finite sample guarantee] 
+\label{thm:nominal_performance_concave}
+Suppose Assumptions~\ref{ass:general_ass_lip},~\ref{assp:dom}, and~\ref{ass:general_ass} hold, $f$ is concave in~$u$, and $\supp = \reals^m$. Then, the optimal solution $z^K_t$ and the optimal value $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} at time $t$ satisfies
+\begin{equation}
+\label{eq:relate_concave}
+ H_t \leq H_t^K \le H_t + \bar{\psi}_t^K, \quad \bar{\psi}_t^K = \min\left\{ {\frac{L}{2}}(D^K_{t,2})^2,  M(2\epsnom_{t} + \ld^K_{t,1})\right\}
+\end{equation}
+where $H_t$ is the nominal~\gls{DRO} value.
+Furthermore, we obtain the finite-sample probabilistic guarantee
+\begin{equation}
+\label{eq:oos_bounds_concave}
+\prob^{{t}}\left(H_\star \leq \mathbf{E}_{\mathbf{P}}[f(\unc, z^K_{t})] \leq H^K_t + \RC{\rho_{t}} \right) \geq 1 - \beta_{t},
+\end{equation}
+where the certificate $H^K_t + \rho_{t}$ satisfies
+\begin{equation}
+\label{eq:is_bounds_concave}
+\prob^{{t}}\left( H_\star \leq H_{t} + \rho_{t}\leq  H^K_t  + \rho_{t} \leq H_{t}+  \rho_{t} +\bar{\psi}_t^K \right) \geq 1 - \beta_{t}.
+\end{equation}
+% where $ \hat{H}^K_t =\max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})]$. 
+\RC{If any among the Lipschitz and smoothness conditions from Assumption~\ref{ass:general_ass_lip} does not hold, the corresponding term in $\bar{\psi}_t^K$ is set to $\infty$.}  
+\end{theorem}}
+Theorem~\ref{thm:nominal_performance_concave} shows that, when the adaptive ambiguity set $\mathcal{P}^K_{t}$ is constructed with the same radius as nominal \gls{DRO}, we can \RC{relate their optimal values in terms of this radius and the discrepancies given in Definition~\ref{def:cluster_value}. 
+This yields a finite-sample guarantee, with a certificate within a bounded distance from the nominal~\gls{DRO} certificate.} 
+
+\RC{In particular, equation~\eqref{eq:oos_bounds_concave} states that with probability $1-\beta_{t}$, the out-of-sample performance $\mathbf{E}_{\mathbf{P}}[f(\unc, z^K_{t})]$ upper bounds the true optimal value $H_\star$, and this value is in turn upper bounded by the in-sample objective $H^K_t$ and the nominal DRO residual $\rho_{t}$, which depends on the radius $\epsnom_t$. 
+Using the bounds established in~\eqref{eq:relate_concave}, equation~\eqref{eq:is_bounds_concave} relates this certificate to the one obtained by nominal~\gls{DRO}, providing upper and lower bounds. 
+Specifically, the certificate is an upper bound on the nominal certificate $H_t +\rho_{t}$, but the increase in suboptimality (as we are solving a minimization problem, a larger certificate is less optimal)  is at most $\bar{\psi}_t^K$. Similar to the nominal residual, which is the price paid in exchange for smaller radii, $\bar{\psi}_t^K$ is the price we pay for increased computational efficiency.}
+\RC{As the radius $\epsnom_t$ decreases over time at the chosen rate, which could be as fast as $\tilde{O}(n_t^{-1/2})$, this price converges to, or already is, a function of only the clustering discrepancy.}
+\RC{Note that the discrepancies for the clustering discrepancy are defined with orders $\barp=1$ or $\barp=2$, unrelated to the order~$r$ of the ambiguity set. The order $r$ instead affects the bounds through the radius $\epsnom_t$ and the residual $\rho_t$.}
+
+Depending on the smoothness and Lipschitz conditions on the function $f$, we can choose the best out of the two clauses given for $\bar{\psi}_t^K$. Note that when $f$ is affine, $\bar{\psi}_t^K$ reduces to $0$, and we recover nominal \gls{DRO} guarantees regardless of $K$. 
+Otherwise, when the Lipchitz condition is satisfied,  we can compute the bound involving $\ld^K_{t,1}$. This is the Wasserstein-1 distance between two empirical distributions, and can be calculated using a linear program. 
+When the smoothness condition is satisfied, $D_{t,2}^K$ can be easily computed using the empirical distributions.
+
+\RC{Asymptotically, if $\epsnom_t$ is chosen through Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf}, the bound converges as in the following theorem. 
+Note that while $\epsnom_t$ chosen through Theorem~\ref{thm:informal_curse} allows smaller finite-sample certificates, \ie, $\tilde{O}(n_t^{-1/2})$ scales better than $O(n_t^{-p/m})$, in the asymptotic case we can assume $O(n_t^{-p/m})$ to converge to 0 for any $m$. In the computational sense, our method is more compatible with asymptotic analysis than nominal~\gls{DRO}, as our computational complexity is fixed regardless of the sample size.}
+
+\begin{theorem}[\RC{Concave} asymptotic guarantee]
+\label{thm:asym_concave}
+\RC{Suppose Assumptions~\ref{ass:general_ass_lip},~\ref{assp:dom},~\ref{ass:support} and~\ref{ass:general_ass} hold,  $f$ is concave, $\supp = \reals^m$, and $\epsnom_t,\beta_t$ are constructed according to Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf} for all $t$. 
+Asymptotically, 
+ the sequence of optimal solutions $z^K_t$ and optimal values $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} satisfies}
+\vspace{-0.6em}
+\begin{equation*} 
+\mathbf{P}^\infty\left\{ H_\star \leq  \limsup_{t \rightarrow \infty }\mathbf{E}_{\mathbf{P}}[f(\unc, z^K_{t})]\ \leq \limsup_{t \rightarrow \infty } H^K_t \leq H_\star + \bar{\psi}_\star^K \right\} = 1,
+\end{equation*}
+\vspace{-2em}
+\begin{equation*}
+    \begin{aligned}
+        \bar{\psi}_\star^K &=
+\min \left\{ {\frac{L}{2}}(D^K_{\star,2})^2, M\RC{\ld^K_{\star,1}}\right\}.
+    \end{aligned}
+\end{equation*}
+\end{theorem}
+% \begin{proof}
+%     This follows from the summability of $\beta_t$ and the Borel–Cantelli Lemma~\cite[Theorem 2.18]{borel}, as well as Lemma~\ref{lem:delta}. 
+%     The convergence of the distances follow from the results in Section~\ref{sec:cluster_prop}. 
+%     % \RC{The existence of $\hat{x}^K_\star$ follows from the compactness of $\mathcal{X}$.}
+% \end{proof}
+\RC{This shows that in the asymptotic case, the performance gap between the online solution and the nominal \gls{DRO} solution is controlled by our defined discrepancies between the true distribution and a chosen discretization to $K$ atoms. It follows that a well-chosen clustering algorithm and a balanced $K$ are crucial for good performance.}
+
+\subsubsection{General case}
+\label{sec:general}
+\RC{We now extend these results to the maximum-of-concave case with arbitrary  support $S$, which requires the following lemma. The proofs of this lemma and the upcoming results are in Appendix~\ref{app:gen_proofs}.}
+\begin{lemma}[Effect of the support]
+\label{lem:delta}
+    Let $\Delta_t = \tilde{H}_t - H_t$, \RC{where $H_t$ is the value of the \gls{DRO} problem with arbitrary support $S$, while $\tilde{H}_t$ fixes $S = \reals^m$, \ie, $\tilde{H}_t = \max_{\mathbf{Q} \in \hat{\mathcal{P}}_{t}}\mathbf{E}_{\mathbf{Q}}[f(\unc,z_t)]$, $
+\hat{\mathcal{P}}_{t}=\{\mathbf{Q} \in \Xi_r({\reals^m})\mid W_r(\hat{\prob}_{t}, \mathbf{Q}) \leq \epsnom_{t}\}.$} 
+\RC{If the sequence of $\epsnom_{t}$ is constructed according to Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf}, we have  $\prob^{\infty}\left\{ \lim_{t\to\infty} \Delta_t = 0\right \} = 1.$ For any $\epsnom_t \leq 1$, if $f$ satisfies clause 1 or 3 of Assumption~\ref{ass:general_ass_lip}, with $r\geq 2$ in the latter case,  
+then $\Delta_t = O(\epsnom_{t})$.}
+\end{lemma}
+This lemma formalizes the discrepancy between nominal \gls{DRO} objectives with and without support constraints. This discrepancy appears in the following bounds.
+% but we note that it converges to 0 as $\epsnom_t \rightarrow 0$, and is often negligible. 
+
+\begin{theorem}[General finite sample guarantee] 
+\label{thm:nominal_performance}
+\RC{Suppose Assumptions~\ref{ass:general_ass_lip},~\ref{assp:dom}, and~\ref{ass:general_ass} hold.} Then, the optimal solution $z^K_t$ and the optimal value $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} at time $t$ satisfies
+\begin{equation}
+\label{eq:relate}
+-\underline{\psi}_t^K \le H_t^K - H_t \le \bar{\psi}_t^K,
+\end{equation}
+where $H_t$ is the nominal~\gls{DRO} value, and the bounds are defined as 
+\begin{equation*}
+    \begin{aligned}
+\underline{\psi}_t^K &= \min\left\{\Phi^K_{t}, \max_{j\leq J}M_j(2\epsnom_{t}+\ld^K_{t,1}), \RC{\|\nabla f_{z^K_t}\|_{L_2(\hat{\prob}^K_t)}(2\epsnom_t + \ld^K_{t,2}) + \frac{L}{2}(2\epsnom_t + \ld^K_{t,2})^2}\right\},\\
+\bar{\psi}_t^K &= \min\left\{ \Delta_t +{\max_{j \leq J}\frac{L_j}{2}}(D^K_{t,2})^2,  \max_{j\leq J}M_j(2\epsnom_{t} + \ld^K_{t,1})\right\},
+    \end{aligned}
+\end{equation*}
+\RC{with $\|\nabla f_z\|_{L_2(\mathbf{Q})} = (\int \|\nabla f(u,z)\|^2d\mathbf{Q})^{1/2},$}~$\Phi^K_t$ given in Definition~\ref{def:cluster_value},
+and $\Delta_t$ given in Lemma~\ref{lem:delta}.
+Furthermore, we obtain the finite-sample probabilistic guarantee
+\begin{equation}
+\label{eq:oos_bounds}
+\prob^{{t}}\left(H_\star \leq \mathbf{E}_{\mathbf{P}}[f(\unc, z^K_{t})] \leq H^K_t + \RC{\rho_{t}} +\underline{\psi}_t^K \right) \geq 1 - \beta_{t},
+\end{equation}
+where the certificate $H^K_t\RC{ +\rho_{t}} + \underline{\psi}_t^K$ satisfies
+\begin{equation}
+\label{eq:is_bounds}
+\prob^{{t}}\left( H_\star \leq H_{t} \RC{+\rho_{t}}\leq  H^K_t \RC{ + \rho_{t}}+ \underline{\psi}_t^K \leq H_{t}\RC{ + \rho_{t}}+\underline{\psi}_t^K+\bar{\psi}_t^K \right) \geq 1 - \beta_{t}.
+\end{equation}
+% where $ \hat{H}^K_t =\max_{\mathbf{Q} \in \mathcal{P}_{t-1}} \mathbf{E}_{\mathbf{Q}}[f(\unc, x^K_{t})]$. 
+\RC{If any among the Lipschitz and smoothness conditions from Assumption~\ref{ass:general_ass_lip} does not hold, the corresponding term(s) in the bounds are set to $\infty$.}  
+\end{theorem}
+
+\RC{Theorem~\ref{thm:nominal_performance} shows that, for maximum-of-concave $f$ with arbitrary support, the online objective $H^K_t$ is no longer guaranteed to be an upper bound on $H_t$. This leads to performance guarantees and performance gaps with additional terms compared to that of Theorem~\ref{thm:nominal_performance_concave}. However, the additional terms are also functions of the ambiguity set radius $\epsnom_t$ and
+the clustering discrepancis, and can be readily approximated or computed. For instance, $\Delta_t \approx O(\epsnom_{t})$, and the value $\Phi^K_t$ can be computed using the dual variables of the solved optimization problem. Asymptotically, we can also obtain limits for the generalized bounds.} 
+
+\begin{theorem}[General asymptotic guarantee]
+\label{thm:asym}
+\RC{Suppose Assumptions~\ref{ass:general_ass_lip},~\ref{assp:dom},~\ref{ass:support} and~\ref{ass:general_ass} hold, and $\epsnom_t,\beta_t$ are constructed according to Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf} for all $t$. 
+Asymptotically, 
+ the sequence of optimal solutions $z^K_t$ and optimal values $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} satisfies}
+
+\begin{equation*} 
+\mathbf{P}^\infty\left\{ H_\star \leq  \limsup_{t \rightarrow \infty }\mathbf{E}_{\mathbf{P}}[f(\unc, z^K_{t})]\ \leq \limsup_{t \rightarrow \infty } H^K_t + \underline{\psi}_\star^K \leq H_\star + \underline{\psi}_\star^K + \bar{\psi}_\star^K \right\} = 1,
+\end{equation*}
+
+\begin{equation*}
+    \begin{aligned}
+        \underline{\psi}_\star^K &= \min \left\{
+   \limsup_{t \rightarrow \infty } {\Phi^K_t},
+        \max_{j\leq J}M_j\RC{\ld^K_{\star,1}}, \RC{\|\nabla f_{\hat{z}^K_\star}\|_{L_2(\prob^K_\star)}\ld^K_{\star,2} + \frac{L}{2}(\ld^K_{\star,2})^2}\right\},\\
+        \bar{\psi}_\star^K &=
+\min \left\{ {\max_{j \leq J}\frac{L_j}{2}}(D^K_{\star,2})^2,  \max_{j\leq J}M_j\RC{\ld^K_{\star,1}}\right\},
+    \end{aligned}
+\end{equation*}
+\RC{where $\hat{z}^K_\star$ is the accumulation point of $z^K_t$ that yields the largest value of the bound.}
+\end{theorem}
+\begin{proof}
+    This follows from the summability of $\beta_t$ and the Borel–Cantelli Lemma~\cite[Theorem 2.18]{borel}, as well as Lemma~\ref{lem:delta}. 
+    The convergence of the bounds follow from the results in Section~\ref{sec:cluster_prop}. \RC{The existence of $\hat{z}^K_\star$ follows from the compactness of $\mathcal{Z}$.}
+\end{proof}
+In order to obtain a closed-form limit superior for ${\Phi^K_t}$, we require the convergence of the online algorithm. 
+Below, we prove that the online optimal value converges to a clustering-dependent value, at the same rate of convergence as nominal \gls{DRO}. 
+\begin{theorem}
+\label{thm:converge_K}
+Suppose Assumption~\ref{ass:support} and the Lipschitz clause of Assumption~\ref{ass:general_ass_lip} holds, and let $\eps_{t} \sim O(\epsnom_{t})$, \RC{where $\epsnom_{t}$ is computed according to Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf}.} 
+
+With this radius, the optimal value $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} at time $t \geq \tau$ satisfies
+
+\begin{equation*}
+	\prob^{{t}}\left( H^K_\star \leq \Expect_{\prob^K_\star}[f(u, z^K_{t})] \le H^K_t\right) \ge 1 - \beta_{t},
+\end{equation*}
+and asymptotically, $\prob^\infty$-almost surely we have $H^K_t \rightarrow H^K_\star$ as $t\to\infty$, where $H^K_\star$ is the optimal value of the stochastic optimization problem~\eqref{eq:opt} with distribution $\prob^K_\star$.
+In addition, if $f(u,z)$ is lower-semicontinuous in $z$ for all $u \in \supp$, then any accumulation point $\hat{z}^K_\star = \lim_{t\to \infty}z_t^K$ is almost surely, with respect to $\prob^\infty$, an optimal solution to the stochastic optimization problem with distribution $\prob^K_\star$.
+\end{theorem}
+\begin{proof}
+This follows from Theorem~\ref{lem:conditional_Conv} and an adaptation of~\cite[Theorem 3.6]{mohajerin2018data}, by treating $\prob^K_\star$ as the true distribution.
+\end{proof}
+
+With this result, for special cases, we can obtain a limit superior for $\Phi^K_t$.
+\begin{theorem}
+    \label{thm:lim_phi}
+Suppose the assumptions of Theorem~\ref{thm:converge_K} hold.
+\RC{When the function $f(u,z)$ is maximum-of-affine in both $u$ and $z$, and the support $\supp = \reals^m$, we have
+% When the dual variables $z^{jk}$ of the reformulated problem~\eqref{c3:eq:robustopt_p_max} can be \RC{substituted by a} continuous function of only the primal variables $x \in \mathcal{X}$, 
+$\limsup_{t \to \infty} \Phi^K_{t} = \Phi^K_\star, $
+where the latter is defined in Theorem~\ref{thm:asy_cluster}.}
+\end{theorem}
+\begin{proof}
+\RC{When $f$ is maximum-of-affine and $\supp = \reals^m$, well known conjugation results show that the variables $y^{jk} = P^{jk}z$, for constant matrices $P^{jk}$~\cite[Corollary 5.1]{mohajerin2018data}. 
+It follows that the accumulation points $\hat{y}^{jk}_\star$ exist as continuous functions of an accumulation point $\hat{z}^K_\star$, which exist by Theorem~\ref{thm:converge_K}.
+}
+\end{proof}
+% For maximum-of-affine $f$ without additional support constraints, the above is always satisfied. Well-known conjugation results show that the variables $z^{jk} = P^{jk}x$, for constant matrices $P^{jk}$~\cite[Corollary 5.1]{mohajerin2018data}. 
+
+\RC{The above results hold in general, for any clustering algorithm satisfying Assumption~\ref{ass:support}. 
+For completeness, below we instead assume optimal clustering, and state the best bounds we can obtain.
+}
+
+\begin{theorem}[Optimal clustering bounds]
+\label{cor:opt_cluster}
+% Suppose the assumptions of Theorem~\ref{thm:asym} hold.
+\RC{Suppose Assumptions~\ref{ass:general_ass_lip},~\ref{assp:dom},~\ref{ass:support} and~\ref{ass:general_ass} hold.}
+ If the clustering algorithm is optimal with respect to $\barp=2$ and the $\ell_2$-norm, \ie, for all $t$, we achieve the minimum quantization error of $\hat{\prob}_t$ on $K$ clusters, such that
+    $D^K_{t,2} = \ld^K_{t,2}=\ld^K_{\star,2}(\hat{\prob}_t),$
+ then almost surely with respect to~$\prob^{\infty}$,
+\begin{equation*}
+    \bar{\psi}_\star^K =  \min \left\{{\max_{j \leq J}\frac{L_j}{2}}(\ld^K_{\star,2}(\prob))^2,\max_{j\leq J}M_j\RC{\ld^K_{\star,1}}\right\}.\end{equation*}
+\RC{When $f(u,z)$ is maximum-of-affine in both $u$ and $z$, and the support $\supp = \reals^m$,} if the clustering-induced coupling is optimal with respect to $\barp=1$, \ie,
+    $ D^K_{t,1} = \ld^K_{t,1}, $
+   then almost surely with respect to~$\prob^{\infty}$,
+   
+\begin{equation*} 
+\begin{aligned} 
+   {\underline{\psi}_\star^K \leq \Phi^K_\star}\leq
+        \max_{j\leq J}M_j\RC{\ld^K_{\star,1}}.
+\end{aligned}
+\end{equation*}
+
+\end{theorem}
+\begin{proof}
+ The first result follows from Proposition~\ref{prop:values} and Theorem~\ref{thm:clustering_conv}, where the pertinent inequalities are made tight by the assumption of optimal clustering.
+For the second result, note that $\Phi^K_t$ is computed with respect to the clustering-induced coupling, \ie, each $\hat{u}$ is associated with the \RC{mean} $\bar{u}^k_t$ of the cluster it belongs to. If this is equivalent to the optimal coupling, then by the Cauchy-Schwarz inequality,
+\begin{equation*}(-y^{jk}_t)^T (\hat{u} - \bar{u}^k_t) \leq \|y^{jk}_t\|\|\hat{u}- \bar{u}^k_t\|\leq M_j\|\hat{u} - \bar{u}^k_t\| =  M_j \min \left \{\|\hat{u} - \bar{u}\|\mid \bar{u} \in \{\bar{u}^k_t\}_{k=1}^K \right\} ,\end{equation*}
+\RC{where $\|y^{jk}_t\|\leq M_j$~$\forall j\leq J$, $k\leq K$, and $t\geq1$ by the conjugates of maximum-of-affine functions and the compactness of $\mathcal{Z}$. This holds for all $t$, $j$, and $\hat{u}$, which implies}
+
+\begin{equation*}
+    \begin{aligned}
+\Phi^K_t \leq \max_{j\leq J} M_j\frac{1}{n_t}\sum_{k=1}^{K}\sum_{\hat{\unc} \in C^k_t}\|\hat{u} - \bar{u}^k_t\|  = \max_{j\leq J}M_j\ld^K_{t,1}.
+    \end{aligned}
+\end{equation*}
+\RC{The result follows by taking the limit superior as $t \to \infty$.}
+\end{proof}
+% \ifpreprint
+% Note that, the requirement on $z^{jk}_t$ is once again satisfied by maximum-of-affine $f$ without extra support constraints. 
+% \fi
+% Furthermore, while we only prove that $\Phi^K_t\leq \max_{j\leq J} M_jd^K_{t,1}$ under the conditions above, the large gain from the Cauchy-Schwarz inequality generally implies that this relationship, even without optimal coupling. 
+
+In all cases, our bounds scale with the clustering quality; when the clustering algorithm is optimized, the bound is tighter. 
+% Asymptotically, the performance-gap between the online solution and the nominal~\gls{DRO} solution is controlled by different distance metrics between the true distribution and its discretization to $K$ atoms.
+Theorem~\ref{thm:converge_K} shows a direct correlation between the optimality of the clustering procedure and the optimality of the online solution; the algorithm will converge to a value dependent on the supports of the final clustering, so it follows that a well-chosen clustering procedure will lead to a better performing solution. 
+% We also observe that the rate of convergence of the online solution is not guaranteed to coincide with the rate of convergence of the nominal \gls{DRO} solution. Even though we have $\prob^\infty$-almost sure convergence of $\hat{\prob}^K_t$ to $\prob^K_\star$, the rate of convergence additionally depends on the clustering algorithm's partitioning of the support. 
+For all these bounds, we can verify using either Proposition~\ref{prop:values} or Theorem~\ref{thm:clustering_conv} that as the number of clusters $K \to \infty$, 
+we recover the \gls{DRO} performance guarantees.
+This illustrates the importance of finding a $K < \infty$ which balances the tradeoff between performance and computational effort.
+
+ 
+In fact, this leads to an interesting result: if we do not have a strict budget $K$, but would like to decrease computational effort, we can obtain the following more controllable bounds.
+
+\begin{theorem}[Fixed radii clustering] 
+Suppose Assumptions~\ref{ass:general_ass} and~\ref{ass:general_ass_lip} hold. If we fix a radius $\eta$ such that 
+all datapoints are either clustered into an existing ball with at most radius $\eta$, or initialized as a new cluster, then~$\prob^\infty$-almost surely,
+$$  H_\star - 2\max_{j\leq J}M_j\eta \leq \limsup_{t \rightarrow \infty } H^{K_t}_t \leq H_\star + 2\min\left\{ {\max_{j \leq J}L_j}\eta^2, \max_{j\leq J}M_j\eta\right\}.$$
+\end{theorem}
+\begin{proof}
+ Under this clustering regime, the distance $W_p(\hat{\prob}_t,\hat{\prob}^{K_t}_t) \leq 2\eta$, where $K_t$ is allowed to increase with $t$. The result then follows from Theorem~\ref{thm:nominal_performance}.
+\end{proof}
+
+
+\section{Special case: bounded support}
+\label{sec:bounded_perf}
+In the dimension-dependent portion of Section~\ref{subsec:nom_perf}, we gave performance guarantees for light-tailed supports $S$, and set the ambiguity set radius $\eps_t$ with the nominal \gls{DRO} radius $\epsnom_t$, calculated using Theorem~\ref{thm:measure_gen} or Theorem~\ref{theorem-inf}. 
+In this section, for the case of bounded support, we give an explicit formulation of the radius in terms of the diameter of the support $S$. 
+We also derive performance guarantees using a different theoretical approach from that of Section~\ref{sec:gen_gau}: using measure concentration results, we instead increase the ambiguity set radius by a finite value. In this case, the online objective value $H^K_t$ is guaranteed to be an upper bound on the \gls{DRO} objective value $H_t$, regardless of the curvature of $f$.
+
+% Given the above data-compression frameworks for updating $\hat{\prob}^K_t$, we can now analyze the behavior and performance of our Wasserstein-based ambiguity sets. 
+% In this section, we focus on the setting of bounded support, and specifically on the clustered empirical distributions from the Bounded-Sup-Cover algorithm~\eqref{alg:sup_cover} from Section~\ref{sec:cover_sup}.
+% In Section~\ref{sec:general}, we relax these assumptions and present more general results.
+
+% We first derive some instrumental results with a fixed number of data $N$ and the full empirical distribution supported on $\mathcal{D}_N$, and later adapt them to the case of streaming data with data-compression.
+
+\subsection{Wasserstein radius with bounded support}
+\label{sec:static_set}
+We begin with calculating the ambiguity set radius for the case of bounded support. 
+Suppose the following assumption holds true.
+\begin{assumption}[Compact support]\label{ass:noise}
+The true distribution $\mathbf{P}$ has compact support $\supp \subset \mathbf{R}^m$.
+\end{assumption}
+Then, the result follows from propositions 24 and 25 of the online version of~\cite{bounded_wass}, which makes use of the concentration bound below. 
+% Consider a static dataset $\mathcal{D}_N$ comprising $N$ data points of $u$, and let $\hat{\mathbf{P}}^N = \frac{1}{N} \sum_{i=1}^N \delta_{\hat{\unc}^{i}}$ be the corresponding empirical distribution. 
+% Let $\prob^N$ be the product distribution of the dataset. 
+% Further, consider the ambiguity set $\mathbf{B}_{\epsnom}(\hat{\mathbf{P}}^N)$ around the empirical distribution.
+% We exploit the boundedness of the support to derive an explicit characterization of the radius $\epsnom$ such that the true probability distribution is contained in the Wasserstein ambiguity set with high confidence.
+
+\begin{proposition}[Concentration bound]\label{prop:empirical}
+Let Assumption \ref{ass:noise} hold, and let $p < m/2$. Then, for the true distribution $\prob$ and an empirical distribution $\hat{\prob}^N$ supported on $N$ points,
+$$\mathbf{P}^N\left(W_p\left(\hat{\mathbf{P}}^N, \mathbf{P}\right) \geq \mathbf{E}\left[W_p\left(\hat{\mathbf{P}}^N, \mathbf{P}\right)\right]+t\right) \leq e^{-N t^{2 p} /\left(2 \tilde{\rho}^{2 p}\right)} \quad \forall t \geq 0,$$
+where $\tilde{\rho} = \mathrm{diam}_2(\supp)$.
+\end{proposition}
+This follows from \cite[Proposition A.2]{boissard2014mean} and exploits the fact that bounded distributions are sub-Gaussians. 
+% Next, we also use \cite[Proposition 1 and Remark 4]{peyre2019computational}  to bound the expected Wasserstein distance between the empirical and actual distribution.
+% \begin{proposition}[Decay of empirical Wasserstein mean]\label{prop:decay}
+% For any probability measure $\mathbf{P}$ supported on $[0,1)^d$ and $p<m / 2,$ we have $\mathbf{E}\left[W_p\left(\mathbf{P}^N, \mathbf{P}\right)\right] \leq C N^{-1 / d}$, with
+% $$
+% C=\sqrt{m} 2^{(d-2) /(2 p)}\left(\frac{1}{1-2^{p-d / 2}}+\frac{1}{1-2^{-p}}\right)^{1 / p} .
+% $$
+% \end{proposition}
+Then, by bounding the expected Wasserstein distance using a function of $m,p,\tilde{\rho}$, and $N$,  we obtain the following explicit characterization of the nominal ambiguity radius. For details, see the proofs in the online version of the referenced paper. 
+
+\begin{theorem}[{Explicit nominal radius~\cite{bounded_wass}[Propositions 23, 24]}]\label{explicit}
+ Assume that the probability measure $\mathbf{P}$ is supported on $\supp \subset \mathbf{R}^m$ with $\rho=\frac{1}{2} \operatorname{diam}_{\infty}(\supp)<\infty$ and that $p<m / 2$. Then, for a given confidence $\beta \in (0,1)$, the nominal ambiguity radius is given by
+$$
+\epsnom_N(\beta, \rho)=2 \rho\left(C N^{-\frac{1}{m}}+\sqrt{m}\left(2 \ln \beta^{-1}\right)^{\frac{1}{2 p}} N^{-\frac{1}{2 p}}\right),
+$$
+where 
+$$C=\sqrt{m} 2^{(m-2) /(2 p)}\left(\frac{1}{1-2^{p-m / 2}}+\frac{1}{1-2^{-p}}\right)^{1 / p} .$$
+Furthermore, the radius can be written with the compact form 
+$$
+\epsnom_N(\beta, \rho)=2 \rho\left(\frac{\ln \left(C^{\star} \beta^{-1}\right)}{c^{\star}}\right)^{\frac{1}{m}} N^{-\frac{1}{m}},
+$$
+with $C^{\star}=C^m/(2 \sqrt{m}^m)$ and $c^{\star}=1/(2^m \sqrt{m}^m)$.
+\end{theorem}
+
+
+% \begin{proof}
+% Since the Wasserstein distance between two scaled distributions is equal to this factor times their original Wasserstein distance, we have from Proposition \ref{prop:decay} that $$\mathbf{E}\left[ W_p\left(\mathbf{P}^N, \mathbf{P}\right)\right] \leq 2 \rho C N^{-1 / d}.$$ Substituting the latter in Proposition \ref{prop:empirical} and exploiting the well-known relationship $\operatorname{diam}_2(\supp) \leq \sqrt{m} \operatorname{diam}_{\infty}(\supp)$ (from norm properties), i.e., that $\widetilde{\rho}=\sqrt{m} 2 \rho$, we get
+% $$
+% \mathbf{P}^N\left(W_p\left(\mathbf{P}^N, \mathbf{P}\right) \geq 2 \rho C N^{-\frac{1}{d}}+t\right) \leq e^{-N t^{2 p} /\left(2 d^p(2 \rho)^{2 p}\right)} \quad \forall t \geq 0 .
+% $$
+% Set $\epsnom=2 \rho C N^{-\frac{1}{d}}+t$ and $\beta=e^{-N t^{2 p} /\left(2 d^p(2 \rho)^{2 p}\right)}$. 
+% Then, we have $t=\sqrt{m} 2 \rho\left(2 \ln \beta^{-1}\right)^{\frac{1}{2 p}} N^{-\frac{1}{2 p}}$ and $\mathbf{P}^N\left(W_p\left(\mathbf{P}^N, \mathbf{P}\right) \leq \epsnom\right) \geq 1-\beta$ for all $\beta \in(0,1)$, with radius
+% $$
+% \epsnom = \epsnom_N(\beta, \rho)=2 \rho\left(C N^{-\frac{1}{d}}+\sqrt{m}\left(2 \ln \beta^{-1}\right)^{\frac{1}{2 p}} N^{-\frac{1}{2 p}}\right).
+% $$
+% \end{proof}
+
+% Furthermore, we can derive an expression in terms of exponentials to present a compact form for the radius.
+% \begin{corollary}
+% \label{cor:eps}
+% Under the assumptions of Theorem \ref{explicit}, we can select the nominal ambiguity radius as
+% $$
+% \epsnom_N(\beta, \rho)=2 \rho\left(\frac{\ln \left(C^{\star} \beta^{-1}\right)}{c^{\star}}\right)^{\frac{1}{d}} N^{-\frac{1}{d}}
+% $$
+% with $C^{\star}=C^d/(2 \sqrt{m}^d)$ and $c^{\star}=1/(2^d \sqrt{m})$.
+% \end{corollary}
+
+% \begin{proof}
+%     Note first that $e^{-N t^{2 p} /\left(2 d^p(2 \rho)^{2 p}\right)} \leq e^{-N t^d} /\left(2 \sqrt{m}^d(2 \rho)^d\right)$ when $t \in[0, \sqrt{m} 2 \rho]$ (for $t>\sqrt{m} 2 \rho$ the probability of interest is zero). Thus, using the inequality $a^{1/q}+b^{1/q} \leq$ $\left(2^{q-1}(a+b)\right)^{1/q}$ for $q \geq 1$, we get in analogy to the proof of Proposition 24 \bnote{where did you get that proposition? why is it referenced in this way?} that
+% $$
+% \begin{aligned}
+% & \epsnom=2 \rho\left(C N^{-\frac{1}{d}}+\sqrt{m}\left(2 \ln \beta^{-1}\right)^{\frac{1}{d}} N^{-\frac{1}{d}}\right)=2 \rho\left(C+\sqrt{m}\left(2 \ln \beta^{-1}\right)^{\frac{1}{d}}\right) N^{-\frac{1}{d}} \\
+% & =2 \rho\left(\left(C^d\right)^{\frac{1}{d}}+\left(2 \sqrt{m}^d \ln \beta^{-1}\right)^{\frac{1}{d}}\right) N^{-\frac{1}{d}} \leq 2 \rho\left(2^{d-1}\left(C^d+2 \sqrt{m}^d \ln \beta^{-1}\right)\right)^{\frac{1}{d}} N^{-\frac{1}{d}} \\
+% & =2 \rho\left(2^{d-1} C^d+2^d \sqrt{m}^d \ln \beta^{-1}\right)^{\frac{1}{d}} N^{-\frac{1}{d}}=2 \rho\left(\frac{\frac{C^d}{2 \sqrt{m}^d}+\ln \beta^{-1}}{\frac{1}{2^d \sqrt{m}}}\right)^{\frac{1}{d}} N^{-\frac{1}{d}} \\
+% & =2 \rho\left(\frac{\ln \left(\frac{C^d}{2 \sqrt{m}} \beta^{-1}\right)}{\frac{1}{2^d \sqrt{m}}}\right)^{\frac{1}{d}} N^{-\frac{1}{d}} = 2 \rho\left(\frac{\ln \left(C^{\star} \beta^{-1}\right)}{c^{\star}}\right)^{\frac{1}{d}} N^{-\frac{1}{d}},
+% \end{aligned}
+% $$
+% with $C^{\star}$ and $c^{\star}$ as given in the statement.
+% \end{proof}
+
+For any time step $t$ and $\beta_t$, the radius $\epsnom_t$ calculated from Theorem~\ref{explicit} can be used to obtain the performance guarantees implied by Theorem~\ref{thm:measure_gen}, since distributions with bounded support are trivially light-tailed. 
+
+On the other hand, we can also use this radius to obtain performance guarantees specifically for bounded distributions. 
+In the following, we show that by suitably enlarging the radius $\epsnom_t$, we can also obtain performance guarantees for the online compressed \gls{DRO} problem. 
+% In the following, we thus adapt these findings to our data-compressed ambiguity sets, which are built around the clustered empirical distributions $\hat{\prob}^K_t$. 
+
+\subsection{Performance guarantees with bounded support}
+\label{sec:bounded_cover_performance}
+% In order for our online algorithm to achieve certain performance guarantees, we must select the radius $\eps_t$ accordingly.
+In this approach, we assume the clustering algorithm to satisfy the requirements in Section~\ref{sec:shared_cluster}, and additionally restrict the diameter of each cluster to a value $2\eta_K$. In Section~\ref{sec:cover_sup}, we give such an algorithm, which is based on covering the bounded support with $K$ balls of finite radius $\eta_K$.
+Bh setting the ambiguity set radius $\eps_t$ as the nominal radius $\epsnom_t$ plus a function of $\eta_K$, we ensure that the true distribution lies within the adaptive ambiguity set with high probability. This then allows us to derive guarantees on the out-of-sample performance of the online solution $z^K_{t}$.
+To show this, we first quantify the discrepancy between the distributions of interest. Note that the proofs of this section are delayed to Appendix~\ref{app:bounded_perf_1}. 
+% To understand the information loss induced by the data-compression algorithm~\eqref{alg:sup_cover}, we first quantify the discrepancy between the different distributions of interest. 
+\begin{lemma}[Discrepancy between distributions] 
+\label{lem:dist} 
+Let $\hat{\prob}^K_t$ be the clustered empirical distribution at time $t$, with cluster diameters $\mathrm{diam}_q(C^k_t) \leq 2\eta_K$, defined according to Definition~\ref{def:diam_cluster} and an arbitrary norm $q$. Then, for all $t$ and $p$, and with the same norm, we have 
+$\ld^K_{t,p} \leq 2\eta_K.$ With probability $1-
+\beta_t$, we have
+$ W_p(\mathbf{P}, \hat{\mathbf{P}}^K_t)  \leq \epsnom_t + 2\eta_K,$ where $\beta_t$ and $\epsnom_t$ are computed as in Theorem~\ref{explicit}.
+\end{lemma}
+Lemma~\ref{lem:dist} implies that by selecting the radius $\eps_t = \epsnom_t + 2\eta_K$, where $\epsnom_t$ is the nominal radius for Wasserstein \gls{DRO}, we can obtain the same finite sample performance guarantee for the online algorithm as Wasserstein \gls{DRO}. 
+We formalize this result in the following theorem. 
+\begin{theorem}[Finite sample performance guarantee]\label{lemma:guarantees_fin}
+Under the assumptions of Theorem~\ref{explicit}, let the adaptive ambiguity set $\mathcal{P}^K_{t}$ be defined with $\eps_{t} = \epsnom_{t} + 2\eta_K$. Then, the solution $z^K_{t}$ and optimal value $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} implies the finite sample performance guarantee
+\begin{equation*}
+	\prob^{t}\left( H_\star \leq \Expect_{\prob}[f(u, z^K_{t})] \le H^K_t\right) \ge 1 - \beta_{t}.
+\end{equation*}
+\end{theorem}
+\begin{proof}
+    This follows from Lemma~\ref{lem:dist} and the same logic as nominal~\gls{DRO} results~\cite[Theorem 3.5]{mohajerin2018data}.
+\end{proof}
+
+In addition, we can derive the following asymptotic result by applying a similar approach as~\cite[Lemma 3.7]{mohajerin2018data}.
+
+\begin{lemma}[Convergence of distributions]\label{lemma:convergence:K}
+Assume for all $t$, $\epsnom_t$ is computed as in Theorem~\ref{explicit}, with a sequence $\beta_t$ such that $\sum_{t=0}^\infty \beta_t< \infty$ and $\lim_{t\to\infty}\epsnom_t = 0$. Then, any sequence $\mathbf{Q}_t \in \mathcal{P}^K_t$, where $\mathcal{P}^K_t$ has radius $\eps_t = \epsnom_t + 2\eta_K$, satisfies
+$$
+\mathbf{P}^\infty\left\{ \lim_{t \rightarrow \infty } W_p(\mathbf{P}, \mathbf{Q}_t) \leq 4\eta_K\right\} = 1.
+$$ 
+\end{lemma}
+
+This lemma dictates that asymptotically, the true distribution lies in a ball around the clustered distribution with radius $4\eta_K$; the increased radius is the price to pay due to the limited computational budget available to solve \eqref{eq:DRO}, and is directly related to the quality of our approximation $\hat{\prob}^K_t$. Clearly, if $K$ is high, then $\eta_K$ will be low and our asymptotic estimate will be more accurate; viceversa for low $K$.
+Following~\cite[Theorem 3.6]{mohajerin2018data}, we now derive the following result. 
+
+\begin{theorem}[Asymptotic performance guarantee] 
+\label{thm:asy_eta}
+Assume for all $t$, $\epsnom_t$ is computed as in Theorem~\ref{explicit}, with a sequence $\beta_t$ such that $\sum_{t=0}^\infty \beta_t< \infty$ and $\lim_{t\to\infty}\epsnom_t = 0$. Also assume the adaptive ambiguity set $\mathcal{P}^K_t$ is defined with $\eps_{t} = \epsnom_{t} + 2\eta_K$, and that for all $z\in \mathcal{Z}$, the constituent functions $f_j$ of $f$ satisfy the $M$-Lipschitz condition given in Assumption~\ref{ass:general_ass_lip} with constants $M_j$.
+Then, the sequence of solutions and optimal values $z^K_{t}$ and $H^K_t$ of the compressed \gls{DRO} problem~\eqref{eq:dro:time} satisfies
+$$\mathbf{P}^\infty\left\{ H_\star \leq \limsup_{t \rightarrow \infty } \Expect_\prob[f(\unc,z^K_{t})]\leq \limsup_{t \rightarrow \infty } H^K_t \leq H_\star + 4\max_{j\leq J}M_j\eta_K\right\} = 1.
+$$
+\end{theorem}
+
+Theorem~\ref{thm:asy_eta} shows that, asymptotically, our online in-sample value is an upper bound on the out-of-sample and true values, but is also no more than $4\max_{j\leq J}M_j\eta_K$ suboptimal compared to the true solution. In other words, there exists some value $\tau$ such that for all $t \geq \tau$, the online solution $H^K_t \leq H_\star + 4\max_{j\leq J}M_j\eta_K$.
+We note that the upper bound on $H^K_t$ may be less tight than the ones derived in Section~\ref{sec:gen_gau}, but $H^K_t$ is now an upper bound on $H_\star$, regardless of the curvature of $f$, without the need for the term $\Phi^K_t$. Therefore, for maximum-of-concave $f$, this bound may perform better than the ones in Section~\ref{sec:gen_gau}, depending on the specific robust optimization problem. 
+
+Overall, to tune the tradeoff between performance and computational effort, we would again be inclined to choose a number $K$ that provides a reasonable $\eta_K$ while not being too computationally expensive. 
+
+
+% \ifpreprint
+\section{Online performance analysis}
+\label{sec:regret}
+So far, we have obtained guarantees with respect to the out-of-sample performance, and to the nominal \gls{DRO} performance with the {\it same information}, \ie, both having observed $\mathcal{D}_{t}$. 
+However, in online settings, we are interested in robustifying our solution with respect to the {\it subsequent realization} of the uncertainty, \ie, we want to compare with an oracle that has observed $\mathcal{D}_{t+1}$. 
+% This introduces a notion of {\it regret}, where we compare solutions subject to an information latency, then average the differences over time. 
+This notion of {\it regret} is common in  online learning~\cite{drotime,regret, regret2}, where the online solution is compared against the best solution in hindsight, and measures how well an algorithm can adapt to anticipated data.
+
+In this section, we thus compute the {y\it dynamic regret bound}, where we compare our online solution with information up to time $t$, against the nominal \gls{DRO} solution with information up to time $t+1$. 
+In particular, recall that we solve for the online solution at time $t$ {\it before} the new datapoint is observed, with the ambiguity set $\mathcal{P}^K_{t}$. 
+The dynamic regret, defined in equation~\eqref{regret},
+then calculates the difference between the worst-case performance of our online solution $z^K_{t}$, hedged against the updated non-compressed ambiguity set $\mathcal{P}_{t+1}$, and the optimal \gls{DRO} value over the same set.
+Note that the performance of the online solution over the set $\mathcal{P}_{t+1}$, which is built around the full empirical distribution at time $t$, will differ from its performance over the set $\mathcal{P}^K_{t}$, which it was optimized against.
+We present the following results; all proofs are delayed to Appendix~\ref{app:regret}.
+% To compute the regret bounds, we first derive the following lemma.
+\begin{lemma}
+\label{lem:regret}
+    Suppose assumptions~\ref{ass:general_ass} and~\ref{ass:general_ass_lip} hold.
+    The dynamic regret satisfies
+    \begin{equation}
+    \begin{aligned}
+    &R(T,K) \leq  \frac{1}{T}\sum_{t=0}^{T-1} \left(\underline{\psi}_{t+1}^K + \bar{\psi}_t^K\right)\\
+    &\quad + \frac{1}{T}\left(\max_{j\leq J}M_j\left(\epsnom_0 + \epsnom_{T}+W_1(\hat{\prob}_0,\hat{\prob}_{T})+\sum_{t=1}^T (2\epsnom_{t} +W_1(\hat{\prob}^K_t,\hat{\prob}^K_{t+1}))\right)\right),
+    \end{aligned}
+    \end{equation} 
+    with $\underline{\psi}_{t}^K$ and $\bar{\psi}^K_t$ as defined in Theorem~\ref{thm:nominal_performance}.
+    \end{lemma}
+\RC{Note that this is not a probabilistic bound, as it does not yet involve distances to the true distributions $\prob$ and $\prob^K_\star$.} There are two sources of discrepancy: one from clustering, and one from the difference in time step. The difference in time step results in an offset in the index of $\underline{\psi}_{t+1}^K$, as well as the addition of the second set of terms. 
+However, these differences once again boil down to the discrepancy between the distributions involved, for which we have convergence results. 
+We thus obtain the following bounds. 
+\begin{theorem}[Dynamic regret bound]
+\label{thm:regret}
+Suppose Assumption~\ref{ass:general_ass} and the first clause of Assumption~\ref{ass:general_ass_lip} holds. For finite $T \gg \tau$, with probability $1-\zeta$, the dynamic regret is bounded as 
+   $$R(T,K) \leq O\left(\left(\log(\beta_T^{-1})/T\right)^{1/m}\right) + 
+O\left(\RC{d^K_{\star,1}}\right),$$
+   where $\beta_T$ decays at least sublinearly in $T$, and $\zeta$ scales with $\beta_T$.
+\end{theorem}
+\begin{corollary}
+\label{cor:regret_beta}
+    If we choose $\beta_t = O(\exp(-\sqrt{n_t}))$ in Assumption~\ref{ass:general_ass}, the dynamic regret is bounded as
+    $$R(T,K) \leq O\left(T^{-\frac{1}{2m}}\right) + O\left(\RC{d^K_{\star,1}}\right),$$
+   with some probability $1-\zeta \geq 1-\sum_{t=0}^T\beta_t$.
+\end{corollary}
+In Theorem~\ref{thm:regret}, we assume the Lipschitz condition in order to obtain a clear convergence rate; the regret converges sublinearly to a value at most $O(W_1(\prob,\prob^K_\star))$, a factor of the Wasserstein-1 distance between the true distribution and the converged compressed distribution.
+This is in line with our expectations.  
+Recall that over time, we gain confidence in the empirical measures as approximations of the true distributions. Therefore, both the ambiguity set radii we select and the theoretical distances between the empirical and true distributions converge sublinearly to 0. 
+What remains is then a function of the discrepancy between the converged (true) distributions. 
+
+Theorem~\ref{thm:regret} thus consolidates theorems~\ref{thm:nominal_performance},~\ref{thm:asym} and~\ref{thm:converge_K}, and shows that the difference arising from the one-time-step information discrepancy converges to 0.
+Overall, only the choice of $K$ and the clustering algorithm directly affect the asymptotic performance of the online algorithm: they fully control the trade-off between efficiency and optimality. 
+Below, we note this asymptotic behavior, which hold due to~$\prob^\infty$-almost sure convergence.
+\begin{corollary}
+\label{cor:regret}
+Suppose assumptions~\ref{ass:general_ass} and~\ref{ass:general_ass_lip} hold.
+With probability 1, asymptotically we observe
+   $$ \lim_{T\to\infty} R(T,K) \leq O(\underline{\psi}_\star^K + \bar{\psi}_\star^K),$$ and additionally as $K \to \infty$,~$$\lim_{K\to\infty}\lim_{T\to\infty}R(T,K) = 0.$$
+\end{corollary}
+
+
+
+\section{Online algorithms for data-compression}
+\label{sec:algos}
+In Section~\ref{sec:shared_cluster}, we gave requirements for the clustering algorithm. In this section, we provide  three  online clustering algorithms satisfying Assumption~\ref{ass:support}.
+\RC{These algorithms maintain a reasonably accurate approximation of the optimal discretization while minimizing computational effort. Note that they can be easily adjusted to perform updates with a {\it batch} of data, instead of a single datapoint, in case the data-arrival frequency is high.}
+
+Below, we summarize the time and memory complexities of the algorithms.
+% We note that the Reclustering approach gives a better approximation, but has higher time and memory complexities. The OnlineClustering approach is suboptimal compared to reclustering, but has lower complexities; it doesn't need to store $\mathcal{D}_t$. 
+
+\begin{table}[h!]
+\vspace{-0.5em}
+\label{tab:complex}
+
+\caption{Time and memory complexities of our clustering algorithms. Recall that $n_t$ is the total number of datapoints at time $t$, $K$ is the number of clusters, and $m$ is the dimension of the data. We also let $I$ be the number of iterations required for the clustering algorithm's convergence. The values $G$ and $Q$ are defined in the respective algorithms.}
+
+\centering
+\begin{tabular}{llll}
+\toprule
+ Algorithm & Time (initialization) & Time (online)  & Memory \\
+\midrule
+
+SupCover  & $O(GK)$ & $O(Km)$  &  $O(Km)$\\
+\midrule
+
+Reclustering  & $O(In_0Km)$  & $O(In_tKm)$ & $O((K+n_t)m)$  \\
+\midrule
+OnlineClustering & $O(In_0Qm)$ & $O(IQKm)$ & $O((K+Q)m)$ \\
+\bottomrule
+\end{tabular}
+\label{table:example}
+\vspace{-0.5em}
+\end{table}
+
+The most time and memory efficient algorithm, as we will describe below, is the SupCover algorithm, but it is the least flexible in terms of cluster assignments, and is only for bounded supports. The Reclustering approach gives the best approximation, but has the highest time and memory complexities. The OnlineClustering approach is suboptimal compared to reclustering, but has lower runtime and memory complexities; it doesn't need to store the observed dataset. 
+ 
+
+\subsection{A bounded coverage of the support (SupCover)}
+\label{sec:cover_sup}
+We begin with an intuitive approach for a bounded support set $\supp$: partitioning $\supp$. 
+% Note that this holds for most discrete distributions - the ones that have finite support. 
+When $\supp$ is bounded, we can always cover $\supp$ with $K$ balls $B_{\eta_K}(a^k)$ with centers $A = \{a^k\}_{k=1}^K \subseteq S$ and fixed finite radius $\eta_K > 0$. Specifically, the centers and the radius are selected as follows.
+\begin{assumption}\label{ass:balls}
+The parameters $\{a^k\}_{k=1}^K$ and $\eta_K$ are chosen such that, $\forall u \in S$
+\begin{enumerate}
+\item $\min_{k\leq K}\|\unc - a^k\| \leq \eta_K$;
+\item $\unc \subseteq \cup_{k \in K} B_{\eta_K}(a^k)$;
+\item $\eta_K = \min\{\eta \mid \min_{k\leq K}\|\unc - a^k\| \leq \eta,~u \in \supp\}$.
+\end{enumerate}
+\end{assumption}
+In fact, such a partitioning is equivalent to an $\eta_K$-net of the support $S$, or a $k$-centers problem with order 1. 
+Solving this problem is NP-hard, but we can use an efficient greedy-algorithm approximation~\cite{kcenters}.
+In this greedy algorithm, we begin with a random point, and iteratively find the furthest point from the current point, and set these $K$ total points as the cluster centers. With a given point $a^k$, the process of finding the next furthest point depends on the support $S$, and can be solved using the following optimization problem
+$$ \argmax_{u\in \supp}\|u-a^k\|,$$ whose complexity depends on the shape of $\supp$. We let the time complexity of this operation be $G$, and note that it needs to be solved $K$ times. The radius $\eta_K$ can be set to the maximum of the distances found. 
+
+Once the centers are found, we can construct a simple procedure for updating~$\hat{\prob}^K_t$.  The entire process is summarized in Algorithm~\ref{alg:sup_cover}.
+\begin{algorithm}[ht]
+	\caption{SupCover}
+	\label{alg:sup_cover}
+	\begin{algorithmic}[1]
+	 \State {\bf given} $\mathcal{D}_0, K,\supp$
+     \State choose centers $\{a^k\}_{k=1}^K$ and radius $\eta_K$ satisfying Assumption~\ref{ass:balls}
+      \State assign datapoints to clusters $\{C^k_0\}_{k=1}^K$, and compute $\{n^k_0\}_{k=1}^K$, $\{\theta^k_0\}_{k=1}^K$, $\{\bar{u}_0^k\}_{k=1}^K$
+\For{$t=0,1,\dots$}
+     \State  $\hat{\mathbf{P}}^K_t \gets \sum_{k=1}^{K}\theta_t^k\delta_{\bar{u}_t^k}$
+ %     \State $\mathcal{P}^K_t \gets \mathbf{B}_{\eps_{t}}^p(\hat{\mathbf{P}}^K_{t})$
+ % \State $H^K_t \gets$ solve~\eqref{c3:eq:robustopt_p_max} with ambiguity set $\mathcal{P}^{t}$
+ \State $C_t^{k'} \gets C_t^{k'} \cup \{\hat{u}\}$ \Comment{assign $\hat{u}$ to cluster $k'$ following  ~\eqref{eq:assign_ball}}
+ % \State observe datapoint $\hat{\unc}$, and assign $\hat{\unc}^t$ to cluster $k'$ following~\eqref{eq:assign_ball}\Comment{\bnote{Write this more in math terms, \eg,  and add text as comment with Comment command}}
+ \State $\theta^k_t\gets$~\eqref{eq:cluster_update_dym} \Comment{update weights}
+     \State $\bar{u}^{k'}_t \gets (n^{k'}_{t-1}\bar{u}^{k'}_{t-1} + \hat{u})/n^{k'}_t$ \Comment{update \RC{mean}}
+  \EndFor
+	\end{algorithmic}
+\end{algorithm} 
+
+Specifically, the cluster support set $\mathcal{S}_t$ can be seen as the Voronoi diagram of $A$, which covers the entire support $S$, and remains constant for all $t$. In addition, each Voronoi region $S^k$ has a diameter bounded by $\eta_K$. The clustering induced by this support is then
+\begin{equation}
+\label{eq:assign_ball}
+    \hat{u} \in C_t^{k'} \quad \text{if}\;  \hat{u} \in S^{k'}, \quad\text{where}\quad k'=\argmin_{k\leq K} \|\hat{u} - a^k\|,
+\end{equation}
+and $\|\hat{u} - \zeta_{k'}\| \leq \eta_K$.
+The  set of weights $\{\theta^k_t\}_{k=1}^K$ follow the first-order dynamics
+\begin{equation}
+\label{eq:cluster_update_dym}
+\theta^k_{t} = \begin{cases}
+\frac{n^k_{t-1} + 1}{n_{t}} & \text{if} \:\hat{\unc} \in C^k_{t}\\
+\frac{n^k_{t-1}}{n_{t}} & \text{otherwise}
+\end{cases}\quad k=1,\dots, K,
+\end{equation}
+where $\hat{u}$ is the datapoint at time $t$. Additionally at each time $t$, the \RC{mean} of the cluster that gained a datapoint is updated.
+Notably, we do not need to store $\mathcal{D}_t$. Bh keeping track of the centers, \RC{means} and weights of each cluster, together with a count of the total number of datapoints seen, we can perform the above updates with only the newest datapoint. After performing the update, this datapoint can also be discarded. The algorithm is thus memory efficient; it only requires $O(Km)$ space. 
+
+However, while the updating procedure of this algorithm is simple, its performance is highly dependent on the initial selection of centers $\{a^k\}_{k=1}^K$. If the covering found is a suboptimal representation of the data, \ie, a single cluster contains multiple distinct modes of the data, then the performance is expected to be suboptimal as well. 
+
+
+% support $S$ is very large relative to the number $K$, \ie, the we may end up with a suboptimal selection of centers. 
+% \bnote{what does it mean for a set to be large with respect to a scalar? We need to be precise. We can have an argument about the volume required by each ball to construct a cover in high dimensions}. In addition, the offline phase of choosing the centers may also be computationally expensive. 
+
+
+\subsection{Approximate $k$-centers clustering with warm starts (Reclustering)}
+
+To track the given data more closely, we can recompute the approximate $k$-centers clustering at each time step, until the stopping threshold $\tau$.
+At each time $t$, the cluster support for each $k$ is the Voronoi region around the center $a_t^k \in A_t$.
+After the threshold $\tau$, we cluster points using the fixed centers $A_\tau$, similarly as above. 
+At times $t\leq \tau $, the subsequent clustering can be warm-started with the previous set of centers. We assume without loss of generality that the number of clusters remain $K$, and summarize the algorithm in Algorithm~\ref{alg:recluster}. 
+\begin{algorithm}[ht]
+	\caption{Reclustering}
+	\label{alg:recluster}
+	\begin{algorithmic}[1]
+	 \State {\bf given} $\mathcal{D}_0, K,\tau$ 
+     \State $A_0 \gets$ find $K$ centers using $k$-centers on $\mathcal{D}_0$
+     \State assign datapoints to clusters $\{C^k_0\}_{k=1}^K$, and compute $\{n^k_0\}_{k=1}^K$, $\{\theta^k_0\}_{k=1}^K$, $\{\bar{u}_0^k\}_{k=1}^K$
+\For{$t=0,1,\dots$}
+\State  $\hat{\mathbf{P}}^K_t \gets \sum_{k=1}^{K}\theta_t^k\delta_{\bar{u}_t^k}$
+\State observe datapoint $\hat{u}$
+\If{$t \geq \tau$}
+\State $C_t^{k'} \gets C_t^{k'} \cup \{\hat{u}\}$ \Comment{assign $\hat{u}$ to cluster $k'$ following  ~\eqref{eq:assign_ball}}
+     \State $\bar{u}^{k'}_t \gets (n^{k'}_{t-1}\bar{u}^{k'}_{t-1} + \hat{u})/n^{k'}_t$ \Comment{update \RC{mean}}
+     \State $\{\theta^k_t\}_{k=1}^K \gets$~\eqref{eq:cluster_update_dym} \Comment{update weights}
+\Else~
+    repeat lines 2 and 3, warm starting at $A_{t-1}$
+    \EndIf
+  \EndFor
+	\end{algorithmic}
+\end{algorithm} 
+
+% In the complexity analysis, we assume the $k$-centers approximation to be $k$-means~\cite{kmeans}, with an iterative algorithm converging in $I$ steps. 
+% We note that this method is not memory conservative, as we need to store all datapoints to recompute the cluster information. 
+% However, with warm-starts, it can be quite computationally efficient; while the theoretical upper bound on the time-complexity is unchanged compared to not warm-starting, in practice, warm-starting greatly reduces the required number of iterations for convergence.
+ 
+
+In the complexity analysis in Table~\ref{table:example}, we assume the $k$-centers approximation to be $k$-means~\cite{kmeans}, with an iterative algorithm converging in $I$ steps. 
+This method is not memory conservative, as we need to store all datapoints to recompute the cluster information. 
+However, with warm-starts, it can be quite computationally efficient; in practice, warm-starting greatly reduces the required number of iterations.
+
+
+\subsection{Online clustering (OnlineClustering)}
+\label{sec:clustream}
+For an algorithm that is also memory conservative, we propose an online updating procedure that takes inspiration from  a well-known online clustering approach,  CluStream~\cite{clustream}.
+
+We summarize the algorithm here, and give a more detailed version in Appendix~\ref{app:onlinecluster}.
+
+Similarly to CluStream, we maintain two sets of clusters: a set of $Q \geq K$ {\it microclusters}, and a set of $K$ {\it macroclusters}.
+Datapoints are assigned to microclusters on arrival, or initialized as a new cluster based on its distance to current clusters. When new microclusters are initialized, the closest microclusters are merged to maintain the budget $Q$. The $K$ macroclusters are obtained by clustering the microclusters, and can be warm-started. 
+
+Differently from CluStream, we allow for separate cluster centers and \RC{means}; the centers do not shift with the addition of new datapoints, while the \RC{means} are updated. \RC{Both values are updated when clusters are merged.} 
+For times $t \leq \tau$, all clustering assignments can be made according to either the microcluster centers or \RC{means}. 
+\RC{We also require the subsequent macrocluster update to be performed online, either with the addition of each datapoint, or before each time the~\gls{DRO} problem~\eqref{c3:eq:robustopt_p_max} is solved.}
+\RC{For $t > \tau$, cluster assignments must be made according to the macrocluster centers, which are fixed at time $\tau$.}
+\RC{For all clusters, the support is the Voronoi region around its center/\RC{mean}, with adjustments based on the already-clustered datapoints, which may fall outside the region.} For continuous distributions $\prob$, since the datapoints have measure 0, this does not need to be explicitly maintained. 
+Therefore, this algorithm can discard all datapoints once seen, and keep only the aggregated information of size $O((K+Q)m)$. 
+For discrete $\prob$, however, the adjustment to the support is no longer negligible. Nevertheless, discrete distributions generally have a finite set of atoms, so memory (for storing the support information and datapoints) is not a bottleneck. 
+
+
+For the complexity analysis, we again assume the $k$-centers approximation on the $Q$ microclusters to be $k$-means~\cite{kmeans}. Compared to the reclustering approach, we are solving a smaller problem, which reduces the theoretical time complexity; the set of $Q$ microclusters allows this method to interpolate between SupCover and Reclustering. 
+Practically, however, the main advantage of this approach is the lower memory requirement. 
+
+
+
+\section{Choosing hyper-parameter values}
+\label{sec:hyper_param}
+Above, we detailed various theoretical bounds for the online algorithm, with a given $K$ and with $\eps_t$ chosen according to measure concentration results. 
+\RC{In practice, however, we tune these hyper-parameters based on the performance on a validation set of size $N^{\rm val}$.} %, in addition to our growing training data. 
+
+
+% In this section, we give some guidelines for their practical selection.
+
+% \bnote{shrink this section}
+\paragraph{Choosing $K$}
+% As noted in the previous sections, the value of $K$ controls the discrepancy between the online and nominal \gls{DRO} performance. A low value of $K$ is computationally efficient, while higher values allow for better approximations of the underlying distribution, thus increasing solution quality. 
+% In practice, we expect a value of $K$ that doesn't far exceed the number of modes of the underlying distribution. 
+If the initial dataset $\mathcal{D}_0$ is large enough, the value of $K$ can be chosen a-priori, using the elbow method on the clustering value $(D^K_{0,2})^2$~\cite{elbow,mro}.
+If the initial dataset is small, we can initialize with a small value of $K$ \RC{and adapt it based on the performance on validation data.}
+% , and allow it to increase or decrease, based on its performance. 
+% Our asymptotic analysis requires only that after a finite time $\tau$, the cluster supports are fixed; prior to this time, the clusters are flexible, and could be adjusted to better approximate the true distribution. 
+
+\paragraph{Choosing $\eps_t$}
+% \RC{
+\RC{Similarly to existing literature on Wasserstein~\gls{DRO}, we tune 
+radius $\epsnom_t$ to minimize validation performance:
+% We employ a similar procedure for the compressed online algorithm
+for every time step $t$, upon constructing the clustered empirical distribution $\hat{\prob}^K_t$, we solve the optimization problem~\eqref{c3:eq:robustopt_p_max} with a finite set of candidate radii $\eps_t$.
+For each solution, we use the validation dataset to compute the validation performance. 
+Averaging across multiple repetitions of the experiment, we select the sequence of $\eps_t$ that gives the best validation performance.}
+
+% , and report the corresponding sequence of data-driven solutions, certificates, and empirical confidence.
+
+% For each in-sample solution, we use the validation dataset to estimate 
+
+% In numerical experiments for Wasserstein~\gls{DRO}, the radius $\epsnom_t$ is often chosen through cross-validation, to minimize the out-of-sample performance on a hold-out set, instead of ensuring theoretical guarantees. 
+% The corresponding in-sample value $H_t$ already serves as a practical certificate on the performance, so for convenience, the residual $\rho_t$ can be disregarded.}
+% \RC{We do so in the examples in Section~\ref{sec:examples}.}
+% We employ a similar procedure for the compressed online algorithm, where we tune $\eps_t$ to minimize the out-of-sample performance. 
+% We assume to have a validation dataset of size $N^{\rm val}$, in addition to our growing training data. 
+
+% For every time step $t$, upon constructing the clustered empirical distribution $\hat{\prob}^K_t$, we solve the optimization problem~\eqref{c3:eq:robustopt_p_max} with a finite set of radii $\eps_t$.
+
+% \bnote{this should go elsewhere}
+% For each in-sample solution, we use the validation dataset to estimate the out-of-sample performance via~\gls{SAA}, and record whether or not it is upper bounded by the certificate $H^K_t +\underline{\psi}_t^K$\RC{(disregarding $\rho_t$ for the reasons stated above)}, defined in Theorem~\ref{thm:nominal_performance}.
+
+% We select the sequence of $\eps_t$ that gives the lowest out-of-sample performance, and report the corresponding sequence of data-driven solutions, certificates, and empirical confidence.
+
+% such that after a certain number of time steps, the out-of-sample performance is consistently bounded by the in-sample objective. 
+% Note that in practice, we use the in-sample objective directly, instead of the certificate $H^K_t +\underline{\psi}_t^K$ defined in Theorem~\ref{thm:nominal_performance}.
+% This is because the in-sample objective can already be a good approximation of the~\gls{DRO} value, and adding $\underline{\psi}_t^K$ gives a more conservative bound. 
+% From Theorem~\ref{thm:nominal_performance}, the certificate could be chosen as $H^K_t +\underline{\psi}_t^K$, which is directly computable after solving~\eqref{c3:eq:robustopt_p_max}. However, $\underline{\psi}_t^K$ may be 
+
+
+
+% with a faster procedure due to the efficiency of the compressed problems. 
+% At each time $t$, upon constructing the clustered empirical distribution $\hat{\prob}^K_t$, we solve the online problem~\eqref{c3:eq:robustopt_p_max} with multiple values of $\eps_t$. 
+% We choose a sequence $\eps_t$ that gives certificates, based on the in-sample values, with high empirical confidence $1 -\hat{\beta}_t$.
+
+
+\section{Numerical examples}
+\label{sec:exampless}
+We now illustrate the computational performance and robustness of the proposed method on a numerical example.
+All the code to reproduce our experiments is available, \reviewChanges{in Python}, at
+\begin{center}
+{\tt \url{https://github.com/stellatogrp/online_mro}}.
+\end{center}
+We run the experiments on the Princeton Institute for Computational Science and Engineering (PICSciE) facility with 35 parallel 2.4 GHy Skylake cores.
+We solve all optimization problems with the MOSEK~\cite{mosek} optimizer with default settings.
+
+
+\paragraph{Baselines and metrics}
+We compare four different approaches, described below. 
+\begin{itemize}
+    \item \textit{Online clustering (our memory-efficient method).}
+    We use our online clustering algorithm,  as described in Algorithm~\ref{alg:online_cluster}, to update cluster assignments. This method discards the datapoints once seen, and is thus memory-efficient. Upon constructing the empirical clustered distribution, we solve~\eqref{c3:eq:robustopt_p_max}  for the online solution.
+    
+    \item \textit{$k$-means reclustering (our method).}
+    Same as above, except using $k$-means clustering at each time step, warm-starting at the previous centers.  The clustering procedure is described in Algorithm~\ref{alg:recluster}.
+
+    \item \textit{Wasserstein \gls{DRO}.}
+    At time $t$, we solve~\eqref{c3:eq:robustopt_p_max} with the ambiguity set $\mathcal{P}_{t}$.
+
+    \item \textit{Sample average approximation~\gls{SAA}.}
+    At time $t$, we solve the stochastic optimization problem with respect to the empirical measure $\hat{\prob}_{t}$ of the training data. We denote this in-sample value as $H^{\rm SAA}_t$.
+\end{itemize}
+We use a training dataset of up to $T = 2000$ time steps (datapoints) for all approaches.
+\RC{For evaluation, we employ both validation and testing datasets, comprising of $N^{\rm val} = N^{\rm test} = 200$ datapoints.}
+% The testing dataset is of size \bnote{XXX complete}, 200, and we consider up to $T = 2000$ time steps. 
+\RC{To limit the total solving time, particularly for the nominal~\gls{DRO} problem, we solve the problems every 100 time steps.} 
+% For the~\gls{DRO} methods, we select radii $\epsnom_t$ using the procedure given in Section~\ref{sec:hyper_param}; we choose the best~$\epsnom_t$ determined through 30 repetitions of the experiment. 
+We compare the following metrics, with values averaged over 30 repetitions of each experiment. We additionally show the 25-75\textsuperscript{th} percentiles using shaded regions. 
+\begin{itemize}
+    \item \textit{In-sample certificate.}
+    \RC{We compute the in-sample certificates obtained with respect to the training data. For nominal Wasserstein~\gls{DRO}, we use the in-sample objective $H_t$. For our online methods, we use $H^K_t  +\underline{\psi}_t^K$ as defined in Theorem~\ref{thm:nominal_performance}.} \RC{For all~\gls{DRO} approaches, we do not include the theoretical residual $\rho_t$, as the radii $\epsnom_t$ are empirically determined as outlined in Section~\ref{sec:hyper_param}}.
+
+    \item \RC{\textit{Out-of-sample objectives.} For all methods, we also compute the out-of-sample expected value, which is the stochastic optimization objective computed using the empirical measure of the testing dataset, at the given solutions.} 
+    
+    \item \RC{\textit{Empirical confidence.}
+    The empirical confidence, denoted $1 - \hat{\beta}_t$, is computed as the probability that the certificate upper bounds the out-of-sample value.}
+    
+    \item \textit{Computation times.}
+    We compare the per-iteration computation times, which include both clustering and solving times for our data-compressed methods. 
+% \ifpreprint
+%     \item \textit{Regret.} 
+%     For our methods, we compute the dynamic regret $R(T,K)$~\eqref{regret}, compared with the theoretical upper bound given in Lemma~\ref{lem:regret}.
+%     \fi
+\end{itemize}
+% \begin{description}[leftmargin=2em]
+% \item[{In-sample objectives}.]
+% For all methods, we compare the in-sample objectives obtained with respect to the training data.
+% % where~\eqref{c3:eq:robustopt_p_max} is re-solved with a fixed $x$, as described in the discussion of Theorem~\ref{thm:nominal_performance}. For the reclustering approach. we show $\hat{H}^K_t$ as the in-sample objective. 
+
+% % \item[Out-of-sample expected values.]
+% % For all methods, at their respective solutions, we evaluate the stochastic optimization objective using the empirical measure of the testing dataset.
+
+% \item[Empirical confidence.]
+% The empirical confidence is computed as the probability that the in-sample objective upper bounds the out-of-sample expected value, which is the stochastic optimization objective computed using the empirical measure of the testing dataset, at the given solutions. This value is denoted $1 - \hat{\beta}_t$.
+
+% \item[Computation times.]
+% For all approaches, we compare the per-iteration computation times,
+% which includes both clustering and solving times for our data-compressed methods. 
+
+% \item[Regret.] 
+% For both $k$-means reclustering and online clustering, we compute the dynamic regret $R(T,K)$~\eqref{regret}, compared with the theoretical upper bound given in Lemma~\ref{lem:regret}.
+% \end{description}
+\subsection{Sparse portfolio optimization}
+\label{c3:sub:sparse_portfolio_optimization}
+We consider a market that forbids short-selling and has $m$ assets~\cite{mro,kuhn2019wasserstein}.
+The uncertain parameters are the daily returns, given by $v \in \reals^m$.
+The decisions ${z\in \reals^n}$ represent the percentage weights (of the total capital) invested in the assets.
+We restrict our selection to at most $\gamma$ assets, given by the $0$-th norm cardinality constraint.
+The distribution $\prob$ is unknown, but we have access to a streaming dataset $\mathcal{D}_t$, updated each day with a new returns vector. 
+Our objective is to minimize the $\CVaR$ with respect to $z$,
+\begin{equation*}
+	\label{c3:eq:portfolio}
+	\begin{array}{ll}
+	\text{minimize  } &\CVaR(- v^Tz,\omega)\\
+	\text{subject to} & \ones^T z = 1, \quad z \ge 0, \quad \|z\|_0 \leq \gamma,
+	\end{array}
+\end{equation*}
+which represents the average of the $\omega$ largest portfolio losses that occur. In other words, the $\CVaR$ term seeks to ensure that the expected magnitude of portfolio losses, when they occur, is low.
+The objective can be written as the expectation of the maximum-of-affine functions~\cite{cvaropt}, \ie, $\Expect_{\prob}\left[\tau +(1/\omega) \max\{-v^Tz -\tau, 0\}\right]$. 
+We solve the online \gls{DRO} problem using the reformulation~\eqref{c3:eq:robustopt_p_max}, with $r=1$ and $\|\cdot\|$ the $\ell_2$-norm. 
+As $f$ is maximum-of-affine, $\bar{\psi}_t^K=0$, and $\Phi^K_t$ converges to $\Phi^K_\star$, as proven in Theorem~\ref{thm:lim_phi}.
+
+\paragraph{Problem setup}
+We take stock data from the past 5 years of S\&P500 (1/1/2020 to 1/1/2025) daily returns, and generate synthetic data from their fitted general Pareto distributions, with correlations preserved using a Gaussian copula. 
+These distributions are chosen to model the data more accurately than a Gaussian fit.
+% see the Github repository for the code.
+
+We let $\omega = 20\%$, $m = 50$ stocks, and restrict our portfolio to at most $\gamma = 8$ stocks. We initialize with a dataset of size $n_0 = 5$, and  show results for  $K=15$ and $K=25$. This range is obtained using the elbow method on the initial dataset, and allowing for adjustments. 
+% We note that by the structure of the problem, $\Phi^K_t \leq \max_k\{\max_{\hat{u}\in C^k_t}\{(\bar{u}_t^k - \hat{u})^Tx^K_t/\alpha\}\}$.
+% \begin{table}
+% \caption{Certificates used for cross-validation, and the $\epsnom_t$ chosen.}
+% \centering
+% \label{tab:eps}
+% \begin{tabular}{lllll}
+% \toprule
+%  & Online clustering & Reclustering &\gls{DRO} & \gls{SAA} \\
+% \midrule
+% Certificate  & $H^K_t$ & $H^K_t$  &  $H_t$ & $H^{\rm SAA}_t$\\
+% \midrule
+% $K=5, \epsnom_t$  & $0.003 t^{-1/60}$  & $0.006 t^{-1/60}$ & $0.0015 t^{-1/60}$  & -\\
+% \midrule
+% $K=15, \epsnom_t$  & $0.0048 t^{-1/60}$  & $0.003 t^{-1/60}$ & -  & -\\
+% % \midrule
+% % $K=15,n_0 = 5,\eps_t$  & $0.006 t^{-1/60}$  & $0.0015 t^{-1/60}$ & -  & -\\
+% \bottomrule
+% \vspace{-1em}
+% \end{tabular}
+% \end{table}
+
+
+\begin{figure}[ht]%
+\vspace{-0.5em}
+	\centering
+      \includegraphics[width = \textwidth]{obj_analysis25.pdf}
+	\caption{Sparse portfolio, $K=25$. In-sample certificates, empirical confidence, and per-iteration computation times for the different methods, at $\eps_t = 0.0025{(t+n_0)^{-1/40}}$.}%
+	\label{fig:port_obj}%
+    
+\end{figure}
+\begin{figure}[ht]%
+\vspace{-0.2em}
+	\centering
+  \includegraphics[width = 0.45\textwidth]{eval_analysis_15.pdf}
+  \includegraphics[width = 0.45\textwidth]{eval_analysis_25.pdf}
+	\caption{Sparse portfolio. Left: $K = 15$, right: $K = 25$. Out-of-sample expected values for $\epsnom_t = 0.0025{(t+n_0)^{-1/40}}$.}%
+	\label{fig:port_eval}%
+     
+    
+\end{figure}
+\paragraph{Results}
+\RC{For all~\gls{DRO} settings, the radius we obtain through cross-validation is  $\epsnom_t = 0.0025{(t+n_0)^{-1/40}}$.
+In Figure~\ref{fig:port_obj}, we compare the certificates, empirical confidence, and per-iteration computation times at the chosen $\epsnom_t$ sequence, and in Figure~\ref{fig:port_eval}, compare the out-of-sample performance. 
+We observe that our online data-compressed approaches introduce slight sub-optimality in out-of-sample performance, but provide high-confidence certificates, and offer significant speed-ups compared to nominal~\gls{DRO}. 
+As expected, $K=25$ clusters out-performs $K=15$ clusters, but $K=15$ already gives a good approximation of the nominal \gls{DRO} performance.
+% For all methods, initializing with a smaller dataset results in worse initial performances, though the robust approaches are able to obtain a good certificate relatively fast. 
+The~\gls{SAA} approach improves in performance as the number data points increases, but does not offer a certificate of optimality: the empirical confidence is near 0 for all $t$. Furthermore, it also grows in complexity with sample size and is less efficient than our online approaches. In the long-term, the computation times for our data-compressed approaches can be multiple orders of magnitude faster than that of both~\gls{SAA} and nominal~\gls{DRO}. 
+% Surprisingly, as $K=15$ allows for a smaller choice of $\epsnom_t$, the solution times are faster than that of $K=5$. 
+We find that the $k$-means warm-starting algorithm (reclustering approach) is particularly efficient, achieving lower computation times and better solution quality than the online clustering method, which entails an extra trade-off between optimality and memory efficiency. Nonetheless, the differences are minimal.}
+% We observe that the $k$-means warm-starting algorithm (reclustering approach) is especially efficient, with a lower computation time than even the online clustering approach. The reclustering approach also outperforms the online clustering approach in solution quality, as the latter introduces an additional trade-off between optimality and memory-efficiency. However, the differences in the certificates are minimal. 
+
+\RC{In Figure~\ref{fig:port_regret}, we show the various certificates given in equation~\eqref{eq:is_bounds} (disregarding~$\rho_t$ in favor of cross-validation), and note that the relationships follow the hierarchy presented. The data-compressed in-sample objective value for this maximum-of-affine problem is lower than the in-sample objective of nominal~\gls{DRO}, but adding the clustering discrepancy makes it a valid certificate. We also show the clustering values for a longer horizon, up to $T=10000$, with $\tau = 8500$. 
+We observe that the $\barp=1$ and $\barp=2$ clustering discrepancies, $\ld^K_{t,1}$ and $(D^K_{t,2})^2$, as well as $\Phi^K_t$, are converging. 
+Moreover, $\ld^K_{t,1} \ge \Phi^K_t$ and, hence, $\max_{j\leq J}M_j\ld^K_{\star,1} \ge \Phi^K_t$  where the maximum Lipschitz constant is $M_1 = 1/\omega = 5$.} This illustrates the relative optimality of $\Phi^K_t$, as opposed to the Wasserstein-1 distance, as proven in Theorem~\ref{cor:opt_cluster}.  
+In fact, although we have not assumed (or achieved) optimal clustering-induced coupling, the result still held.
+\begin{figure}[ht]%
+\vspace{-0.8em}
+	\centering
+  \includegraphics[width = 0.45\textwidth]{bounds_analysis.pdf}
+  % \includegraphics[width = 0.3\textwidth]{eval_analysis_T.pdf}
+ \includegraphics[width = 0.45\textwidth]{dist_conv_W.pdf}
+	\caption{Sparse portfolio, $K = 25$. The radius $\epsnom_t = 0.0025{(t+n_0)^{-1/40}}$ for all methods.  Left: certificates from~\eqref{eq:is_bounds}. 
+   Right: clustering discrepancies given in Definition~\ref{def:cluster_value}, with $T= 10000$. The lighter (red) shade is for the reclustering method. }%
+	\label{fig:port_regret}%
+     
+    
+\end{figure}
+
+
+
+
+% \ifpreprint
+% In Figure~\ref{fig:port_regret}, we show the various certificates given in equation~\eqref{eq:is_bounds}, and note that the relationships follow the hierarchy presented. The data-compressed in-sample objective value for this maximum-of-affine problem is lower than the in-sample objective of nominal~\gls{DRO}, but adding the clustering discrepancy makes it a valid certificate.
+% % As shown, the upper bounds are generally conservative. Therefore, in practice we tune $\epsnom_t$ using the in-sample value $H^K_t$ instead.  
+% \begin{figure}[ht]%
+% \vspace{-0.8em}
+% 	\centering
+%   \includegraphics[width = 0.49\textwidth]{bounds_analysis.pdf}
+%   \includegraphics[width = 0.49\textwidth]{regret_analysis.pdf}
+% 	\caption{Sparse portfolio, $K = 25$. The radius $\epsnom_t = 0.0025{(t+n_0)^{-1/40}}$ for all methods.  Left: certificates from~\eqref{eq:is_bounds}. 
+%     Right: dynamic regret~\eqref{regret}, compared to the theoretical upper bounds.}%
+% 	\label{fig:port_regret}%
+%     \ifpreprint 
+%     \else
+%     \vspace{-1em}\fi
+% \end{figure}
+% In Figure~\ref{fig:port_regret}, we also show the dynamic regret $R(T,K)$ and the regret bound as calculated in Lemma~\ref{lem:regret}. As $T\to\infty$, the upper bound is expected to converge to a fixed function of the clustering discrepancy; indeed, we observe that it coincides with $\Phi^K_t$.
+% % converges to $\Phi^K_\star$. 
+% This is in line with the theory; since we are solving a maximum-of-affine problem, the term $\bar{\psi}^K_t$ is reduced to 0. 
+% \fi
+% \ifpreprint 
+% The limiting distance becomes $\Phi^K_t$, which, as we show in Figure~\ref{fig:converge} below, is a tighter bound than the Wasserstein-1 distance. This value should converge to its theoretical limit $\Phi_\star^K$.
+% \begin{figure}[ht]%
+% \vspace{-0.5em}
+% 	\centering
+%      \includegraphics[width = 0.49\textwidth]{eval_analysis_T.pdf}
+%  \includegraphics[width = 0.49\textwidth]{dist_conv.pdf}
+% 	\caption{Sparse portfolio, $K = 25$, $T=10000$, at $\epsnom_t = 0.0025{(t+n_0)^{-1/40}}$. Left: in-sample certificates. Right: clustering distances given in Definition~\ref{def:cluster_value}.}%
+% 	\label{fig:converge}%
+%         \ifpreprint \else\vspace{-1em}\fi
+% \end{figure}
+
+% In Figure~\ref{fig:converge}, we show the results of our online approaches for a longer horizon, up to $T=10000$, with $\tau = 8500$. 
+% We observe that the $\barp=1$ and $\barp=2$ clustering distances, $d^K_{t,1}$ and $(D^K_{t,2})^2$, as well as $\Phi^K_t$, are converging, and the out-of-sample performances are also converging in mean. 
+% As remarked above, we observe that $d^K_{t,1}$ upper bounds $\Phi^K_t$ without even multiplying by the maximum Lipschitz constant (which is $1/\alpha = 5$). This illustrates the relative optimality of $\Phi^K_t$, as opposed to the Wasserstein-1 distance, as proven in Theorem~\ref{cor:opt_cluster}.  
+% In fact, although we have not assumed (or achieved) optimal clustering-induced coupling, the result still held.
+% % \else 
+% % The limiting distance becomes $\Phi^K_t$, which, for this example, is a tighter bound than the Wasserstein-1 distance.
+% \fi
+% % Again, the online clustering approach is slighty suboptimal compared to reclustering, due to the additional trade-off between optimality and memory-efficiency. 
+% % However, it still provides a good approximation. 
+
+
+
+% \begin{figure}[ht]%
+% 	\centering
+%  \includegraphics[width = \textwidth]{time_iters.pdf}
+% 	\caption{Sparse portfolio, $K = 15$, $n_0=50$. Per-iteration and cumulative computation times for the different methods, at the sequences of $\eps_t$ given in Table~\ref{tab:eps}. The total time for the certificate $\hat{H}^K_t$ is the sum of both reclustering times. \bnote{just plot total time in red}. \bnote{remove cumulative time. remove out of sample plots}}%
+% 	\label{fig:port_time}%
+% \end{figure}
+
+
+\section{Conclusions}
+\label{c3:sec:conclusions}
+We have introduced an online data compression framework for solving Wasserstein~\gls{DRO} problems with streaming data. 
+Our method constructs adaptive ambiguity sets using online clustering, allowing the uncertainty model to evolve as new data arrives, while maintaining out-of-sample performance guarantees. 
+We analyzed the impact of data compression on solution quality, providing finite-sample and asymptotic performance bounds that relate to nominal bounds for Wasserstein~\gls{DRO}.
+% as well as a sublinear regret analysis with respect to the full-information \gls{DRO} solution. 
+The framework is compatible with a broad class of clustering algorithms and supports efficient, memory-aware implementations. 
+Numerical experiments in sparse portfolio optimization demonstrate significant computational savings with minimal loss in solution quality.

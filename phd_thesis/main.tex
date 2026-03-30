@@ -1,0 +1,174 @@
+\documentclass[12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+% \usepackage{times}
+\usepackage{graphicx}
+\graphicspath{ {figures/} }
+\usepackage{pgfplots}
+\usepackage{url}
+\usepackage{xr} % External references
+\usepackage{titlesec}
+
+\usepackage{amsmath,amssymb,amsthm,enumitem,mathtools}
+\renewcommand{\qedsymbol}{$\blacksquare$}
+\usepackage{multirow}
+\usepackage{algorithm}% http://ctan.org/pkg/algorithms
+\usepackage[noend]{algpseudocode} % Avoid "end" and make it look cleaner
+
+% Tables
+\usepackage{csvsimple}	% reading CSV files in tables
+\usepackage{booktabs}   % Nicer Tables
+\let\oldtabular\tabular
+\let\endoldtabular\endtabular
+\renewenvironment{tabular}{\renewcommand\arraystretch{1.0}\oldtabular}{\endoldtabular}
+\usepackage{adjustbox}  % To adjust table length
+\usepackage{float}      % For [H] figure placement
+\usepackage{multicol}
+\usepackage{verbatim}   % For comment environment
+\usepackage{subfig}     % For \subfloat
+
+% Acronyms
+\usepackage[acronym]{glossaries}
+\makeglossaries
+
+% Hyperreferences
+\usepackage[colorlinks=true, citecolor=cyan, linkcolor=cyan, urlcolor=cyan]{hyperref}
+
+% Equation linebreaks
+\allowdisplaybreaks
+
+% Double spacing for main text
+\doublespacing
+
+% Single spacing inside multi-line math environments
+\usepackage{etoolbox}
+% \AtBeginEnvironment{align}{\singlespacing}
+% \AtBeginEnvironment{align*}{\singlespacing}
+% \AtBeginEnvironment{gather}{\singlespacing}
+% \AtBeginEnvironment{gather*}{\singlespacing}
+
+% Custom commands for front matter
+\newcommand{\frontmatter}{
+    \pagenumbering{gobble} % No page numbers for title and copyright
+}
+\newcommand{\mainmatter}{
+    \pagenumbering{arabic}
+    \setcounter{page}{3} % Abstract starts at page 3
+}
+
+\input{./definitions.tex}
+
+\begin{document}
+\frontmatter
+
+% Title Page (unpaginated)
+\begin{titlepage}
+\begin{center}
+\vspace*{1in}
+{\Large \textsc{ Data-Driven Methods for Fast and Reliable Optimization Under Uncertainty}} \\
+\vspace{0.5in}
+IRINA WANG\\
+\vspace{0.5in}
+A DISSERATION \\
+PRESENTED TO THE FACULTY \\
+OF PRINCETON UNIVERSITY \\
+IN CANDIDACY FOR THE DEGREE \\
+OF DOCTOR OF PHILOSOPHY\\
+
+\vspace{0.5in}
+RECOMMENDED FOR ACCEPTANCE BY\\
+THE DEPARTMENT OF \\
+\MakeUppercase{Operations Research and Financial Engineering} \\
+
+\vspace{0.5in}
+\MakeUppercase{ADVISER: Professor Bartolomeo Stellato}\\
+\vspace{0.5in}
+MAY 2026 % Use Board of Trustees meeting date
+\end{center}
+\end{titlepage}
+
+% Copyright Page (unpaginated)
+\newpage
+\vspace*{1in}
+\begin{center}
+© Copyright by Irina Wang, 2026. \\ 
+All rights reserved.
+\end{center}
+
+\newpage
+
+\mainmatter
+
+% Abstract (page 3)
+% \chapter*{Abstract}
+% \addcontentsline{toc}{chapter}{Abstract}
+% Your abstract text here. Must be 350 words or less per Graduate School requirements [1].
+
+\begingroup
+\let\clearpage\relax % to avoid starting a new page
+\titleformat{\chapter}[block]{\centering\normalfont\Large\bfseries}{\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{-4em}{1.5em}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+In today's highly dynamic world, 
+% decision-makers must account for changing conditions and unexpected disruptions, lest significant loss be incurred by the lack of robustness.
+decision-making under uncertainty has become popular for building solutions that remain effective under various scenarios. However, three main challenges have always limited the practical functionality of proposed methods: \emph{high computational effort} in terms of both memory and runtime, \emph{conservative models} of the uncertainty leading to suboptimal solutions, and \emph{complex formulations} that require advance knowledge of convex analysis.
+%  that most practitioners do not possess.
+Using tools from optimization and machine learning, this thesis addresses these challenges by designing customized data-driven frameworks.
+
+
+In the first part of this thesis, we employ data-compression techniques to provide a tradeoff between computational effort and conservatism. 
+We construct uncertainty sets 
+based on clustered data, and by varying the number of clusters, our
+method bridges between \gls{RO} and Wasserstein \gls{DRO}. 
+We provide finite-sample probabilistic guarantees of constraint satisfaction, and derive bounds on the effect of clustering.
+Several numerical examples show that our method provides multiple orders of magnitude speedups in solution time with little-to-no effect on the solution quality. We extend this work to the online setting, where sequential acquisition of data-points and dynamic adaptation of the uncertainty set is considered. We prove asymptotic performance guarantees for solutions under generalized online clustering algorithms.
+In the second part of this thesis, we employ end-to-end procedures to learn problem and context-specific uncertainty formulations. Our method reshapes the uncertainty sets by optimizing for both worst-case and average-case performance while guaranteeing constraint satisfaction via a conditional-value-at-risk constraint. We solve the resultant constrained learning problem using a stochastic augmented Lagrangian method.
+Numerical experiments show that our method outperforms traditional approaches in \gls{RO} and \gls{DRO} in terms of out-of-sample performance and constraint satisfaction guarantees.
+In the final part of this thesis, we provide an open-source Python package for applying these frameworks in the real-world, greatly reducing the mathematical overhead associated with optimization under uncertainty.
+
+\newpage
+\titlespacing*{\chapter}{0pt}{0em}{1.5em}
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+Your acknowledgements here...
+\endgroup
+
+\newpage
+
+% Table of Contents
+\tableofcontents
+
+% List of Figures (if needed)
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+% List of Tables (if needed)
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+% Set array stretch for mathematical content only
+\renewcommand\arraystretch{1.2}
+
+% Main content starts here
+% Page numbering continues from front matter
+
+\include{chapter1}
+\include{chapter2}
+\include{chapter3}
+\include{chapter4}
+\include{chapter5}
+\include{chapter6}
+% Bibliography
+\bibliographystyle{abbrv}
+% \bibliographystyle{natbib}
+\bibliography{references}
+\addcontentsline{toc}{chapter}{Bibliography}
+
+% Appendices (if needed)
+\appendix
+\include{appendix}
+
+\end{document}

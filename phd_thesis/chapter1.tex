@@ -1,0 +1,386 @@
+\chapter{Introduction}
+\label{chap:intro}
+
+In today's highly dynamic world, decision-makers must account for changing conditions and unexpected disruptions, lest significant loss be incurred by the lack of robustness.
+Many decision-making problems in engineering, operations research, and computer science involve solving optimization problems affected by uncertain parameters.
+A common approach to address this class of problems is \gls{SO}, which models uncertain parameters as random variables with known probability distributions.
+Typically, \gls{SO} minimizes an expected cost based on this information~\cite{shapiro2021lectures}. 
+While effective, this method relies on the assumption of {\it complete knowledge} of the underlying distributions—an assumption that is often unrealistic. A common approximation technique for \gls{SO} is \gls{SAA}, where the true expectation is replaced by an empircal average over $N$ i.i.d. samples.
+However, estimation errors incurred for finite $N$ may lead to an optimization bias that underestimates the true cost, which can lead to catastrophic consequences in the case of safety-critical systems.
+% However, while this approach is powerful, the assumption of {\it complete knowledge} on the underlying probability distributions is often impractical. 
+% Even when achievable, it requires large amounts of historical data.
+% to infer. 
+\Glsentryfull{DRO} has emerged as a disciplined framework to robustify the decision-making process against distributional misspecification~\cite{dro_survey,kuhn_dro_book}.
+% When faced with distributional ambiguity, \ie, uncertainty in the probability distribution, \gls{DRO} provides a disciplined framework to robustify the decision-making process against distributional misspecification. 
+Instead of assuming a known distribution, \gls{DRO} considers an \emph{ambiguity set} of possible distributions and optimizes for the worst-case expected cost under all distributions within this set.
+By hedging against distributional uncertainty, this approach offers  out-of-sample performance guarantees with a finite number of data samples. 
+% This approach is particularly appealing, as it offers
+% By accounting for ambiguity, \gls{DRO} often outperforms non-robust methods such as \gls{SAA}, especially with respect to worst-case performance \cite{gao2016distributionally}.
+Contrary to \gls{DRO}, \glsentryfull{RO} takes a deterministic worst-case approach by restricting data perturbations to be within an uncertainty set~\cite{ben-tal_robust_2000}. The worst-case cost is then minimized across all possible uncertainty realizations within the set. The choice of the uncertainty and ambiguity sets for~\gls{RO} and~\gls{DRO} is thus paramount: good-quality sets can lead to excellent practical performance, while poorly chosen sets can lead to overly conservative actions and intractable computations~\citep{ben-tal_robust_2009}. 
+
+Traditional approaches design uncertainty sets based on theoretical assumptions on the uncertainty distributions~\citep{ben-tal_robust_2000,bandi_tractable_2012,ben-tal_robust_2009,bertsimas_price_2004}.
+While these methods have been quite successful, they rely on a priori assumptions that are difficult to verify in practice.
+On the other hand, the last decade has seen an explosion in the availability of data.
+This change has brought a shift in focus from a priori assumptions on the probability distributions to data-driven methods in operations research and decision sciences~\citep{bertsimas_data-driven_2018}.
+In \gls{RO} and \gls{DRO}, this new paradigm has fostered data-driven methods where uncertainty sets are shaped directly from data. These data-driven approaches, however, are still subject to certain limitations: 1) {\it high computational effort} is often required to solve the resultant problems, 2) many approaches formulate {\it conservative models} of uncertainty that leads to suboptimal solutions, and 3) these approaches require {\it complex reformulations} which real-world practitioners are unlikely to have knowledge of.
+Using tools from optimization and machine learning, this thesis addresses these challenges by designing customized data-driven frameworks.
+
+
+
+
+\section{Thesis outline}
+\label{sec:contributions}
+This thesis is structured into four overall parts, addressing respectively the three outlined challenges of optimization under uncertainty, with a final part on conclusions and future work. 
+Part one consists of Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, with appendices given respectively in Appendices~\ref{app:mro} and~\ref{app:online_dro}. Part two consists of Chapter~\ref{chap:lro}, with appendices given in Appendix~\ref{app:lro}. Part three consists of Chapter~\ref{chap:cvxro}, with appendices given in Appendix~\ref{app:cvxro}.
+
+\subsection{Reducing computational effort}
+In the field of data-driven~\gls{DRO}, many approaches, including the popular choice of Wasserstein~\gls{DRO}, consider the ambiguity set as a ball around the empirical distribution on the observed samples~\cite{dro_survey}. As the number of samples increases, the empirical distribution more closely approximates the true distribution, leading to an improved model of uncertainty. At the same time, however, the number of constraints and variables of the corresponding~\gls{DRO} problem scales with the number of samples, leading to prohibitive solution-times~\cite{mohajerin_esfahani_data-driven_2018}. \emph{High computational effort} is therefore required to solve these problems, especially for \gls{MIO} formulations. On the other hand, \gls{RO} formulations, which traditionally feature lower dimensional polyhedral or ellipsoidal sets, are often highly tractable, but can lead to overly conservative decisions when pessimistic assumptions are made on the uncertain parameters. 
+An intuitive idea to reduce the dimensionality of Wasserstein \gls{DRO} while retaining its closely data-driven nature is then to use clustering techniques from machine learning.
+While clustering has recently appeared in various works within the stochastic programming literature~\citep{SAA1, SAA2, SAA3, SAA4}, the focus has been on the improvement of and comparisons to the \gls{SAA} approach and not in a distributionally robust sense.
+In contrast, recent approaches in the \gls{DRO} literature cluster data into partitions and either build moment-based uncertainty sets for each partition~\citep{Rsome, perakis2022robust}, or enrich Wasserstein \gls{DRO} formulations with partition-specific information (\eg, relative weights)~\citep{partition}.
+While these approaches are promising, clustering is still used as a pre-processing heuristic on the datasets in \gls{DRO}, without a clear understanding of how it affects the conservatism of the optimal solutions.
+% In particular, choosing the right clustering parameters to carefully balance computational tractability and out-of-sample performance is still an ongoing challenge.
+
+In Chapter~\ref{chap:mro}, we introduce~\glsentryfull{MRO}, a general framework that combines \gls{RO} and \gls{DRO} and provides a trade-off between computational effort and conservatism~\cite{mro}. Specifically, we propose a \gls{RO} interpretation of \gls{DRO}, with uncertainty sets constructed based on clustered data rather than the full observed data-set, thereby significantly reducing problem size. By varying the number of clusters, our method bridges between the tractability of \gls{RO} and the more closely data-driven nature of Wasserstein \gls{DRO}. We show finite-sample performance guarantees and explicitly control the potential additional pessimism introduced by any clustering procedure.
+In addition, we prove conditions for which, when the uncertainty enters linearly in the constraints, clustering does not affect the optimal solution. 
+We illustrate the efficiency and performance preservation of our method on several numerical examples, obtaining multiple orders of magnitude speedups in solution time with little-to-no effect on the solution quality.
+We also demonstrate that MRO offers protection against outliers compared to Wasserstein DRO.  
+% Part 1 of this thesis addresses this challenge through the use of data-compression techniques. 
+
+In Chapter~\ref{chap:online_dro}, we extend the ideas of Chapter~\ref{chap:mro} to the online setting, where we consider access to streaming data. 
+% Since the appearance of \gls{DRO}, significant effort has been devoted to constructing ambiguity sets primarily in static settings, \RC{using either structural assumptions on the distribution (\eg, moments~\cite{moment,moment_1}) or training data directly~\cite{kuhn2019wasserstein,gao2016distributionally}.}
+% where a single set is used throughout; see~\cite{OPT-026,dro_survey,mohajerin2018data,gao2016distributionally}, and the references therein. 
+Many real-world settings, such as healthcare resource allocation, air traffic control, and energy trading, are dynamic and new data becomes available sequentially over time.
+\RC{Despite its potential,~\gls{DRO} has been largely underdeveloped in such scenarios.
+Most~\gls{DRO} approaches construct a static ambiguity set, and model time progression through {\it adjustable wait-and-see variables}~\cite{adro2,adro,robustadaptopt}.}
+% Even in multi-stage~\gls{DRO}, where uncertain data is revealed sequentially, a single ambiguity set is typically constructed, with time progression modeled through {\it adjustable wait-and-see variables}~\cite{adro2,adro,robustadaptopt}. 
+% Fundamentally, this approach determines decisions based on {\it a priori} information.
+% Even in data-driven cases, the focus is on a fixed dataset from which the ambiguity set is constructed~\cite{}. 
+% However, in many real-time applications---such as healthcare resource allocation, air traffic control, and energy trading---new data becomes available sequentially over time. 
+% As a result, the optimizer's confidence in the nominal distribution can improve through the continuous assimilation of new data. 
+% More broadly, any application where an optimization problem is continuously re-solved for improved solutions can benefit from streaming data. %% Commented out after Marta's comment
+% into the ambiguity set.
+There are limited works focusing on how to adapt the ambiguity sets dynamically over time, where they pose strict assumptions on the problem: either by restricting the true distribution to a finite set of scenarios~\cite{drotime}, or by requiring continuous variables and objective functions with local strong concavity~\cite{assim}.
+% In the few cases where it has been studied, updates to the~\gls{DRO} problem rely on gradient-based methods that either restrict the distribution to a finite set of scenarios~\cite{drotime}, or require continuous decision variables and objective functions with local strong concavity~\cite{assim}. 
+% To our knowledge, no online approach directly re-solves the \gls{DRO} problem as new data arrives, primarily due to the associated computational complexity.  % Commented out after Marta's comment
+% To our knowledge, there has not been online approaches where the \gls{DRO} problem is re-solved directly with the incorporation of streaming data, due to the increase in computational complexity. 
+In particular, streaming data settings can be challenging for Wasserstein \gls{DRO} due to the prohibitive solutions times; for mixed-integer problems, even \gls{SAA} is difficult to solve with large amounts of data, without any added complexity from ambiguity. This leads to computational bottlenecks that are especially limiting for real-time applications.
+
+% As new datapoints arrive, the problem dimension grows, increasing computational complexity~\cite{kuhn2019wasserstein,mro}.
+% \RC{While a larger dataset improves confidence in the empirical measure as an approximation of the true distribution, the reduction in the ambiguity set’s radius is not enough to offset this complexity; for mixed-integer problems, even \gls{SAA} is difficult to solve with large amounts of data, without any added complexity from ambiguity. This leads to computational bottlenecks that are especially limiting for real-time applications.}
+
+In Chapter~\ref{chap:online_dro}, our method dynamically constructs ambiguity sets using online clustering, allowing the clustered configuration to evolve over time for an accurate representation of the underlying distribution. We repeatedly solve a problem with controlled complexity and a fixed structure, thereby overcoming the computational bottleneck brought by streaming data.
+We establish theoretical conditions for clustering algorithms to ensure robustness, and show that the performance gap between our online solution and the nominal \gls{DRO} solution can be written in terms of the discrepancy between the true and compressed distributions.
+We show that our analysis is compatible with well-established finite-sample and asymptotic guarantees for Wasserstein~\gls{DRO}.
+Numerical experiments in mixed-integer portfolio optimization demonstrate significant computational savings, again with minimal loss in solution quality.
+
+
+
+
+
+% \paragraph{Chapter~\ref{chap:mro}}: Robust optimization is a tractable and expressive technique for decision-making under uncertainty, but it can lead to overly conservative decisions when pessimistic assumptions are made on the uncertain parameters.
+% Wasserstein distributionally robust optimization can reduce conservatism by being data-driven, but it often leads to very large problems with prohibitive solution times.
+% We introduce mean robust optimization, a general framework that combines the best of both worlds by providing a trade-off between computational effort and conservatism.
+% We propose uncertainty sets constructed based on clustered data rather than on observed data points directly, thereby significantly reducing problem size.
+% By varying the number of clusters, our method bridges between robust and Wasserstein distributionally robust optimization.
+% We show finite-sample performance guarantees and explicitly control the potential additional pessimism introduced by any clustering procedure.
+% In addition, we prove conditions for which, when the uncertainty enters linearly in the constraints, clustering does not affect the optimal solution.
+% We illustrate the efficiency and performance preservation of our method on several numerical examples, obtaining multiple orders of magnitude speedups in solution time with little-to-no effect on the solution quality.
+
+
+% \paragraph{Chapter~\ref{chap:online_dro}: Online distributionally robust optimization.}
+% We propose an online data compression approach for efficiently solving \gls{DRO} problems with streaming data while maintaining out-of-sample performance guarantees. 
+% Our method dynamically constructs ambiguity sets using online clustering, allowing the clustered configuration to evolve over time for an accurate representation of the underlying distribution. 
+% We establish theoretical conditions for clustering algorithms to ensure robustness, \RC{and show that the performance gap between our online solution and the nominal \gls{DRO} solution can be written in terms of the distance between the true and compressed distributions.} 
+% Therefore, by varying the number of clusters, our method effectively balances robustness and online computational efficiency.
+% \RC{We show that our analysis is compatible with well-established finite-sample and asymptotic guarantees for Wasserstein~\gls{DRO}.}
+% Numerical experiments in mixed-integer portfolio optimization demonstrate significant computational savings, with minimal loss in solution quality.
+
+
+\subsection{Reducing conservatism}
+Traditionally, uncertainty sets are shaped and sized to guarantee they contain an appropriately large fraction of the probability mass of the unknown distribution generating the samples (\ie, high coverage). The main appeal of this approach is that the uncertainty set is independent of the subsequent optimization problem considered, and guarantees the worst-case performance regardless of the problem.
+In this vein, many approaches to designing uncertainty sets assume structural information of the underlying distributions, and rely on these a priori assumptions to build guarantees of constraint satisfaction~\citep{ben-tal_robust_2000,bertsimassurvey,bandi_tractable_2012}.
+In particular, a large amount of existing literature studies how to bound the probability of constraint violation based on the size and shape of the uncertainty sets~\citep{guarantees_2012, guarantees1}, where the aforementioned structural information is exploited, but the optimization problem itself is not leveraged.
+\RC{Even in recent data-driven \gls{RO}, whether by approximating a high-probability-region using quantile estimation~\citep{hong2022ms}, or by learning a contextual uncertainty set known to contain with high probability the realized uncertainty~\citep{knn}, significant attention has been given to the probability distribution generating the data and less so to the quality of the resulting decisions.
+In \gls{DRO} as well, the constructed ambiguity set of distributions has historically been required to contain the true data-generating distribution with a certain level of confidence~\citep{mohajerin_esfahani_data-driven_2018}.}
+
+
+Unfortunately, decoupling the uncertainty set construction from the subsequent optimization problem  may lead to overly conservative decisions~\citep{reduce_conserve,gao2016distributionally}.
+In \gls{DRO} with Wasserstein ambiguity sets, the two-step approach suffers from the {\it curse of dimensionality} as their radius must scale with the dimension of the uncertainty~\citep{wass_rate}.
+On the other hand, one can overcome the curse of dimensionality by exploiting Lipschitz conditions on the objective function of the subsequent optimization problem when designing the ambiguity set~\citep{DBLP:gao2020}.
+The situation in \gls{DRO} with $f$-divergence ambiguity sets is even more striking.
+For instance, Kullback-Leibler ambiguity sets around an empirical distribution can structurally not contain any continuous distribution however large its radius is chosen.
+Consequently, if the data-generating distribution is continuous a two-step approach is not possible here. Nevertheless, the Kullback-Leibler can be shaped to ensure that the solution has optimal statistical properties when one is willing to exploiting the fact that the subsequent optimization problem has a continuous loss function~\citep{vanparys2021data}.
+In both cases, significant reduction in conservatism can be achieved by designing the uncertainty set not only based on the distributions generating the data, but also by exploiting structural properties of the subsequent optimization problem.
+
+The drive for even better performance in \gls{RO}, then, \RC{leads us to methods of constructing uncertainty sets that deviate from the decoupled approach, and explicitly take into account the optimization problem.}
+This idea has been around for multiple years; as stated by~\cite{ben-tal_robust_2009}, the requirement of containing a high probability mass is only a sufficient (and often restrictive and not needed) condition to guarantee high probability of constraint satisfaction.
+\RC{In this vein, researchers have turned to constructing uncertainty sets that target directly the probability of constraint violation, and which may have low coverage~\citep{bertsimas_price_2004,bertsimas_probabilistic,scenario}.
+}
+\RC{However, while these works take into account the constraints of the optimization problem, and reduce conservatism compared to the decoupled approaches, they either do not optimize over uncertainty-set parameters to find the best one in terms of the {\it performance of the resulting decisions},
+or only does so in a limited capacity, \ie, with very few tunable parameters.}
+Furthermore, as we demontrate in the work~\cite{coupling}, {\it constraint-wise} uncertainty sets, which consider uncertainty sets for each constraint separately, can perform suboptimally compared to {\it coupled} uncertainty sets that model relationships between uncertain constraints.  
+
+% These methods are also non-contextual, and thus does not result in a reusable mapping to contextual uncertainty sets that could apply to similar optimization problems under slightly varied contexts. 
+
+
+% The improvement of \gls{RO} performance
+% not just the overall size of the uncertainty set, but also the {\it relative} size of the uncertainty set in the individual dimensions of the uncertain parameter, which is controlled by the {\it shape}
+% uncertainty sets are constructed independently for each constraint, 
+
+
+Moreover, the performance of \gls{RO} problem may be judged on criteria that differs across applications, which may be optimized by different parameterizations of the uncertainty sets.
+Traditionally, the goal of \gls{RO} uncertainty sets is to provide solutions that perform well with respect to the true worst-case realizations. However, in practical applications, the decision-maker would prefer solutions that perform well in typical cases, not only in the worst-case. Recently, a line of work in Pareto efficiency in \gls{RO}~\citep{pareto,pareto1,pareto3} identifies solutions that perform well not only in the worst case, but for all scenarios in the uncertainty set.
+Extending these ideas, in Chapter~\ref{chap:lro} we propose to construct uncertainty sets in a decision-focused manner,
+such that the resultant robust solutions perform well not only in terms of constraint satisfaction, but also in {\it both} worst-case and average-case performance.
+
+We present a data-driven technique to automatically learn tractable contextual uncertainty sets in robust optimization, for a family of problems with both objective and constraint uncertainty. 
+Our method reshapes the uncertainty sets by optimizing for both worst-case and average-case performance while guaranteeing constraint satisfaction via a conditional-value-at-risk constraint.
+% Our approach is very flexible, and can learn a wide variety of tractable uncertainty sets.
+% We reshape the uncertainty sets by minimizing the expected performance across a contextual family of problems, subject to 
+We solve the resultant constrained learning problem using a stochastic augmented Lagrangian method that relies on differentiating the solutions of the robust optimization problems with respect to the parameters of the uncertainty set.
+Due to the nonsmooth and nonconvex nature of the augmented Lagrangian function, we apply the nonsmooth conservative implicit function theorem to establish convergence to a critical point, which is a feasible solution of the constrained problem under mild assumptions.
+Using empirical process theory, we show both marginal and conditional finite-sample probabilistic guarantees of constraint satisfaction for the resulting solutions.
+Numerical experiments show that our method outperforms traditional approaches in robust and distributionally robust optimization in terms of out-of-sample performance and constraint satisfaction guarantees.
+
+\subsection{Making \gls{RO} easy to use}
+Concurrently with the theoretical developments, we are building a new software toolbox,~\Gls{CVXRO}\cite{lropt_package}, 
+to easily solve optimization problems under uncertainty, as well as automatically reshape uncertainty sets from data. 
+The user does not need to possess knowledge on the reformulation techniques for~\gls{RO} and~\gls{DRO}, and only need to model the uncertain problem as is. 
+The frameworks from Chapters~\ref{chap:mro} and~\ref{chap:lro} are both implemented in~\gls{CVXRO}, as are a number of traditional approaches for optimization under uncertainty, including Wasserstein~\gls{DRO} and~\gls{RO} with classic sets. Furthermore, the methods could be used in conjuction: the \gls{MRO} set of Chapter~\ref{chap:mro} is also a valid set to reshape in the manner proposed in Chapter~\ref{chap:lro}.
+
+Unlike existing packages for robust optimization such as~\cite{Rsome}, \gls{CVXRO} builds off of and has access to the diverse and powerful toolbox CVXPY~\cite{diamond2016cvxpy}, which canonicalizes convex optimization problems with a sequence of reduction steps forming a canonicalization chain. We design a new canonicalization chain that reformulates uncertain constraints into their robust counterparts. We automate the uncertainty set learning procedure using CVXPYlayers~\cite{cvxpylayers2019}, which allows tight integration between CVXPY and automatic differentiation frameworks~\cite{diffcp2019}.
+For the general user, this package thus greatly reduces the mathematical overhead associated with applying frameworks from decision-making under uncertainty.
+% The package supports both single-stage and multi-stage optimization problems, for both static and dynamic uncertainty sets.
+
+
+% \Gls{RO} and \gls{DRO} are popular tools for decision-making under uncertainty due to their high expressiveness and versatility.
+% However, while these methods have been quite successful, they face three main challenges: \emph{high computational effort} in terms of both memory and runtime, \emph{conservative models} of the uncertainty leading to suboptimal solutions, and \emph{complex formulations} that require advance knowledge of convex analysis.
+
+
+\section{Publications}
+\label{sec:publications}
+The work presented in this thesis relies on the following publications and working papers~\cite{mro,online_mro,coupling,lropt,lropt_package}.
+Chapter~\ref{chap:mro} is based on 
+\begin{itemize}
+  \item {\bf I. Wang}, C. Becker, B. Van Parys, and B. Stellato, “Mean robust optimization,” {\it Mathematical Programming}, 2024.
+\end{itemize}
+Chapter~\ref{chap:online_dro} is based on 
+\begin{itemize}
+  \item {\bf I. Wang}, M. Fochesato, and B. Stellato, “Fast online distributionally robust optimization via data compression,” {\it arXiv preprint arXiv:2504.08097 (Submitted)}, 2025.
+\end{itemize}
+Chapter~\ref{chap:lro} is based on 
+\begin{itemize}
+  \item {\bf I. Wang}, B. Van Parys, and B. Stellato, “Learning decision-focused uncertainty sets in robust optimization,” {\it arXiv preprint
+arXiv:2305.19225 (Submitted)}, 2025,
+\end{itemize}
+and is partially motivated by the findings of 
+\begin{itemize}
+  \item D. Bertsimas, N. Liangyuan, B. Stellato, and {\bf I. Wang}, “The benefit of uncertainty coupling in robust and adaptive robust optimization,” {\it INFORMS Journal on Optimization}, 2024.
+\end{itemize}
+Chapter~\ref{chap:cvxro} is based on the working paper for the following Github repository
+\begin{itemize}
+  \item {\bf I. Wang}, A. Solomon, B. Van Parys, and B. Stellato, “CVXRO: Convex optimization under uncertainty,” GitHub repository.
+\end{itemize}
+
+
+
+\section{Related work}
+\label{sec:related_work_intro}
+
+\paragraph{Robust optimization.}
+\Gls{RO} is a framework for decision-making under uncertainty that hedges against unknown parameters by optimizing the worst-case objective over all realizations within a prescribed uncertainty set.
+Common uncertainty sets include box, ellipsoidal, budget, and polyhedral sets, which yield tractable reformulations but may be overly conservative when the shape parameters are chosen suboptimally. 
+For a detailed overview of \gls{RO}, we refer to the survey papers by Ben-Tal and Nemirovski~\citep{robustconvexopt} and Bertsimas et al.~\citep{bertsimassurvey}, as well as the books by Ben-Tal et al.~\citep{ben-tal_robust_2009} and Bertsimas and den Hertog~\citep{robustadaptopt}.
+
+% These approaches, while powerful, may be overly conservative, and there have been approaches that provide a tradeoff between conservatism and constraint violation~\citep{reduce_conserve}.
+
+\paragraph{Distributionally robust optimization.}
+\Gls{DRO} minimizes the worst-case expected loss over a probabilistic ambiguity set characterized by certain known properties of the true data-generating distribution.
+The framework has been extensively explored in recent years, with successful applications (among others) in machine learning \cite{shafieezadeh2015distributionally}, finance \cite{blanchet2022distributionally}, and medicine \cite{tsang2024stochastic}.  
+Typical ambiguity sets that appeared in the literature include support, moment, or distance-based sets of distributions or mixtures thereof. 
+We focus our attention on discrepancy-based ambiguity sets, defined as a ball in the space of probability distributions around a nominal or most-likely distribution, which is constructed from data. In this setting, the distance, commonly expressed in terms of, e.g., the $\phi-$divergence \cite{bayraksan2015data}, the total variation norm \cite{tzortzis2015dynamic}, the kernel mean embedding \cite{hannah2010nonparametric}, contamination techniques \cite{kopa2023robustness},  or optimal transport based-distances including
+the celebrated Wasserstein distance \cite{mohajerin2018data,kannan2024residuals}, signifies the “trust” in the data at hand. More recently, extensions, such as the trade-off ambiguity set \cite{tsang2024trade} and the globalized ambiguity set \cite{li2024globalized}, have been introduced to mitigate some of the conservatism of the classical DRO models.
+We refer to the work by Chen and Paschalidis~\citep{OPT-026} for a thorough overview of \gls{DRO}, and to the work by Zhen et al.~\citep{zhen2021mathematical} for a general theory on convex dual reformulations.
+When the ambiguity set is well chosen, \gls{DRO} formulations enjoy strong out-of-sample statistical performance guarantees.
+However, as these statistical guarantees are typically not very sharp, in practice the radius of the uncertainty set is typically chosen through cross-validation~\citep{DBLP:gao2020}.
+Due to the favorable properties of Wasserstein distance in terms of expressivity and statistical properties, we will focus on Wasserstein DRO~\citep{mohajerin_esfahani_data-driven_2018,kuhn2019wasserstein,DBLP:gao2020,gao2016distributionally}. Specifically, Wasserstein~\gls{DRO} enjoys a tractable primal as well as a tractable dual formulation under mild assumptions.
+However, while powerful, Wasserstein \gls{DRO} formulations scale linearly with the number of samples, which may lead to prohibitive solution times compared to traditional robust approaches.
+% At the same time, \gls{DRO} has the downside of being more computationally expensive than traditional robust approaches, since the number of constraints in Wasserstein \gls{DRO} formulations scales linearly with the number of samples.
+
+
+\paragraph{Scenario reduction.}
+It is well-known that the size and computational complexity of data-driven optimization problems generally increase with the number of samples, resulting in a fundamental trade-off between statistics and computation. To overcome the computational bottleneck, an intuitive approach is to apply clustering.  
+Clustering in stochastic optimization is closely related to the idea of {\it scenario reduction}.
+First introduced by Dupa{\v c}ov{\'a} et al.~\cite{dupavcova2003scenario}, scenario reduction seeks to approximate, with respect to a probability metric, an $N$-point distribution with a distribution with a smaller number of points.
+Rujeerapaiboon et al.~\cite{scen_k} analyze the worst-case bounds on the approximation error for scenario reduction with respect to the Wasserstein metric, for initial distributions constrained to a unit ball.
+They provide constant-factor approximation algorithms for performing scenario reduction through $K$-medians and $K$-means clustering~\citep{kmeans}.
+Jacobson et al.~\citep{SAA1}, Emelogu et al.~\cite{SAA2}, Beraldi et al.~\cite{SAA3}, and Chen \cite{SAA4} apply a similar idea of clustering to reduce the sample/scenario size, then compare the results against the classical \gls{SAA} approach where the sample size is not reduced.
+More recently, decision-focused scenario reduction techniques have been proposed, where the loss function itself is used in the construction of metrics to aggregate scenarios \cite{bertsimas2023optimization, zhang2023optimized}. A variety of techniques to aggregate scenarios have been suggested in the literature, based on clustering \cite{hewitt2022decision}, moment matching \cite{mehrotra2013generating}, objective approximation \cite{zenios1993constructing}, and nested distances \cite{horejvsova2020evaluation}.
+In Chapter~\ref{chap:mro}, we adapt and extend the scenario reduction approach to Wasserstein \gls{DRO}, where upon fixing the reduced scenario points to ones found by any clustering algorithm, we allow for variation around these reduced points.
+% Later, Bertsimas and Mundru~\cite{bertsimas2023optimization} apply this idea to two-stage stochastic optimization problems, and provide an alternating-minimization method for finding optimal reduced scenarios under a modified objective.
+% They also provide performance bounds on the stochastic optimization problem for different scenarios.
+% Zhang et al~\cite{zhang2023optimized}, 
+We then provide performance bounds on the \gls{DRO} problem depending on the number of clusters.
+Closely related to our work is also \cite{aigner2025scenario}, which embeds scenario reduction into a \gls{DRO} framework and provides suboptimality bounds---albeit limited to monotonically homogeneous uncertain objectives with strictly positive uncertainty.
+Our approach is not restricted to any particular method of clustering, and is furthermore extended to the online setting in Chapter~\ref{chap:online_dro}.
+
+% \paragraph{Scenario reduction and \gls{DRO}}
+% They aim to reduce the number of scenarios while retaining a good enough representation of the underlying uncertainty and thus an accurate solution to the data-driven optimization problem. A popular approach consists of generating new scenarios and assigning probabilities to minimize the distance to the original distribution \cite{dupavcova2003scenario}. More recently, decision-focused scenario reduction techniques have been proposed, where the loss function itself is used in the construction of metrics to aggregate scenarios \cite{bertsimas2023optimization, zhang2023optimized}. A variety of techniques to aggregate scenarios have been suggested in the literature, based on clustering \cite{hewitt2022decision}, moment matching \cite{mehrotra2013generating}, objective approximation \cite{zenios1993constructing}, and nested distances \cite{horejvsova2020evaluation}.
+% We consider scenario reduction for DRO problems closely related to recent developments in two-stage robust optimization, such as~\cite{bertsimas2023optimization, zhang2023optimized}.
+% Our previous work~\cite{mro} studies the impact of clustering in static and finite-sample \gls{DRO} problems, using it as a tool to bridge robust and distributionally robust optimization.
+% Closely related is also \cite{aigner2025scenario}, which embeds scenario reduction into a \gls{DRO} framework and provides suboptimality bounds---albeit limited to monotonically homogeneous uncertain objectives with strictly positive uncertainty. However, both~\cite{mro} and~\cite{aigner2025scenario} assume that data are available a priori, while our focus here is on {\it online} scenario reduction for DRO problems with streaming data.
+
+
+% \paragraph{Data compression in data-driven problems.}
+% Fabiani and Goulart~\cite{data-comp} compress data for robust control problems by minimizing the Wasserstein-1 distance between the original and compressed datasets, and observe a slight loss in performance in exchange for reduced computation time. While related, this is orthogonal to our approach of using machine learning clustering to reduce the dataset, where we include results and theoretical bounds for a more general set of robust optimization problems with Wasserstein-$p$ distance, and demonstrate conditions under which no performance loss is necessary.
+
+
+
+% \paragraph{Data-driven robust optimization.}
+% Data-driven optimization has been well-studied, with various techniques to learn the unknown data-generating distribution before formulating the uncertainty set.
+% Bertsimas et al.~\citep{bertsimas_data-driven_2018} construct the ambiguity set as a confidence region for the unknown data-generating distribution using several statistical hypothesis tests.
+% By pairing a priori assumptions on the distribution with different statistical tests, they obtain various data-driven uncertainty sets, each with its own geometric shape, computational properties, and modeling power.
+% Using approaches such as quantile estimation~\citep{hong2022ms}, bounding the type-$\infty$ Wasserstein distance~\citep{wassinf}, constructing intersections of multiple single-measure-based ambiguity sets~\citep{tanoumanddata}, and applying deep learning clustering techniques~\citep{GOERIGK2023106087}, significant attention has been given to modeling the distribution.
+% The majority of these methods rely on a two-step procedure which separates the construction of the uncertainty set from the resulting robust optimization problem, and often enforces a high coverage requirement on the selected uncertainty sets.
+% As noted by Ben-Tal et al.~\citep{ben-tal_robust_2009}, however, this high coverage requirement may be unnecessary.
+% Researchers have turned to constructing uncertainty sets that target directly the probability of constraint violation, and which may have low coverage~\citep{bertsimas_price_2004,bertsimas_probabilistic,scenario}.
+
+
+\paragraph{Distributionally robust optimization as a robust program.}
+Gao and Kleywegt~\cite{gao2016distributionally} consider a robust formulation of Wasserstein \gls{DRO} similar to our \gls{MRO} formulation in Chapter~\ref{chap:mro}, but without the idea of dataset reduction.
+Given $N$ samples and a positive integer $K$, they introduce an approximation of Wasserstein \gls{DRO} by defining a new ambiguity set as a subset of the standard Wasserstein \gls{DRO} set, containing all distributions supported on $NK$ points with equal probability $1/(NK)$, as opposed to the standard set supported on $N$ points.
+In Chapter~\ref{chap:mro}, however, we study how to reduce, instead of increase, the number of variables and constraints to make the Wasserstein \gls{DRO} problem more tractable by linking it to robust optimization.
+
+\paragraph{Robust optimization as a distributionally robust optimization program.} On the other hand, Xu et al.~\cite{RO_DRO} take inspiration from sample-based optimization problems to investigate probabilistic interpretations of \gls{RO}. 
+They generalize the ideas of Delage and Ye~\cite{dro_3}, that the solution to a robust optimization problem is the solution to a special Distributionally Robust Stochastic Program (DRSP), where the distributional set contains all distributions whose support is contained
+in the uncertainty set.
+In a related vein, Bertsimas et al.~\cite{wass-p-1} show that, under a particular construction of the uncertainty sets, multi-stage stochastic linear optimization can be interpreted as Wasserstein-$\infty$ \gls{DRO}. 
+We establish a similar equivalence between \gls{RO} and \gls{DRO}, focusing especially on Wasserstein-$p$ ambiguity sets for all $p$. 
+We develop an easily interpretable construction of the primal constraints and uncertainty sets, and prove, in view of both the primal and dual problems, that $p = \infty$ is a limiting case of $p \geq 1$. 
+This provides a natural extension of the equivalence proved in~\cite[Proposition 3]{wass-p-1}.
+
+\paragraph{Online learning and \gls{DRO}.}
+Online learning is a well-established framework providing algorithms for solving repetitive problems over time. Recently, it has been applied to robust optimization problems \cite{ho2018online,chen2017robust}, as well as to DRO formulations. For example, \cite{namkoong2016stochastic} considers an online DRO model with $\phi-$divergence ambiguity sets and proposes an alternating mirror descent algorithm, while \cite{qi2021online} proposes a duality-free online stochastic method for regularized DRO problem with KL-divergence regularization. We focus in in Chapter~\ref{chap:online_dro} on a different problem, where the same DRO problem needs to be solved repeatedly over time with a growing knowledge of the uncertainty distribution. In this sense, our work is more closely related to \cite{drotime}, where a projected gradient descent method is used to adapt the ambiguity set to the samples collected progressively over time. However, \cite{drotime} only considers discrete distributions. As a result, this work naturally disregards the fundamental computational challenge of incorporating streaming data in continuous settings, which is instead our main focus.
+Recently,~\cite{assim} also considers the online~\gls{DRO} problem with data assimilation, but restricts their framework to continuous variables and strongly concave functions with accessible gradients. Our approach is therefore more general, and importantly, allows for mixed-integer formulations. 
+% \MartaNote{Shall we also mention DR bayesian optimization?}
+
+
+
+\paragraph{Clustering with streaming data}
+Due to the ongoing data revolution, data stream clustering has recently attracted attention for emerging applications that involve large amounts of streaming data.
+They can be broadly classified into partition-based algorithms with distance-based similarity metrics, density-based algorithms that define clusters as dense partitions (such as DenStream \cite{cao2006density}), and hierarchical-based algorithms that maintain a tree-like structure by grouping similar clusters at different levels \cite{murtagh2012algorithms}. Among the first class, the most popular ones are undoubtedly incremental $k$-mean \cite{aaron2014dynamic} and CluStream \cite{clustream}, which we adapt to fit our framework in Chapter~\ref{chap:online_dro}.
+We point to the survey~\cite{streaming} for further details. 
+A major strength of our approach is its ability to incorporate state-of-the-art online clustering algorithms, with various memory and run-time complexities, with the choice left to the user's discretion. 
+
+
+\paragraph{Probabilistic guarantees in \gls{DRO}.}
+Esfahani and Kuhn~\cite{mohajerin_esfahani_data-driven_2018} obtain finite-sample guarantees for Wasserstein \gls{DRO} for selecting the radius $\epsilon$ of order $N^{-1/\max\{2,m\}}$, where $N$ is the number of samples and $m$ is the dimension of the problem data, while Gao~\cite{DBLP:gao2020} derives finite-sample guarantees for Wasserstein \gls{DRO} for selecting $\epsilon$ of order $N^{-1/2}$ under specific assumptions, which includes introducing a non-zero tradeoff in the constructed upper bound for the out-of-sample objective.
+In Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, we provide theoretical results of a similar vein, with either a slightly increased $\epsilon$ or the introduction of a trade-off term in the constructed upper bound, to compensate for information lost through clustering.
+% Our theoretical guarantees hold for Wasserstein-$p$ distance for all $p\geq1$ and $p = \infty$, and are independent of the uncertain function to minimize. 
+These bounds, however, following the literature, are theoretical in nature and not tight in practice.
+The final $\epsilon$ values are usually chosen through empirical empirication -- in which case, our formulation, by being lower dimensional, is overall much faster to solve.
+
+
+% \paragraph{Quantization of distributions}
+
+
+% Closely related to our work are also \cite{mro} and \cite{aigner2025scenario}, where the authors specifically embed the scenario reduction into a DRO problem and provide suboptimality bounds, the latter only for monotonically homogeneous uncertain objective functions with strictly positive uncertainty. However, both works consider static DRO problems where data are available a priori, while we focus here on \textit{online} scenario reduction for DRO problems.
+
+
+% -restricted to positive support
+% -mixed linear and quadratic only
+% -ambiguity set is on the probability simplex, not distance-based dro
+% -
+% Cite \url{https://arxiv.org/pdf/2503.11484}
+% Also thiss \url{https://pubsonline.informs.org/doi/epdf/10.1287/ijoc.2023.1295}
+% And this \url{https://pubsonline.informs.org/doi/10.1287/opre.2022.2265}
+
+
+
+
+\paragraph{Risk measures and probabilistic guarantees in \gls{RO}.}
+Bertsimas et al.~\cite{bertsimas_probabilistic} propose a disciplined methodology for deriving probabilistic guarantees for solutions of robust optimization problems with convex compact uncertainty sets and concave (in the uncertainty) uncertain constraints, under sub-Gaussian uncertainty. 
+They derive a posteriori guarantee to compensate for the conservatism of a priori uncertainty bounds.
+For more general maximum-of-concave uncertainty constraints, we observe that probabilistic guarantees in the form of chance constraints can be implied by value at risk ($\VaR$) and conditional value at risk ($\CVaR$) constraints.  
+$\VaR$ and $\CVaR$ are common risk measures for quantifying costs encountered in the tails of distributions.
+A $\VaR$ constraint is a chance constraint that measures the maximum cost incurred with respect to a given confidence level, but is often intractable.
+Conditional value at risk, on the other hand, measures the expected cost given that the cost exceeds $\VaR$, and, as the tightest convex approximation of $\VaR$, has a tractable formulation~\citep{cvaropt,cvar}.
+% $\CVaR$ is a coherent risk metric~\citep{coherentrisk}, which satisfies certain axioms that give it value beyond approximating the $\VaR$~\citep{cvar_var}.
+Since its development, $\CVaR$ optimization has been a common method for controlling risk in portfolio optimization and option hedging problems, and has also been explored in risk-constrained Markov decision problems, where the risk is presented as a constraint on the $\CVaR$ of the cumulative cost~\citep{cvar_markov}.
+In fact, $\CVaR$ is a {\it coherent risk metric}~\citep{coherentrisk}, which satisfies certain axioms that give it value beyond approximating the $\VaR$~\citep{cvar_var}.
+The use of $\CVaR$ constraints to substitute chance constraints has also been explored in reliability engineering, where the $\CVaR$ constraint has been given a different name: buffered failure probability~\citep{buffered}.
+% A related concept for controlling risk is the buffered probability of exceedance (bPOE)~\citep{bpoe}, which is equivalent to 1 minus the inverse of $\CVaR$, and has a level set equivalence with $\CVaR$.
+In Chapter~\ref{chap:lro}, we constrain risk, which in \gls{RO} is the probability of constraint violation, by constraining the $\CVaR$ of the uncertain constraint functions.
+
+
+\paragraph{Data-driven \gls{RO}.}
+With the recent explosion of availability of data, data-driven \gls{RO} has gained wide popularity, where uncertainty sets are constructed through data-driven approximations of the unknown data-generating distribution.
+% in order to construct data-driven uncertainty sets.
+\RC{Using approaches such as quantile estimation~\citep{hong2022ms}, bounding the type-$\infty$ Wasserstein distance~\citep{wassinf}, constructing intersections of multiple single-measure-based ambiguity sets~\citep{tanoumanddata}, and applying deep learning clustering techniques~\citep{GOERIGK2023106087}, significant attention has been given to modeling the distribution.}
+In fact, the majority of these methods rely on a two-step procedure which separates the construction of the uncertainty set from the resulting robust optimization problem, and often enforces a high coverage requirement on the selected uncertainty sets.
+As noted by~\cite{ben-tal_robust_2009}, however, this requirement may be unnecessary.
+Recently,~\cite{gupta} proves that while convex problems require \gls{DRO} ambiguity sets with high coverage to guarantee constraint satisfaction, traditional \gls{DRO} ambiguity sets for concave problems are significantly larger than the asymptotically optimal sets.
+To reduce conservatism,~\cite{bertsimas_data-driven_2018} use hypothesis testing to pair a priori assumptions on the distribution with different statistical tests, and obtain various uncertain-constraint-dependent uncertainty sets with different shapes, computational properties, and modeling power. These sets are non coverage-based, and offer improved performance for the targeted constraints.
+Similarly,~\cite{vanparys2021data} use a \gls{DRO} approach with constraints on out-of-sample disappointment to find least conservative cost-estimators and optimizers for stochastic optimization problems.
+In Chapter~\ref{chap:lro}, we go
+one step further, and construct parametric uncertainty sets to optimize {\it target performance metrics} for particular {\it families of contextual \gls{RO} problems}. To this end, we turn to ideas in differentiable optimization.
+Recent developments in differentiable convex optimization have enabled a popular {\it end-to-end} approach of training a predictive model to minimize loss on a downstream optimization task~\citep{amos1, end1,end2,end3,end-to-end,predict_opt}, \RC{for which we also point to the surveys by~\cite{end-survey} and~\cite{dfl}.}
+Our approach adapts this idea, training instead the shape of the uncertainty set on its performance on parametric \gls{RO} problems.
+% While developing this work, we became aware of a concurrent work with a .
+In a work with a similar goal, \cite{schuurmans2023distributionally} construct \gls{DRO} ambiguity sets which constrain only the worst-case distribution along the direction in which the expected cost of an approximate solution increases most rapidly.
+Our work, however, considers a broader class of optimization problems and uncertainty sets, and can directly tackle joint chance constraints using hyperparameter tuning.
+
+
+\paragraph{Contextual optimization. }
+\cite{bertsimas2020predictive} introduce a framework for prescriptive analytics that uses contextual information to directly prescribe optimal decisions, bypassing the intermediate step of estimating unknown parameters.
+Building on this, end-to-end approaches such as the Smart {\it Predict, then Optimize} framework~\citep{predict_opt} have been shown to improve performance over traditional {\it two-stage} approaches, where the model is trained separately from the optimization problem~\citep{end-port}.
+% Contextual optimization problems, however, place focus on fitting a mapping to an unknown parameter based on given context parameters, and not on reshaping an uncertainty set for the predicted parameter~\cite{contex}. 
+% Costa and Iyengar
+~\cite{end-port} propose an end-to-end distributionally robust approach for portfolio construction, where they integrate a {\it prediction layer} that predicts asset returns with data on financial features and historical returns, and use these predictions in a {\it decision layer} that solves the robust optimization problem.
+\RC{Concurrent to our work,~\cite{cond-cov} propose an end-to-end training algorithm to produce contextual uncertainty sets that achieve a certain conditional coverage, for robust problems with an uncertain objective. They construct penalty functions for the achieved objective value and the conditional coverage of the uncertainty set, and train the set predictors via gradient descent. 
+After the initial versions of this work and our work was made public, another work emerged that considers an uncertain objective, and calibrates performance guarantees through conformal prediction~\citep{yeh}. 
+% This decreases the conservatism of their previous two-stage approach, conditional robust optimization, where they learn a contextually adapted uncertainty set known to contain with high probability the realized uncertainty~\citep{conditional}. 
+% \bsnote{I believe that contextual RO may lead to overfitting. That's why they enforce conditional coverage. However, that could be conservative since it is simply a sufficient condition for ensuring probabilistic guarantees. Are there any references about this?}
+% \inote{change. they have penalization in the loss instead of a constraint. send email to chenreddy. We provide probabilistic guarantees.}
+We, however, allow for not only an uncertain objective, but also for any number of uncertain constraints, and formulate our problem as a {\it constrained} optimization problem. We do not enforce coverage constraints, which may introduce unnecessary conservatism, and instead constrain the $\CVaR$ of the constraint violations. We also optimize over the average-case performance in addition to the worst-case performance, which results in less conservative decisions when the uncertainty realization is not worst-case. 
+In addition, we provide convergence and finite sample probabilistic guarantees.}
+% We, however, adopt a different notion for context parameters, denoting them {\it family} parameters that parameterize different instances of the downstream optimization problem, instead of the uncertain parameter.
+% Our learned uncertainty set therefore does not learn a direct mapping from the context parameters to the uncertainty set (as in contextual and conditional \gls{RO}~\citep{contex}), as it may be computationally expensive and hard to interpret.
+% We do not enforce coverage constraints, which may introduce unnecessary conservatism, and instead freely shape the uncertainty sets based on their performance on the entire parametralized family of robust problems. 
+As pointed out in the recent survey by~\cite{contex}, current work in the end-to-end framework seldom focus on uncertainty in the downstream optimization problem, especially in the constraints.
+Our approach thus aims to fill this gap.
+% where the process of constructing the uncertainty set is linked in an end-to-end fashion to the solution of the inner robust optimization problem.
+% Our formulation is flexible, as it allows for a wide variety of uncertain constraints and uncertainty sets. 
+
+\paragraph{Pareto efficiency in \gls{RO}.}
+\RC{The concept of Pareto efficiency in \gls{RO} was introduced by~\cite{pareto} for linear \gls{RO} problems, where they identify solutions that yield worst-case optimal performance and which are not dominated by any other such solutions in non-worst-case scenarios. The concept has since been extended to general linear \gls{RO} problems in Euclidean spaces~\citep{pareto3}, and to linear Adaptive Robust Optimization problems~\citep{pareto1}. 
+The focus of this line of work is to find Pareto-dominating solutions among a set of \gls{RO} solutions for a fixed uncertainty set.
+Tangentially, while not aimed directly at finding Pareto optimal solutions, the robust satisficing framework of~\cite{long2023robust} is also demonstrated to improve the Pareto efficiency compared to classic \gls{RO}, by searching among a {\it different set of solutions}. 
+In our work, while also not directly searching for Pareto optimal solutions, we optimize a decision-dependent contextual uncertainty set so that the unique \gls{RO} solution implied by the uncertainty set may perform better both in the worst-case and on average.} 
+% \RC{By optimizing over the uncertainty set parameterization, we can directly obtain improved \gls{RO} solutions without explicitly searching for Pareto-dominating cases.}
+
+
+\paragraph{Differentiable convex optimization.}
+There has been extensive work on embedding differentiable optimization problems as layers within deep learning architectures~\citep{amos2021optnet}.
+\cite{cvxpylayers2019} propose an approach to differentiating through disciplined convex programs, and implement their methodology in cvxpy. Specifically, they implement differentiable layers for disciplined convex programs in PyTorch and TensorFlow 2.0, in the package cvxpylayers.
+They convert the convex programs into conic programs, then implicitly differentiate the residual map of the homogeneous self-dual embedding associated with the conic program.
+These developments have fueled the recent advances in end-to-end approaches, and is also the tool of choice in this work for differentiating through the inner level \gls{RO} solutions.
+
+% We use cvxpy and Pytorch to implement this gradient-based approach.
+
+\paragraph{Nonsmooth implicit differentiation.} Traditional techniques in differentiable convex optimization rely on the implicit function theorem, which requires derivatives to exist almost everywhere.
+Recently, a nonsmooth variant has been established, using conservative Jacobians, provided that a nonsmooth form of the classical invertibility condition is fulfilled~\citep{path-diff}.
+As a key ingredient, definable and locally Lipschitz continuous functions are shown to admit conservative Jacobians, which follow the chain rule, and are thus compatible with backpropagation techniques in stochastic gradient descent~\citep{Davis,path-diff}.
+These techniques can be used to prove convergence to stationary points for nonsmooth problems.
+
+
+\paragraph{Modeling languages for robust optimization.}
+Several open-source packages facilitate building models for \gls{RO}, including as ROME~\citep{ROME} in Matlab, RSOME~\citep{Rsome} in Python, JuMPeR~\citep{jumpr} in Julia, and ROmodel~\citep{pyomo} for the Pyomo modeling language in Python.
+These packages mostly support \gls{RO} problems with affine uncertain constraints, which are solved via reformulations and/or cutting plane procedures.
+\cite{dsp} recently introduced a Python extension of cvxpy~\citep{diamond2016cvxpy} for solving the larger class of convex-concave saddle point problems, by automating a conic dualization procedure reformulating min-max type problems into min-min problems which can then be solved efficiently~\citep{juditsky2022}.
+In the paper, they describe a set of rules termed \gls{DSP} detailing when a saddle point optimization problem can be equivalently formulated as convex optimization ones, and efficiently be solved.
+In Chapter~\ref{chap:cvxro}, we build a Python extension to cvxpy tailored to formulating and solving \gls{RO} problems.
+While some \gls{RO} problems can be described in terms of the \gls{DSP} framework, our library augments \gls{DSP} capabilities in \gls{RO} by supporting max-of-concave uncertain constraint and structure to intuitively describe well known uncertainty sets for ease of use.
+Finally, our method automatically learns the uncertainty set through differentiable optimization via a tight integration with the works by~\cite{cvxpylayers2019,diffcp2019}.
+% , enabling the user to solve \gls{RO} problems without needing to input a fully parametrized uncertainty set.

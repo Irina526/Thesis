@@ -1,0 +1,1650 @@
+\chapter{Learning Decision-Focused Uncertainty Sets in Robust Optimization}
+\label{chap:lro}
+
+\glsresetall
+
+\section{Introduction}
+\label{sec:intro_p}
+% Over the past years, \gls{RO} has become a widely adopted efficient tool for decision-making under uncertainty.
+% A robust approach first defines an uncertainty set where the uncertain vector lives, and subsequently hedges its decision against any worst-case realization in this set~\citep{robustconvexopt,ben-tal_robust_2009,bertsimassurvey,robustadaptopt}.
+As mentioned in Chapters~\ref{chap:intro} and~\ref{chap:prelim}, to attain proper solution quality and practical robustness, the choice of the uncertainty set in \gls{RO} is paramount. Uncertainty sets obtained through a two-step procedure, where information on the optimization problem is not used, could lead to conservative decisions. 
+In this chapter, we thus explore an end-to-end approach to build problem-specific uncertainty sets. We additionally consider a {\it context parameter}, such that our results can be applied for a {\it family} of related optimization problems.
+
+We note that the sets considered in Chapters~\ref{chap:mro} and~\ref{chap:online_dro} follow the traditional two-step procedure, but can be enhanced using the results of this chapter. 
+Lastly, instead of the function $\ell$ considered in Chapter~\ref{chap:prelim}, in this chapter we work with {\it both} an uncertain objective $f$ and an uncertain constraint $g$. 
+% Coverage-based uncertainty sets,
+
+
+\subsection{Our contributions}%
+\label{c4:sub:our_contributions}
+In this work, we propose a end-to-end approach to calibrate uncertainty sets for a family of contextual optimization problems, optimizing over a performance metric for the specific problem family.
+This is a common scenario in many applications, including inventory management, where we solve similar optimization problems with varying prices and factors driving demand (\ie, context parameters), while satisfying the uncertain demand with high probability.
+We construct the uncertainty set, which maps from contexts to context-based regions of uncertainty, by learning its contextual shape and size parameters.
+By directly taking into account the quality of the \gls{RO} solutions through the performance metric,
+% solving a {family} of parametric \gls{RO} problems and learning the uncertainty set geared towards the specific family, 
+the learned set is {\it decision-focused} and eliminates the unnecessary conservatism common in existing data-driven \gls{RO} methods. 
+% \RC{In fact, the decision-focused uncertainty sets are calibrated specifically for a given performance metric.
+\RC{Our specific contributions are as follows:}
+\begin{itemize}
+\item 
+% \bsnote{We minimize for what? We should say that to train the uncertainty sets, we do the following. This is a point of confusions (difference between training and RO problems) that one of the reviewers raised as well} 
+We control the trade-off between performance and robustness by constructing a constrained learning problem for the uncertainty set parameters. 
+We minimize the expectation of a performance metric, which incorporates both worst-case and average-case performance, over the family of parametric \gls{RO} problems while ensuring an appropriate probability level of constraint satisfaction. The latter is enforced as a constraint on the conditional-value-of-risk ($\CVaR$) of the problem family's uncertain constraints.
+% , which are reformulated into a single joint maximum-of-concave constraint. 
+% By incorporating both worst-case and average-case performance as well as data-driven constraint satisfaction into the training problem, we control the trade-off between performance and robustness explicitly.
+\item We present the learning problem as a constrained bi-level problem, where the outer level is given above, and the inner level is represented by the family of parametric \gls{RO} problems. The outer level performance metric and $\CVaR$ constraint rely on the solutions of the inner level problems. 
+% The aforementioned performance metric and constraints rely on the solutions of the parametric \gls{RO} problems. The overall training formulation 
+% \bsnote{formulation of the RO or training problem? specify} 
+% is thus a constrained bi-level problem, with the inner level represented by the parametric \gls{RO} problems. 
+	% \item We formulate the problem of finding the uncertainty set using bi-level optimization. \bsnote{I would stress the constrained learning setup first, which is already quite challenging to grasp. Then, we can mention that we rely on the inner robust problem solution, essentially solving a bi-level problem.} At the outer level, we minimize the expectation of the objective function over the family of parametric optimization problems, while ensuring an appropriate probability level of constraint satisfaction. At the lower level, we represent the decisions as the solution of the resulting \gls{RO} problem.
+ \item We develop a stochastic augmented Lagrangian algorithm to solve the constrained learning problem, which requires differentiating through the inner level solutions as well as the $\CVaR$ constraint. Due to the potentially nonsmooth, nonconvex, and thus nondifferentiable nature of the problem, we show {\it path-differentiability} of the Lagrangian, and apply nonsmooth implicit differentiation. We show convergence to a critical point under step-size and boundedness conditions, and establish the critical point as a feasible solution of the constrained learning problem under mild assumptions. 
+ \item Using empirical process theory, we give both marginal and conditional finite sample probabilistic guarantees of constraint satisfaction for the resulting solution.
+%  \item We extend our probabilistic guarantees to the case of conditional expectation, where the problem is conditioned on a particular context within the problem family.
+ % \bsnote{we need to say that we show convergence and say to what and under which conditions.}
+% for the uncertainty sets learned through the aforementioned procedure.
+	% \item We introduce a gradient-based approach to learn the optimal $\epsilon$, the radius of generalized uncertainty sets, without the need for any structural information on the underlying distribution.
+	% \item Through extending the above approach, we learn something even more powerful -- a set of parameters $(A, b)$ that $\mathit{reshapes}$ the uncertainty sets. Not only does $A$ mimic the $\epsilon$ approach when set to be a scaled identity matrix, it offers improved performances when faced with irregularly shaped distributions.
+	% \item We implement our technique in Python package \gls{LROPT}, which allows users to easily model and tune uncertainty sets in \gls{RO}. The code is available at \url{https://github.com/stellatogrp/lropt}.
+ % \bsnote{I would not mention the package. I would simply mention the link to the experiments repo at the end of the bullet point below where we talk about the experiments. This is not a pakcage paper.}
+ \item Our uncertainty sets are highly tractable, as they are based on 
+a variety of traditional sets with simple structure, such as ellipsoidal and budget sets. 
+% Once the uncertainty set parameters are learned, we obtain a highly tractable formulation.
+% as developed in~\cite{bertsimas_data-driven_2018}, or \gls{DRO} uncertainty sets, which require larger problem formulations.}
+\item We benchmark our method on examples in portfolio optimization and multi-stage inventory management, outperforming data-driven robust and distributionally robust approaches in terms of out-of-sample performance and probabilistic guarantees. The code is available at \githubrepo.
+\end{itemize}
+% shape, size instead of epsilon, geometry instead of A,b
+
+% \subsection{Related work}%
+% \label{c4:sub:related_work}
+
+% \paragraph{Risk measures.}
+% Value at risk ($\mathbf{VaR}$) and conditional value at risk ($\CVaR$) are common risk measures for quantifying costs encountered in the tails of distributions.
+% A $\mathbf{VaR}_\eta$ constraint is a chance constraint that measures the maximum cost incurred with respect to a given confidence level $\eta$, but while intuitive, the function is often intractable, and does not quantify costs beyond the found threshold value.
+% \RC{Conditional value at risk, on the other hand, measures the {\it expected} cost given that the cost exceeds $\mathbf{VaR}$, and, as the tightest convex approximation of $\mathbf{VaR}$, is known to have a tractable formulation~\citep{cvaropt,cvar}. }
+% Since its development, $\CVaR$ optimization has been a common method for controlling risk in portfolio optimization and option hedging problems, and has also been explored in risk-constrained Markov decision problems, where the risk is presented as a constraint on the $\CVaR$ of the cumulative cost~\citep{cvar_markov}.
+% \RC{In fact, $\CVaR$ is a {\it coherent risk metric}~\citep{coherentrisk}, which satisfies certain axioms that give it value beyond approximating the $\VaR$~\citep{cvar_var}.}
+% The use of $\CVaR$ constraints to substitute chance constraints has also been explored in reliability engineering, where the $\CVaR$ constraint has been given a different name: buffered failure probability~\citep{buffered}.
+% In our work, we constrain risk, which in \gls{RO} is the probability of constraint violation, by constraining the $\CVaR$ of the uncertain constraint functions.
+
+\subsection{Layout of the paper}%
+\RC{In Section~\ref{c4:sec:intro}, we introduce the notion of the decision-focused set with a motivating example. In Section~\ref{sec:learn}, we describe the data-driven algorithm and prove its convergence, and in Section~\ref{sec:guarantees}, provide probabilistic guarantees.
+% In Section~\ref{sec:HL_canon}, we give a high-level overview of our \gls{LROPT} package, and 
+In Section~\ref{sec:hyper}, we discuss hyperparameter tuning, and in Section~\ref{c4:sec:examples}, present various numerical examples problems.}
+For completeness, we give example convex reformulations of robust optimization problems for common uncertainty sets, with our shaped parameters, in the appendices.
+% \bsnote{make sure this matches the final version after we move things to fit journal page limits}
+
+\section{The optimization problem}
+\label{c4:sec:intro}
+Consider a contextual stochastic optimization setting with context parameter $x \in \reals^p$ and uncertain parameter $u \in \reals^m$. 
+The context parameter $x$ represents information available when we make our decisions (\eg, market factors for portfolio optimization, the supplier's price for inventory problems), while the uncertain parameter $u$ is not known (\eg, future returns in portfolio optimization), but may be affected by the context parameter.
+We set $\prob_x$ as the distribution of $x$ with domain $\mathcal{D}_x \subseteq \reals^p$, $\prob_u$ as the  distribution of $u$ with domain $\mathcal{D}_u \subseteq \reals^m$, and $\prob_{(u, x)}$ as their joint distribution, all of which are unknown.
+Importantly, since $x$ may affect $u$, $u$ and $x$ can be correlated. We therefore denote by $\prob_{(u|x = \bar{x})}$ the conditional distribution of $u$ for a context $\bar{x} \in \mathcal{D}_x$.
+
+\subsection{The conditional formulation}
+\label{sec:cond}
+For any context $\bar{x}$, the decision-maker, who has some uncertain objective function $f(z,u,\bar{x})$, would like to ensure that their decision $z(\bar{x}) \in \reals^n$ performs well in both the average-case and the worst-case, where we use the following {\it value at risk} formulation to describe the $\eta$-quantile worst-case. That is, for some risk parameter $\eta \in [0,1]$:
+\begin{equation*}
+\VaR(f(z(\bar{x}),u,\bar{x}),\eta|\bar{x}) = \inf\{\Gamma \mid \prob_{(u|x = \bar{x})}(f(z(\bar{x}),u,\bar{x}) \leq \Gamma) \geq 1-\eta\} \leq 0.
+\end{equation*} 
+The decision-maker would then consider minimizing the aggregate objective,
+\begin{equation}
+	\label{eq:performance_metric}
+	\Expect_{(u|x = \bar{x})}\left(\hat{\Phi}_\gamma(z(\bar{x}),u,\bar{x})\right) = \Expect_{(u|x = \bar{x})}\left(\gamma f(z(\bar{x}),u,\bar{x}) + \VaR(f(z(\bar{x}),u,\bar{x}),\eta|\bar{x}) \right),
+\end{equation} 
+where the first term describes the average-case, the second term describes the worst-case, and $\gamma$ controls their tradeoff. This dual objective is inspired by the developments on Pareto-optimal solutions by~\cite{pareto}, who identify solutions for \gls{RO} problems that perform well not only in the worst-case, but also dominates all other solutions in the typical-case. 
+
+Ideally, the problem for any context $\bar{x} \in \mathcal{D}_x$ can then be formulated as
+\begin{equation}
+	\label{eq:bilevel_intro_opt_cond}
+	\begin{array}{ll}
+		\underset{z(\bar{x})}{\mbox{minimize}} & \Expect_{(u|x = \bar{x})}\left(\hat{\Phi}_\gamma(z(\bar{x}),u,\bar{x})\right) \\
+		\mbox{subject to} & \VaR(\hat{g}(z(\bar{x}),u,\bar{x}),\eta|\bar{x}) \leq 0,\\
+	\end{array}
+\end{equation}
+where the function $\hat{g} : \reals^n \times \reals^m \times \reals^{p} \to \reals$  is an {\it uncertain constraint} the decision-maker might have, and would like to constrain below 0 with high probability (that is, with probability $1-\eta$, as implied by the value at risk constraint). We assume $\hat{g}$ to be the maximum of functions concave in $u$ and convex in $z$ and $x$,~\eg, $\hat{g}(z, u, x) = \max_{l=1,\dots, \hat{L}} \hat{g}_l(z, u, x)$. This structure allows us to express $\hat{L}$ joint uncertain constraints using the maximum of each component $l$. Similarly, we assume the original objective function $f$ to be concave in $u$ and convex in $z$. 
+
+With these assumptions, we can in fact move the $\VaR$ in the peformance metric~\eqref{eq:performance_metric} into the constraint, that is, define 
+\begin{align*}
+\Phi_\gamma(z(\bar{x}),u,\bar{x}) &= \gamma f(z(\bar{x}),u,\bar{x}) + t(z(\bar{x}))\\
+g(z(\bar{x}),u,\bar{x}) &= \max\{f(z(\bar{x}),u,\bar{x}) - t(z(\bar{x})),\hat{g}(z(\bar{x}),u,\bar{x})\},
+\end{align*}
+where $z(\bar{x})$ is augmented with an additional epigraph variable, and the function $t(z(\bar{x}))$ extracts this epigraph variable. Furthermore, the new constraint $g$ is an augmentation of the original constraint $\hat{g}$ with the epigraph constraint $f(z(\bar{x}),u,\bar{x}) - t(z(\bar{x})) \leq 0$, with the number of concave pieces now $L = \hat{L}+1$.
+% Then, if we consider the constraint $g$ to incorporate the function $ \leq 0$ as one of the $L$ components of the maximum, we arrive at an equivalent formulation. 
+For the rest of the paper, we assume to work with this transformed formulation. The corresponding formuation of~\eqref{eq:bilevel_intro_opt_cond} becomes
+\begin{equation}
+	\label{eq:bilevel_intro_opt_cond_new}
+	\begin{array}{ll}
+		\underset{z(\bar{x})}{\mbox{minimize}} & \Expect_{(u|x = \bar{x})}\left(\Phi_\gamma(z(\bar{x}),u,\bar{x})\right) \\
+		\mbox{subject to} & \VaR(g(z(\bar{x}),u,\bar{x}),\eta|\bar{x}) \leq 0.\\
+	\end{array}
+\end{equation}
+
+The conditional formulation given in~\eqref{eq:bilevel_intro_opt_cond_new} is powerful, as the constraint controls the risk for each context. However, while the conditional guarantee is desirable, in real-life settings the conditional distribution may be difficult to estimate~\citep{conformal}. The associated performance guarantees require stringent assumptions, which additionally depend on the approximation technique applied. While we do provide performance guarantees for this setting (see Section~\ref{sec:cond_guarantee}), for the sake of simplicity, we focus on the following {\it joint formulation},
+\begin{equation}
+	\label{eq:bilevel_intro_opt_cond_joint}
+	\begin{array}{ll}
+		\underset{z(\cdot)}{\mbox{minimize}} & \Expect_{(u,x)}\left(\Phi_\gamma(z(x),u,x)\right) \\
+		\mbox{subject to} & \VaR(g(z,u,x),\eta) \leq 0,\\
+	\end{array}
+\end{equation}
+which can be interpreted as~\eqref{eq:bilevel_intro_opt_cond_new} with an additional expectation taken over $x$ in both the objective and the constraints. Instead of optimizing for a particular context, we want to find a mapping $z(\cdot)$ that performs well {\it across all contexts}. Such a mapping would then be applicable for any context within the problem family.
+% Note that while a mapping $z(\bar{x})$ found through~\eqref{eq:bilevel_intro_opt_cond_new} might overfit to the particular context, and would not be applicable for other contexts, the mapping $z(\cdot)$ of~\eqref{eq:bilevel_intro_opt_cond_joint} could be applied for any context within the problem family. 
+In the following, we describe our proposed mapping. 
+
+\subsection{The joint formulation and the bi-level problem}
+\label{sec:joint}
+In~\eqref{eq:bilevel_intro_opt_cond_joint}, we are interested in finding the best mapping $z(\cdot)$ from context parameters $x$ to decisions $z$. To this end, we define the parametic set-valued mapping given by $x \rightarrow \uncset(\theta,x)$, where 
+$\uncset(\theta,x) \subseteq \reals^m$ is a convex contextual uncertainty set that depends on the {\it set parameter} $\theta \in \reals^q$.
+For example, $\theta$ can represent the mapping between $x$ and the center, size, and shape of~$\uncset(\theta,x)$.
+We then define the mapping $z(\cdot)$ as the solution to the \glsfirst{RO} problem
+\begin{equation}
+	\label{eq:robust_prob}
+	z(\theta, x) \in \begin{array}[t]{ll}
+		\mbox{argmin}  &t(z)\\
+		\mbox{subject to} & g(z,u,x)  \le 0  \quad \forall u \in \uncset(\theta,x).
+	\end{array}
+\end{equation}
+In this manner, we would like to find the optimal parameter $\theta$ by solving the bi-level optimization problem
+\begin{equation}
+	\label{eq:bilevel_intro_opt_theta}
+	\begin{array}{ll}
+		\underset{\theta}{\mbox{minimize}} & \Expect_{(u,x)}\left(\Phi_\gamma(z(\theta,x),u,x)\right) \\
+		\mbox{subject to} & \VaR(g(z(\theta,x),u,x),\eta) \leq 0,\\
+	\end{array}
+\end{equation}
+where the inner level problems, which becomes constraints of the outer level problem~\eqref{eq:bilevel_intro_opt_theta}, is represented by~\eqref{eq:robust_prob}, for all $x \in \mathcal{D}_x$. 
+Problem~\eqref{eq:robust_prob} guarantees that, for $\theta$ and any given $x$, the solution $z(\theta, x)$ satisfies the constraint for any value of the uncertain parameter $u$ in $\uncset(\theta,x)$. The outer level problem~\eqref{eq:bilevel_intro_opt_theta} then selects $\theta$ in a {\it decision-focused} manner, such that the solutions \RC{$z(\theta, x)$} perform well in terms of the performance metric and satisfy the $\VaR$ constraint across the problem class.
+
+
+% The decision-maker would like to ensure that their decision $z \in \reals^n$ performs well in both average-case and worst-case situations across the contexts $x$ and uncertainty $u$, that is, for some uncertain objective function $f(z,u,x)$,
+% both 
+% $$\Expect_{(u,x)}\left(f(z(x),u,x)\right)~~~\text{and}~~~\Expect_{x}\left(t(x)\right)~~\text{such that}~~\prob_{(u,x)}(f(z(x),u,x)\leq t(x)) \geq 1 - \eta$$
+% are taken into consideration.
+% Here, the variable $z(x)$ denotes the decision made for the context $x$, and the variable $t(x)$ is constructed to represent the corresponding $\eta$-quantile worst-case objective value for the context $x$, for some risk parameter $\eta \in [0,1]$. 
+% This dual objective is inspired by the developments on Pareto-optimal solutions by~\cite{pareto}, who identify solutions for \gls{RO} problems that perform well not only in the worst-case, but also dominates all other solutions in the typical-case. 
+
+% In this formulation, $\prob_x$ is the distribution of $x$ with domain $\mathcal{D}_x \subseteq \reals^p$, $\prob_u$ is the  distribution of $u$ with domain $\mathcal{D}_u \subseteq \reals^m$, and $\prob_{(u, x)}$ is their joint distribution, all of which are unknown.
+% Importantly, $u$ and $x$ can be correlated.
+% We note that this is an aggregate probabilistic guarantee for the parametric class of problems, and not a conditional guarantee which holds for all instances~$x$. 
+% Whereas a conditional guarantee is more desirable, there are multiple methods through which we can approximate the conditional distribution~\citep{bertsimas2020predictive}, each with its own required assumptions. While our results can extend to such settings, to avoid cumbersome exposition in the main text, we delay these extensions to Appendix~\ref{appx:conditional}. In the rest of the section, we work with the joint distribution $\prob_{(u, x)}$.
+
+
+
+% % stringent assumptions on the distribution \RC{$\prob_x$}, which are typically hard to verify in practice~\citep{condcover}~\citep[Section 3.1]{conformal}.}
+
+
+% Ideally, the problem can then be formulated as
+% \begin{equation}
+% 	\label{eq:bilevel_intro_opt}
+% 	\begin{array}{ll}
+% 		\underset{z(\cdot)}{\mbox{minimize}} & \Expect_{(u,x)}\left(\Phi_\gamma(z(x),u,x)\right) \\
+% 		\mbox{subject to} & \prob_{(u,x)}(g(z(x),u,x) \le 0) \ge 1 - \eta,\\
+% 	\end{array}
+% \end{equation}
+% where the performance metric  $\Phi_\gamma(z(x),u,x) = t(z(x)) + \gamma f(z(x),u,x)$ consolidates the two objectives through the tunable hyper-parameter $\gamma$. Note that with a slight abuse of notation, we assume now that the epigraph variable $t(x)$ constructed is within $z(x)$, such that $t(z(x))$ extracts this epigraph variable from $z(x)$. 
+% The function $g : \reals^n \times \reals^m \times \reals^{p} \to \reals$  is an uncertain constraint which we assume to be the maximum of functions concave in $u$ and \RC{convex in $z$ and $x$,~\eg, $g(z, u, x) = \max_{l=1,\dots, L} g_l(z, u, x)$.}
+% This structure allows us to express $L$ joint uncertain constraints using the maximum of each component $l$. We note that the constraint $f(z(x),u,x)- t(z(x)) \leq 0$ is assumed to be encoded into $g$ as one of the components. 
+% % We note that linear adjustable \gls{RO} problems with affine decision rules also fall within this class.
+
+
+
+
+% In~\eqref{eq:bilevel_intro_opt}, we are interested in finding the best mapping $z(\cdot)$ from context parameters $x$ to decisions $z$. To this end, we define the parametic family of set-valued mappings given by $x \rightarrow \uncset(\theta,x)$, where 
+% $\uncset(\theta,x) \subseteq \reals^m$ is a convex contextual uncertainty set that depends on the {\it set parameter} $\theta \in \reals^q$.
+% For example, $\theta$ can represent the mapping between $x$ and the center, size, and shape of~$\uncset(\theta,x)$.
+% We then define the mapping $z(\cdot)$ as the solution to the \glsfirst{RO} problem
+% \begin{equation}
+% 	\label{eq:robust_prob}
+% 	z(\theta, x) \in \begin{array}[t]{ll}
+% 		\mbox{argmin}  &t(z)\\
+% 		\mbox{subject to} & g(z,u,x)  \le 0  \quad \forall u \in \uncset(\theta,x).
+% 	\end{array}
+% \end{equation}
+% In this manner, we would like to find the optimal parameter $\theta$ by solving the bi-level optimization problem
+% \begin{equation}
+% 	\label{eq:bilevel_intro_opt_theta}
+% 	\begin{array}{ll}
+% 		\underset{\theta}{\mbox{minimize}} & \Expect_{(u,x)}\left(\Phi_\gamma(z(\theta,x),u,x)\right) \\
+% 		\mbox{subject to} & \prob_{(u,x)}(g(z(\theta,x),u,x) \le 0) \ge 1 - \eta,\\
+% 	\end{array}
+% \end{equation}
+% where the inner level problem is represented by~\eqref{eq:robust_prob}.
+% Problem~\eqref{eq:robust_prob} guarantees that, for $\theta$ and any given $x$, the solution $z(\theta, x)$ satisfies the constraints for any value of the uncertain parameter $u$ in $\uncset(\theta,x)$. The outer level problem~\eqref{eq:bilevel_intro_opt_theta} then selects $\theta$ in a {\it decision-focused} manner, such that the solutions \RC{$z(\theta, x)$} perform well in terms of the performance metric and satisfy the chance constraint across the problem class.
+
+% Unfortunately, as the chance constraint is intractable, this problem cannot be solved directly. A common reformulation technique is to
+% express the chance constraint in~\eqref{eq:bilevel_intro_opt_theta} in terms of the corresponding {\it value at risk}, \ie,
+% \RC{\begin{equation*}
+% \VaR(g(z(\theta,x),u,x),\eta) = \inf\{\Gamma \mid \prob_{(u,x)}(g(z(\theta,x),u,x)\leq \Gamma) \geq 1-\eta\} \leq 0.
+% \end{equation*}}
+
+Unfortunately, the value at risk function often leads to intractable formulations~\citep{cvaropt}, so our problem cannot be solved directly. 
+To get a tractable approximation, we adopt the {\it conditional value at risk}~\citep{cvaropt,cvar}, defined as
+\begin{equation*}
+	\label{eq:cvar}
+\CVaR(g(z(\theta,x),u,x),\eta) = \inf_{\alpha}\left\{\frac{\Expect_{(u,x)} (g(z(\theta,x),u,x)- \alpha)_+}{\eta} + \alpha\right\},
+\end{equation*}
+where $(a)_+ = \max\{a,0\}$. It is well known~\citep{cvaropt} that, for any \RC{$z \in \reals^n$}, the relationship between these probabilistic guarantees of constraint satisfaction is
+% Please use quad instead of specific hspace cm. Otherwise, if we change the layout, things can break.
+\begin{equation*}
+	\label{eq:imply}
+\CVaR(g(z,u, x),\eta) \leq 0 ~~\Longrightarrow~~ \VaR(g(z,u,x),\eta)\leq 0 ~~\Longleftrightarrow ~~ \prob_{(u,x)}(g(z,u,x)\leq 0) \geq 1 - \eta.
+\end{equation*}
+Therefore, if the solution \RC{$z(\theta,x)$ of~\eqref{eq:robust_prob} satisfies $\CVaR(g(z(\theta,x),u,x),\eta) \leq 0$,} we have the desired probabilistic guarantee in~\eqref{eq:bilevel_intro_opt_theta}.
+In fact, as the $\CVaR$ constraint is stronger than the $\bf{VaR}$ constraint, ensuring its satisfaction might result in more desirable solutions, especially when, on top of the {\it threshold} worst-case value, the decision-maker is concerned with the {\it magnitude} of all the worst-case values beyond the threshold~\citep{cvar_var}. Furthermore, this formulation should not favor neglecting certain contexts $x$ (such that they suffer constraint violations of a significant magnitude) in exchange for better performance for other contexts, since that would result in a high $\CVaR$.
+
+
+\subsection{Data-driven approximation}
+\label{ssec:constrained_learning}
+As the distribution $\prob_{(u,x)}$ is unknown, we are unable to obtain the true expectation in~\eqref{eq:bilevel_intro_opt_theta}. We do, however, assume access to historical data.
+Suppose we are given
+a pair of {\it training} datasets $W^{N} = (U^N,X^N) = \{(u^i,x^i)\}_{i=1}^N \subseteq \mathcal{D}_{(u,x)}$, consisting of a set of $N$ independent samples of the uncertain parameter $u$ and context parameter $x$, governed by $\prob^N$, their joint distribution.
+As the true probabilistic guarantee in~\eqref{eq:bilevel_intro_opt_theta} cannot be obtained, we instead target the
+% Our main requirement is to identify a set parameter $\theta$ for which the solutions $z(\theta, x)$ to problem~\eqref{eq:robust_prob} with uncertainty set $\mathcal{U}(\theta,x)$, satisfy
+the following {\it finite-sample probabilistic guarantee}
+\begin{equation}
+  \label{eq:prob_guarantee}
+  \prob^{N}\left(\prob_{(u,x)}(g(z(\theta,x),u,x) \le 0) \ge 1 - \eta\right)\geq 1 - \beta,
+\end{equation}
+where $\beta > 0$ is the target confidence level across draws of the dataset $W^N$.
+In other words, for any dataset $W^N$ drawn from the true distribution, the learned $\theta$ satisfies the chance constraint $\prob_{(u,x)}(g(z(\theta,x),u,x) \le 0) \ge 1 - \eta$ with confidence $\beta$.
+% In other words, we are looking for $\theta$ such that the probability of observing $N$ samples which results in data-driven decisions $z(\theta,x)$ that do not satisfy the desired guarantee is small.
+% \bsnote{use only round or curly brackets for probabilities, but do not mix them}
+% \bsnote{What do you mean by ``stochastic version of~\eqref{eq:bilevel_intro}''? Isn't that already a stochastic program?}
+% Instead of working with the probability $\prob_{(u,x)}$,} which often leads to intractable formulations~\citep{cvaropt} as discussed in Section~\ref{c4:sec:intro}, we adopt a tractable approximation based on the {\it conditional value at risk}~\citep{cvaropt,cvar} defined in~\eqref{eq:cvar}, obtaining the constraint
+% \RC{$$\CVaR(g(z(\theta,x),u,x),\eta) \le \kappa \quad \iff\quad \inf_{\alpha}\left\{\frac{\Expect_{(u,x)} (g(z(\theta,x),u,x)- \alpha)_+}{\eta} + \alpha\right\}\leq \kappa,$$}
+% where $\kappa > 0$ is a threshold value that we define in Section~\ref{sec:guarantees} to obtain the finite sample guarantees~\eqref{eq:prob_guarantee}.
+% \citep{cvaropt}.
+% To get a tractable approximation, we can adopt the {\it conditional value at risk}~\citep{cvaropt,cvar}, defined as
+% \begin{equation}
+% 	\label{eq:cvar}
+% \CVaR(g(x(\theta,y),u,y),\eta) = \inf_{\alpha}\{\Expect_{(u,y)}((1/\eta)(g(x(\theta,y),u,y)- \alpha)_+) + \alpha\},
+% \end{equation}
+% where $(a)_+ = \max\{a,0\}$.
+% Here, $u$ are realizations of the constructed uncertainty set, $y$ are the family parameters, and $\prob_{(u,y)}$ denotes the joint distribution of $(u,y)$.
+% In order to formalize the learning task, we define an outer problem minimizing the expected value of the objective function $f(x(\theta, y), y)$ of~\eqref{eq:robust_prob}, subject to the following constraint,
+% $$\CVaR(g(x(\theta,y),u,y),\eta) \leq \kappa,$$
+% where $\kappa \le 0$ is a target value, and the $\CVaR$ is defined as in~\eqref{eq:cvar}. As mentioned in Section~\ref{c4:sec:intro}, this then implies a probabilistic guarantee of constraint satisfaction~\eqref{eq:imply}.
+To obtain such a guarantee, we first must ensure the convergence of a data-driven version of~\eqref{eq:bilevel_intro_opt_theta}.
+To this end, we define a constraint on the sampled $\CVaR$,
+\begin{equation}
+\label{eq:sampled_cvar}
+\widehat{\CVaR}(\theta) = \inf_{\alpha} \frac{1}{N}\sum_{i=1}^N \left(\frac{(g(z(\theta,x^i),u^i,x^i)- \alpha)_+}{\eta} + \alpha \right)\leq \kappa,
+\end{equation}
+and require this condition to hold for feasible $\theta$.
+\RC{The value $\kappa < 0$ is a threshold margin that we define later in Section~\ref{sec:guarantees}, Theorem~\ref{thm:fin_sample}, to ensure the finite sample guarantee~\eqref{eq:prob_guarantee}.}
+\RC{We can then formulate the stochastic objective and constraint functions as follows,}
+\begin{equation*}
+F(\theta) = \frac{1}{N}\sum_{i=1}^N\Phi_{\gamma}(z(\theta,x^i),u^i, x^i) \quad \text{and}\quad H(\alpha,\theta) = \frac{1}{N}\sum_{i=1}^N ((g(z(\theta,x^i),u^i,x^i)- \alpha)_+/\eta + \alpha - \kappa)_+,
+\end{equation*}
+evaluated over the dataset 
+$W^N$. We use these approximations to define the sampled version of~\eqref{eq:bilevel_intro_opt_theta} as
+\begin{equation}
+	\label{eq:bilevel_sampled}
+	\begin{array}{ll}
+		\underset{\alpha,\theta}{\mbox{minimize}} & F(\theta) \\
+		\mbox{subject to} & H(\alpha,\theta) = 0,\\
+	\end{array}
+\end{equation}
+where the constraint $H$ corresponds to the $\CVaR$ constraint where $\alpha$ is also a minimization variable.
+When the functions $f$ and $g$ are convex in $z$, optimizing over $\alpha$ as well has no impact on the optimal solution~\citep{cvar_ref}.
+With this formulation, we thus tune $\alpha$ and the set parameter $\theta$ to improve the quality of the solutions \RC{$z(\theta,x^i)$} of the inner \gls{RO} problem~\eqref{eq:robust_prob}, measured by the performance on the outer level problem.
+
+Solving the stochastic problem~\eqref{eq:bilevel_sampled} is challenging because of the nonconvex bi-level structure introduced by the inner \gls{RO} problem~\eqref{eq:robust_prob}.
+While it may be possible to directly reformulate it as a single-level problem, this would involve several bilinear constraints over the entire training dataset, which can be difficult even in the simplest case of $\ell_1$-norm uncertainty sets; see Appendix~\ref{appx:bilinear}.
+% Our approach, despite requiring hyperparameter tuning, can be batched for low per-iteration cost. 
+We address these challenges in the following section, by introducing a stochastic first-order method to address problem~\eqref{eq:bilevel_sampled} with tractable iterations.
+For the high-level architecture, see Figure~\ref{fig:arch}.
+
+\begin{figure}[ht]%
+	\centering
+	\includegraphics[width=0.7\textwidth]{img_architecture_t.pdf}
+	\caption{Our high-level procedure. 
+	% We evaluate the performance of the decision $z(\theta,x)$ in terms of the expected objective value and constraint satisfaction. 
+	The evaluation metric is the augmented Lagrangian function defined in Section~\ref{sec:training_procedure}, and is derived from the sampled problem~\eqref{eq:bilevel_sampled}.}
+	\label{fig:arch}%
+    % \ifpreprint\else
+    % \vspace{-1em}
+    % \fi
+\end{figure}
+
+We give in Appendix~\ref{appx:gen_sets} examples of parameterized uncertainty sets and the corresponding convex reformulations of~\eqref{eq:robust_prob}, which we use to solve for \RC{$z(\theta,x^i)$}. 
+In the motivating example below, we give a parameterization of an ellipsoidal uncertainty set, where the trainable parameters are $\theta = (W_A, W_b, h_A, h_b,\rho)$. Learning $\theta$ using~\eqref{eq:bilevel_sampled} thus equates to learning a feasible and ideally optimal set-valued mapping from context parameters to a region of uncertainty realizations.
+
+
+% \bsnote{I would describe the problem here and the desired probabilistic guarantees of constraint satisfaction. 1) this clarifies the goal earlier on, and 2) this makes it easier to follow the motivating example.}
+% \RC{We consider a class of parametric \glsfirst{RO} problems, indexed by the {\it context parameter}~$x \in \reals^p$, where each instance takes the form:}
+% % Each problem takes the form:
+% \RC{\begin{equation}
+% 	\label{eq:robust_prob}
+% 	z(\theta, x) \in \begin{array}[t]{ll}
+% 		\mbox{argmin}  &f(z)\\
+% 		\mbox{subject to} & g(z,u,x)  \le 0  \quad \forall u \in \uncset(\theta,x),
+% 	\end{array}
+% \end{equation}}
+% \bsnote{argmin is a set in general, we cannot use equality condition. We either write $x \in \argmin$, or we write $=$ and directly mention that there is a unique optimal solution.}
+% \bsnote{I think we can have $f(x)$ simply. It should make things cleaner. I started editing it but we should change other parts as well.}
+% where $y \in \reals^{n'}$ parametrizes the family with underlying distribution $\prob_y$,
+% \RC{where $z \in \reals^n$ is the optimization variable}, $u \in \reals^m$ is the {\it uncertain parameter}, $f: \reals^n \to \reals$ is the convex objective function, and $g : \reals^n \times \reals^m \times \reals^{p} \to \reals$ is the uncertain constraint which we assume to be the maximum of functions concave in $u$ and \RC{convex in $z$ and $y$,~\eg, $g(z, u, x) = \max_{l=1,\dots, L} g_l(z, u, x)$.}
+% \bsnote{Are we using max of concave or max of affine in the end? It looks like we have max of affine.}
+% This structure allows us to express $L$ joint uncertain constraints using the maximum of each component $l$.
+% \RC{We note that linear adjustable \gls{RO} problems with affine decision rules also fall within this class.}
+% \bsnote{is the definable assumption absolutely necessary here to understand? or can we put it in the theorems directly?}
+% We refer to {\it instances} of the family as the realization of problem~\eqref{eq:robust_prob} where $y$ takes a specific value.
+
+% \RC{Problem~\eqref{eq:robust_prob} guarantees that, for a given $x$, the solution $z(\theta, x)$ satisfies the constraints for any value of the uncertain parameter $u$ in $\uncset(\theta,x) \subseteq \reals^m$, a convex {\it contextual} uncertainty set that depends on the {\it set parameter} $\theta \in \reals^q$.
+% For example, $\theta$ can represent the mapping between $x$ and the center, size, and shape of~$\uncset(\theta,x)$.
+% % \bsnote{to be precise, $\theta$ represents the mapping between $x$ and the center,size, etc}
+% % maximum-of-concave function in $u$.
+% In this setting, the context parameter $x$ represents information available when we make our decisions (\eg, current allocations in portfolio optimization, the price of the products to sell in inventory problems). } The uncertain parameter $u$, however, is not known (\eg, future returns in portfolio optimization). 
+% \RC{The context parameter $x$ is allowed to affect the uncertain parameter $u$.}
+% Importantly, we do not assume that $y$ affects $u$, which is common in several practical applications (\eg, when our portfolio allocations do no affect future market returns).
+
+% from the uncertain parameter $u$ in that it is known when we make the decision.
+% \bsnote{Give a quick example in a inventory problem or portfolio optimization problem, where $y$ and $u$ do not interact.}
+% This allows us to exploit the structure of this family of parametric \gls{RO} problems, as we train an uncertainty set specifically targeted for it. 
+% particular family.
+% , and need not consider the entire class of optimization problems.
+% Note that, if $y$ is supported on a single value, we obtain the usual \gls{RO} formulation.
+% , whose dimensions depend on the form of the uncertainty set considered (\ie~box, ellipsoidal).
+% As learning an uncertainty set is costly, %% One could learn a function (contextual) instead of a different set. I don't think the argument holds here....
+% Here, the set $\uncset(\theta)$ does not depend on individual $y$ as this would require either learning a different uncertainty set for every instance of the family, which may be costly, or learning a mapping from $y$ to the uncertainty set (as in conditional \gls{RO}~\citep{contex}), which may be hard to interpret.
+% % \bsnote{we should mention the last two points in the lit review}
+% Instead, we construct a fixed set that works for all realizations of $y$ encountered in target application.
+
+% Our goal is to find a set parameter $\theta$ in a {\it decision-focused} manner, \ie, such that the solutions \RC{$z(\theta, x)$} perform well in terms of \RC{a performance metric} and satisfy
+% the constraint satisfaction guarantees across the problem class. 
+% % for the high-level architecture. 
+% % Instead of a single \gls{RO} problem, we consider a family of problems parametrized by $y$ such that the uncertainty set is robust for multiple {\it instances} of $y$, and can optimize the worst-case decisions $x(\theta,y)$ across all instances.
+% Specifically, we choose the uncertainty set \RC{$\uncset(\theta,x)$ such that the solutions $z(\theta,x)$ from~\eqref{eq:robust_prob}} imply that the uncertain constraint is satisfied with probability $1 - \eta$ with $\eta > 0$, across all instances of problem~\eqref{eq:robust_prob}:
+% \RC{\begin{equation}
+% 	\label{eq:guarantee}
+% 	\prob_{(u,x)}(g(z(\theta,x),u,x) \le 0) \ge 1 - \eta.
+% \end{equation}}
+% \RC{Here, $\prob_x$ is the distribution of $x$ with domain $\mathcal{D}_x \subseteq \reals^p$, $\prob_u$ is the  distribution of $u$ with domain $\mathcal{D}_u \subseteq \reals^m$, and $\prob_{(u, x)}$ is their joint distribution, all of which are unknown.
+% Importantly, $u$ and $x$ can be correlated. 
+% We note that this is an aggregate probabilistic guarantee for the parametric class of problems, and not a conditional guarantee which holds for all instances~$x$. 
+% {Whereas such a conditional guarantee is perhaps more desirable, it requires stringent assumptions on the distribution \RC{$\prob_x$}, which are typically hard to verify in practice~\citep{condcover}~\citep[Section 3.1]{conformal}.}}
+
+% It is well known that by constructing uncertainty sets that contain at least $1-\eta$ probability mass, \RC{\ie,~$\prob_{(u,x)}(u \in \uncset(\theta,x))\geq 1 - \eta$}, we can ensure that any feasible solution of~\eqref{eq:robust_prob} implies a probabilistic guarantee~\eqref{eq:guarantee}.
+% However, this sufficient condition may lead to overly conservative solutions~\cite[page 34]{ben-tal_robust_2009}, as it works for any \gls{RO} problem and any constraint using the uncertainty set~\RC{$\uncset(\theta,x)$}.
+% \RC{In this work, instead, we avoid such conservatism by taking into account the average cost $\Expect_{(u,x)}\left(\Phi(z(\theta , x),u,x)\right)$ of the robust solutions \RC{$z(\theta, x)$} while constructing the uncertainty sets, where $\Phi(\cdot)$ is a given performance metric. For problems with only constraint uncertainty, this performance metric can be taken as simply the objective function, $f(\cdot)$. For problems with objective uncertainty, we delay the discussion to Section~\ref{sec:objective_uncertainty} below.
+% % \bsnote{``in other words'' does not follow from the phrase before}
+% Overall, we aim to find the best uncertainty set parameterization $\theta$ that satisfies the probabilistic constraint and also performs well on average. While uncertainty sets constructed from constraint information has been explored in recent literature~\citep{bertsimas_price_2004,bertsimas_data-driven_2018}, systematic customization of a large number of uncertainty set parameters in a contextual and decision-focused manner is a novel topic. With these goals in mind, the ideal problem we would like to solve is} 
+% \RC{\begin{equation}
+% 	\label{eq:bilevel_intro}
+% 	\begin{array}{ll}
+% 		\underset{\theta}{\mbox{minimize}} & \Expect_{(u,x)}\left(\Phi(z(\theta, x),u,x)\right) \\
+% 		\mbox{subject to} & \prob_{(u,x)}(g(z(\theta,x),u,x) \le 0) \ge 1 - \eta,\\
+% 	\end{array}
+% \end{equation}}
+% \RC{where $z(\theta, x)$ is the solution of the \gls{RO} problem~\eqref{eq:robust_prob} for each $x$.} 
+
+% To solve the bi-level problem~\eqref{eq:bilevel_intro}, we thus employ the $\CVaR$ approximation for the chance constraint, and use a stochastic gradient-based approach to learn an optimal parameterization $\theta$ of the uncertainty set.
+
+
+
+% \subsection{Objective uncertainty and average performance }
+% \label{sec:objective_uncertainty}
+% \RC{In the robust formulation~\eqref{eq:robust_prob}, we assumed only uncertain constraints. However, robust objective functions can be easily rewritten in the given form, by introducing an epigraph variable, \ie, $t$, along with the uncertain constraint $$g_0(z,t,u,x) = f(z,u,x) - t \leq 0.$$ 
+% % \bsnote{maybe we can call this $g_0$ as this is commonly done in the convex optimization book? }
+% The $\CVaR$ constraint $\CVaR(g_0(z(\theta,x),t(\theta,x),u, x),\eta) \leq 0 $ then implies the probabilistic guarantee $$\prob_{(u,x)}(f(z(\theta,x),u,x)\leq t(\theta,x)) \geq 1 - \eta,$$ such that $t(\theta,x)$ is an upper bound on the $\eta$-quantile worst-case objective.
+% % {\color{red} Bart: Very subtle sentence.}. 
+% By minimizing $\Expect_{x}\left(t(\theta, x)\right)$ in the outer level of the bi-level problem~\eqref{eq:bilevel_intro}, we optimize the $\eta$-quantile worst-case performance, averaged over the contexts.}
+% \RC{In many applications, however, in addition to the worst-case performance, we also wish to optimize the average-case performance. Related is the recent development on Pareto-optimal solutions~\citep{pareto}, where the authors identify robust solutions that perform well not only in the worst-case. In this work, by defining a weighted performance metric, we can also solve for uncertainty sets that perform well in the average case. We consolidate the two objectives (minimizing worst-case and average-case performance) through the following formulation
+% \begin{equation}
+% \label{eq:perform_bi}
+%     \Expect_{(u,x)}\left(\gamma t(\theta,x) + (1-\gamma)f(z(\theta, x),u,x)\right),
+%     \end{equation}
+% where $\gamma$ is a tunable hyper-parameter.
+% In terms of~\eqref{eq:bilevel_intro}, the performance metric is thus defined as $\Phi(z(\theta,x),u,x) = \gamma t(\theta,x) + (1-\gamma)f(z(\theta, x),u,x).$
+% }
+% \RC{Controlling the value of $\gamma$ allows us to trade-off the two objectives, and identify a solution that provides numerically the best of both worlds.}
+
+% % \bsnote{paragraph below is a bit confusing. I would just drop it to be honest. The main aprt of the message is above}
+% % \RC{
+% % We note that, to guarantee a specific worst-case performance, we could additionally introduce an upper bound $\hat{t}(x)$ on $t(\theta,x)$, potentially acquired through a pre-processing step, such as any traditional two-step \gls{RO} procedure. The resultant constraint $t(\theta,x) \leq \hat{t}(x)$ could be added to the robust problem~\eqref{eq:robust_prob}. However, as this restricts the feasible initializations of the problem, in practice we drop this constraint and use hyper-parameter tuning. }
+% % With our method, we show that there is not necessarily a correlation between the coverage percentage of the constructed uncertainty set and the probability of constraint satisfaction.
+
+
+% % \bsnote{We should change the evaluation metric here (possibly to avoid using $L$), and make $f$ only depend on $x$ and not $y$.}
+% % construct the uncertainty set while also finding the optimal solutions $x(\theta,y)$ of~\eqref{eq:robust_prob} across instances of $y$.
+% % In this way, we obtain less conservative objective values.
+% % In addition, if the set of $y$'s are representative enough of the desired set of problems, the constructed uncertainty set is already as conservative as we need.
+
+% %while the desired probabilistic guarantee is satisfied only at our set of optimal solutions $x(\theta,y)$, we obtain less conservative objective values. In addition, if the set of $y$'s are representative enough of the desired set of problems, the constructed uncertainty set is already as conservative as we need.
+% % Therefore, our uncertainty set seeks not to encompass the majority of data-points, but instead learns information from the optimization problem itself, and adopts a parameterization $\theta$ that services the worst-case robust decision $\bar{x}$.  In the following section, we motivate our procedure of learning this $\theta$.
+
+\subsection{Motivating example}
+\label{sec:intro_sets}
+\RC{We demonstrate through a motivating toy example the average-case gains we could obtain through a decision-focused uncertainty set, even when the worst-case objective value cannot be further improved.}
+% - simple example to illustrate the power of using a reshaping matrix instead of the radius
+% - multi-modal distribution
+% - should include images of the uncertainty set
+% - deterministic set given, in this paper show how to train it
+% - estimating parameters, region will not be a ball
+% - the direction of the constraint also matters a lot
+\RC{We consider a 2-product newsvendor problem where each day, the vendor
+orders $z\in \reals^2$ 
+products at price $k \in \reals^2$, and we allow fractional values for simplicity. The products are sold at price $p \in \reals^2$, until either the demand $u \in \reals^2$ or inventory $z$ is exhausted. The objective function to minimize is the sum of the ordering cost minus the revenue, 
+$f(z,u,k,p) = k^Tz - p^T\min\{z,u\} = k^Tz + \max(-p_1z_1 - p_2z_2, -p_1z_1 - p_2u_2, -p_1u_1 - p_2z_2, -p_1u_1 - p_2u_2).$}
+% We consider the portfolio management problem where we select a portfolio $x \in \reals^n$ of stocks to maximize $u^T x$, where $u\in \reals^n$ are the uncertain asset returns.
+% For visualization purposes, we choose $n = 2$.
+% Our selected stock should not deviate too far from our previous holdings, denoted $x^{\text{prev}} \in \reals^n$.
+% The trading costs are proportional to the deviations from our previous holdings $x^{\text{prev}} \in \reals^n$, \ie, $\lambda^{\rm trade}\|x - x^{\text{prev}}\|_1$ with $\lambda^{\rm trade} > 0$.
+% We seek to minimize the objective
+% $$-u^Tx + \lambda^{\rm trade}\|x - x^{\text{prev}}\|_1.$$
+% To account for uncertainty in the returns $u$, we introduce a new variable $t$ to write the objective in epigraph form, obtaining the \gls{RO} problem 
+% \begin{equation}\label{eq:portfolio_intro}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & t + \lambda^{\rm trade}\|x - x^{\text{prev}}\|_1\\
+% 		\mbox{subject to} & -u^Tx \le t \quad \forall u \in \uncset(\theta) \\
+% 		& \ones^Tx = 1, \quad x \geq 0.
+% 	\end{array}
+% \end{equation}
+% We would like to construct uncertainty sets without knowing the distributions of $y$ and $u$.
+\RC{Using the epigraph form, we obtain the \gls{RO} problem 
+\begin{equation}\label{eq:portfolio_intro}
+	\begin{array}{ll}
+		\mbox{minimize} & t\\
+		\mbox{subject to} & f(z,u,k,p) \le t \quad \forall u \in \uncset(\theta,k,p) \\
+		&z \geq 0.
+	\end{array}
+\end{equation}
+We parametrize the problem~\eqref{eq:portfolio_intro} with context parameters $x = (k,p)$, the buying and selling prices of the products, and would like to construct uncertainty sets without knowing the distributions of $x$ and $u$.}
+
+\paragraph{Problem setup.}
+\RC{We consider 20 unique sets of contexts, each repeated 100 times, to generate 2000 total data-samples. Each unique $k = (4,5) + \delta_1$ and $p = k + \max\{0,\delta_2\}$, with $\delta_1, \delta_2$ normal random variables with mean 0 and variance 3. 
+The uncertain parameter $u$ is distributed as a contextual normal distribution, with parameters
+$\mu = (3,4) -0.1p - 0.2k,~\Sigma =
+	I$,
+where the mean depends on the context. 
+In other words, the demands of the products are inversely related to their prices. 
+Overall, we generate 2000 uncertainty-context pairs $(u_i,x_i)$.
+We split the 2000 samples into 600 training data-points, 400 validation data-points, and 1000 testing data-points.}
+
+\paragraph{Methods.}
+% \RC{As this is a contextual problem with a piecewise linear objective, it cannot be solved by methods that consider only concave objective uncertainty. Furthermore, for custom uncertain-constraint-based uncertainty sets, solving~\eqref{eq:portfolio_intro} would require a cutting plane algorithm for each uncertain constraint (each component of the maximum), and a separate procedure for each context.} 
+% \bsnote{We haven't talke about out method or how to find such sets yet. Do we need this comment here?} Our method, in comparison, is able to optimize over the joint uncertain constraint in a contextual manner, requiring only a single uncertainty set formulation.}
+\RC{For this toy example, we compare our method against a mean-variance uncertainty set and a contextual mean-variance uncertainty set;
+% , where such procedures are not required. 
+we delay a more comprehensive comparison against other baselines to the numerical examples in Section~\ref{c4:sec:examples}.}
+We have access to three independent datasets: a training set, a validation set, and a testing set, detailed in the problem setup. 
+
+For each method, we determine the shape of the uncertainty set using the training set, tune the radius of the uncertainty set for at most a 10\% probability of constraint violation (the probability that the in-sample objective underestimates the out-of-sample cost) on the validation dataset, and record the corresponding test-set values for the probability of constraint violation, 10\% worst-case objective, and average objective. 
+We repeat the data generation for $u$ and the uncertainty set training and selection for 10 runs of the experiment, and report the averaged values.
+The probability of constraint violation is measured as 
+$\hat{\prob}_{(u,x)}(f(z(\theta,x),u,x) \leq t(\theta,x)),$
+where $\hat{\prob}_{(u,x)}$ is the empirical distribution over the considered dataset. 
+The worst-case and average-case objectives are likewise computed using the uncertain objective function $f(\cdot)$ over the considered datasets, for instance, the 10\% worst-case objective is computed as the 90-th percentile of the test-set objective values. 
+Below, we describe the methods in greater detail. 
+% \bsnote{I would use bullet points to list the methods, not additional paragraphs as everything is under ``methods''}
+
+% \begin{figure}[ht]
+% 	\centering
+% 	\includegraphics[width=0.85\textwidth]{news_intro4_Mean-Variance.pdf}
+% 	\includegraphics[width=0.75\textwidth]{img_news_objective_vs_violations_new.pdf}
+% 	\includegraphics[width=0.85\textwidth]{news_intro4_Reshaped.pdf}
+% 	\caption{Top (bottom) row: mean-variance (reshaped) uncertainty sets, depicted in red, corresponding to the empirical probability of constraint violation $\hat{\eta}$. White dots: training data-points. Green dot: training data mean. 
+%  % Purple lines: lines corresponding to the constraint function $f(x(\theta,y),u, y) - t(\theta, y) = 0$; for each plot, there is a line for each data driven solution $x(\theta,y)$, $t(\theta, y)$.
+% \RC{Middle row: out-of-sample trade-off curves for the objective value vs.\ empirical probability of constraint violation, averaged across testing data over all repetitions of the experiment. Each marker corresponds to a $\rho$ value. The uncertainty sets depicted above and below achieves the probabilities of constraint violation $\hat{\eta}$ closest to the red dotted lines, for one repetition of the  experiment. For the reshaped set, we show contextual uncertainty sets corresponding to 5 different contexts.}}%
+% 	\label{fig:ex1_curves}%
+% \end{figure}
+% % \paragraph{Data generation.} We generate data for $u$ and $y$ as detailed above, for 5 repetitions of the experiment. Below, we show the exact values of the uncertainty sets obtained for one such repetition. 
+\begin{itemize}
+    \item  Mean-Variance (MV) uncertainty set. 
+Standard methods in \gls{RO} methods construct uncertainty sets based on
+the empirical mean $\hat{\mu}$ and covariance $\hat{\Sigma}$ of the training-set uncertainty $U^{N}$, and can be expressed in the ellipsoidal form
+\begin{equation}\label{eq:intro_example_unc_set}
+	\uncset{(\theta)} = \{u = \hat{\mu} + \hat{\Sigma}^{1/2} v \mid \|v\|_2 \leq \rho\} = \{b^{\rm mv} + A^{\rm mv} v \mid \|v\|_2 \leq \rho\},
+\end{equation}
+where $\theta = (A^{\rm mv}, b^{\rm mv},\rho)$. 
+The radius $\rho$, which represents the size of the uncertainty set, is tuned using the validation-set uncertainty $U^{\text{valid}}$.
+\item Contextual Mean-Variance (CMV) uncertainty set. Consider now a contextual version of~\eqref{eq:intro_example_unc_set} inspired by~\cite{knn}, \ie,
+$\uncset(\theta,x) =\{u = b^{\rm cmv}(x) + A^{\rm cmv}(x)v \mid \|v\|_2 \leq \rho\}$, where $b^{\rm cmv}(x)$ is a linear mapping of the context $x$ to the contextual mean of the uncertainty, and $A^{\rm cmv}(x)$ is based on the covariance matrix of the $k$ uncertainty realizations associated with the $k$ nearest neighbors of $x$,~\ie,
+\begin{equation}
+    A^{\rm cmv}(x) = \hat{\Sigma}_k^{1/2}(x),\quad b^{\rm cmv}(x) = W_bx+h_b.
+\end{equation} 
+ Specifically, we compute $W_b,h_b$ as the solution to the ordinary least-squares problem
+$$W_b,h_b=\text{argmin}~\|X^N W_b^T + \ones_{N}h_b^T - U^N\|_F^2,$$
+where we use the training dataset $(U^N, X^N)$. To compute $\hat{\Sigma}_k^{1/2}(x)$, for each context $x$, we find the $k = \lceil N/10\rceil$ realizations in $X^N$ that are closest (in the Euclidean distance) to $x$, and take the square root of the covariance matric of the $k$ corresponding realizations in $U^N$. The parameters of the uncertainty set then become $\theta = (W_b,h_b, \hat{\Sigma}_k^{1/2}(\cdot),\rho)$, where $\rho$ is tuned using the validation dataset. 
+\item Decision-focused (LRO) uncertainty set.
+\RC{Consider now a reshaped ellipsoidal set
+$$\uncset(\theta) =\{u = b^{\rm lro}(x) + A^{\rm lro}(x) v \mid \|v\|_2 \leq \rho\},$$ where both $A^{\rm lro}(x)$ and $b^{\rm lro}(x)$ are linear mappings of the context $x$, \ie,
+\begin{equation}
+\label{eq:lin_map}
+    A^{\rm lro}(x) = W_Ax+ h_A,\quad b^{\rm lro}(x) = W_bx+h_b,
+\end{equation}
+% and $T$ is a transformation that turns the vector into a matrix.
+where $W_A\in \reals^{m,m,p},~h_A\in \reals^{m,p},~W_b\in \reals^{m,p},~h_b \in\reals^m$. Note that the mappings for $A^{\rm lro}$ are tensors.  
+The parameters of the uncertainty set are $\theta = (W_A, W_b, h_A, h_b, \rho)$, the first four of which are selected using our end-to-end framework on the training dataset, and the radius is tuned using the validation dataset.}
+\end{itemize}
+
+\begin{table}
+\footnotesize
+\centering
+\begin{tabular}{lccc}
+\toprule
+ &  LRO & MV & CMV \\
+\midrule
+ $\hat{\eta}$ & $0.0995$ & $0.094$ & $0.0997$\\
+ \midrule
+ 10\% worst-case obj. &  $0 \pm 0 $ &$0 \pm 0 $ &$0 \pm 0 $  \\
+  \midrule
+ avg-case obj. &$-1.98 \pm 0.08$ &   $-1.52 \pm 0.08$ &  $-1.83\pm 0.04$\\
+\bottomrule
+\end{tabular}
+\caption{Out-of-sample values for the three methods, across 10 repetitions. Values shown as mean $\pm$ half-IQR, where half-IQR $= (Q_{.75} - Q_{.25})/2$.}
+\label{tab:intro}
+\end{table}
+
+\paragraph{Comparison.}
+\RC{In Table~\ref{tab:intro}, we compare the three uncertainty sets, with an average taken over the 10 independent runs. We note that while the 10\% worst-case values are all 0 (for all methods, the radius can always be tuned to obtain a particular worst-case guarantee), the average-case objective for the learned decision-focused uncertainty set (LRO) outperforms the other two methods, signifying that we attain less conservative - but still robust - solutions. In fact, we note that the worst average-case objective for LRO in the given (0.25,0.75) quantile range still outperforms the best average-case objective for the other methods.}
+\RC{In the next sections, we introduce an automatic technique to find these contextual decision-focused sets. In the larger numerical examples in Section~\ref{c4:sec:examples}, we further demonstrate the ability of the method to outperform baseline methods in both worst-case and average-case performance. }
+% different instances of the parametric family.
+% for the demand values in our dataset.
+% In other words, solving the \gls{RO} problem with the reshaped dataset achieves better performance.
+
+% \begin{figure}[H]%
+% 	\centering
+% 	\includegraphics[width=\textwidth]{Reshaped2.pdf}
+% 	\caption{Headmaps of the constraint value, ${k^T\bar{x}- p^T\min\{\bar{x}, u\} - \hat{\tau}}.$ Darker indicates lower values, which are desirable. }%
+% 	\label{fig:ex1_heat}%
+% \end{figure}
+% Therefore, when solving \gls{RO} problems, we propose to {\it learn} reshaping parameters $(A,b)$ instead of only $\epsilon$, to gain better performance. Compared to very involved data-driven \gls{RO} procedures that estimate the shape parameters of the data using hypothesis tests and data-preprocessing, our proposed procedure is automatic, and not dependent on a priori assumptions.
+% In the following section, we give examples of parametric uncertainty sets, and detail how to solve them when parameters $(A,b)$ are given.
+
+
+\section{Learning the uncertainty set parameterization}
+\label{sec:learn}
+In this section, we detail the procedure to solve the sampled problem~\eqref{eq:bilevel_sampled}, and prove its convergence either to a feasible solution, or to a stationary point of constraint violation. 
+
+% \subsection{Constrained stochastic learning formulation}
+% \label{ssec:constrained_learning}
+% \RC{As the distribution $\prob_{(u,x)}$ is unknown, we are unable to obtain the true expectation in~\eqref{eq:bilevel_intro}. We do, however, assume access to historical data.}  
+% \RC{Suppose we are given
+% a pair of datasets $W^{N} = (U^N,X^N) = \{(u^i,x^i)\}_{i=1}^N \subseteq \mathcal{D}_{(u,x)}$ of a set of $N$ independent samples of the uncertain parameter $u$ and context parameter $x$, governed by $\prob^N$, their joint distribution.
+% As the true probabilistic guarantee~\eqref{eq:guarantee} cannot be obtained, we instead target the
+% % Our main requirement is to identify a set parameter $\theta$ for which the solutions $z(\theta, x)$ to problem~\eqref{eq:robust_prob} with uncertainty set $\mathcal{U}(\theta,x)$, satisfy
+% the following {\it finite-sample probabilistic guarantee}
+% \begin{equation}
+%   \label{eq:prob_guarantee}
+%   \prob^{N}\left(\prob_{(u,x)}(g(z(\theta,x),u,x) \le 0) \ge 1 - \eta\right)\geq 1 - \beta,
+% \end{equation}
+% where $\beta > 0$ is the target confidence level across draws of the dataset $W^N$.
+% In other words, we are looking for $\theta$ such that the probability of observing $N$ samples which results in data-driven decisions $z(\theta,x)$ that do not satisfy the desired guarantee is small.}
+% % \bsnote{use only round or curly brackets for probabilities, but do not mix them}
+% % \bsnote{What do you mean by ``stochastic version of~\eqref{eq:bilevel_intro}''? Isn't that already a stochastic program?}
+% % Instead of working with the probability $\prob_{(u,x)}$,} which often leads to intractable formulations~\citep{cvaropt} as discussed in Section~\ref{c4:sec:intro}, we adopt a tractable approximation based on the {\it conditional value at risk}~\citep{cvaropt,cvar} defined in~\eqref{eq:cvar}, obtaining the constraint
+% % \RC{$$\CVaR(g(z(\theta,x),u,x),\eta) \le \kappa \quad \iff\quad \inf_{\alpha}\left\{\frac{\Expect_{(u,x)} (g(z(\theta,x),u,x)- \alpha)_+}{\eta} + \alpha\right\}\leq \kappa,$$}
+% % where $\kappa > 0$ is a threshold value that we define in Section~\ref{sec:guarantees} to obtain the finite sample guarantees~\eqref{eq:prob_guarantee}.
+% % \citep{cvaropt}.
+% % To get a tractable approximation, we can adopt the {\it conditional value at risk}~\citep{cvaropt,cvar}, defined as
+% % \begin{equation}
+% % 	\label{eq:cvar}
+% % \CVaR(g(x(\theta,y),u,y),\eta) = \inf_{\alpha}\{\Expect_{(u,y)}((1/\eta)(g(x(\theta,y),u,y)- \alpha)_+) + \alpha\},
+% % \end{equation}
+% % where $(a)_+ = \max\{a,0\}$.
+% % Here, $u$ are realizations of the constructed uncertainty set, $y$ are the family parameters, and $\prob_{(u,y)}$ denotes the joint distribution of $(u,y)$.
+% % In order to formalize the learning task, we define an outer problem minimizing the expected value of the objective function $f(x(\theta, y), y)$ of~\eqref{eq:robust_prob}, subject to the following constraint,
+% % $$\CVaR(g(x(\theta,y),u,y),\eta) \leq \kappa,$$
+% % where $\kappa \le 0$ is a target value, and the $\CVaR$ is defined as in~\eqref{eq:cvar}. As mentioned in Section~\ref{c4:sec:intro}, this then implies a probabilistic guarantee of constraint satisfaction~\eqref{eq:imply}.
+% \RC{To obtain such a guarantee, we first ensure the convergence of a data-driven version of~\eqref{eq:bilevel_intro}.
+% To this end, we define a constraint on the sampled $\CVaR$,
+% \RC{\begin{equation}
+% \label{eq:sampled_cvar}
+% \widehat{\CVaR}(\theta) = \inf_{\alpha} \frac{1}{N}\sum_{i=1}^N \left(\frac{(g(z(\theta,x^i),u^i,x^i)- \alpha)_+}{\eta} + \alpha \right)\leq \kappa,
+% \end{equation}}
+% and require this condition to hold for feasible $\theta$.}
+% \RC{The value $\kappa < 0$ is a threshold margin that we define later in Section~\ref{sec:guarantees}, to ensure the finite sample guarantee~\eqref{eq:prob_guarantee}.}
+% \RC{We can then formulate the stochastic objective and constraint functions as follows,}
+% \RC{\begin{equation*}
+% F(\theta) = \frac{1}{N}\sum_{i=1}^N\Phi(z(\theta,x^i),u^i, x^i) \quad \text{and}\quad H(\alpha,\theta) = \frac{1}{N}\sum_{i=1}^N ((g(z(\theta,x^i),u^i,x^i)- \alpha)_+/\eta + \alpha - \kappa)_+,
+% \end{equation*}
+% evaluated over the dataset 
+% $W^N$. We use these approximations to define the sampled version of~\eqref{eq:bilevel_intro},
+% \begin{equation}
+% 	\label{eq:bilevel_sampled}
+% 	\begin{array}{ll}
+% 		\underset{\alpha,\theta}{\mbox{minimize}} & F(\theta) \\
+% 		\mbox{subject to} & H(\alpha,\theta) = 0,\\
+% 	\end{array}
+% \end{equation}
+% where the constraint $H$ corresponds to the $\CVaR$ constraint where $\alpha$ is also a minimization variable.
+% When the functions $f$ and $g$ are convex in $z$, optimizing over $\alpha$ as well has no impact on the optimal solution~\citep{cvar_ref}.}
+% \RC{
+% With this formulation, we thus tune $\alpha$ and the set parameter $\theta$ to improve the quality of the solutions \RC{$z(\theta,x^i)$} of the inner \gls{RO} problem~\eqref{eq:robust_prob}, measured by the evaluation metric $\Phi(\cdot)$.}
+% We give in Appendix~\ref{appx:gen_sets} examples of parameterized uncertainty sets and the corresponding convex reformulations of~\eqref{eq:robust_prob}, which we use to solve for \RC{$z(\theta,x^i)$}. 
+% \RC{In the motivating example above, we gave a parameterization of an ellipsoidal uncertainty set~\eqref{eq:lin_map}, where the trainable parameters are $(W_A, W_b, h_A, h_b)$. Learning $\theta$ using~\eqref{eq:bilevel_sampled} thus equates to learning these parameters, \ie, learning a feasible and ideally optimal mapping from context parameters to a region of uncertainty realizations.} 
+
+
+% Solving the training problem~\eqref{eq:bilevel_sampled} is challenging because of the nonconvex bi-level structure introduced by the inner \gls{RO} problem.
+% \RC{While it may be possible to directly reformulate it as a single-level problem, this would involve several bilinear constraints over the entire training dataset, which can be intractable.
+% % Our approach, despite requiring hyperparameter tuning, can be batched for low per-iteration cost. 
+% We address these challenges in the following section, by introducing a stochastic first-order method to address problem~\eqref{eq:bilevel_sampled} with tractable iterations.
+% }
+% Solving the stochastic problem~\eqref{eq:bilevel_sampled} is challenging because of the nonconvex bi-level structure introduced by the inner \gls{RO} problem.
+% While it may be possible to directly reformulate it as a single-level problem, this would involve several bilinear constraints over the entire training dataset, which can be intractable.
+% % Our approach, despite requiring hyperparameter tuning, can be batched for low per-iteration cost. 
+% We address these challenges in the following section, by introducing a stochastic first-order method to address problem~\eqref{eq:bilevel_sampled} with tractable iterations.
+\subsection{The stochastic augmented Lagrangian algorithm}
+\label{sec:training_procedure}
+We begin by defining the optimality conditions for problem~\eqref{eq:bilevel_sampled}. Since the problem is nonsmooth and nonconvex due to the bi-level structure (see Appendix~\ref{appx:bilinear}), we search for feasible stationary points instead of globally optimal points. We make use of the following augmented Lagrangian function 
+\begin{equation}
+\label{eq:lagrangian}
+	\begin{aligned}
+		L(\alpha,\theta,\lambda,\mu) = F(\theta) &+ \lambda H(\alpha,\theta) + \frac{\mu}{2}\|H(\alpha,\theta)\|^2,
+	\end{aligned}
+\end{equation}
+where $\lambda$ is the Lagrange multiplier in  $\reals$, and $\mu$ is the penalty parameter in $\reals$.
+% and $\mu$ are pre-initialized parameters that are updated throughout the iterations of the learning algorithm, 
+% \bsnote{I would define what $\hat{L}$ is here.}
+As this is the augmented Lagrangian formulation of~\eqref{eq:bilevel_sampled}, the function $L$ is evaluated over the entire dataset $W^N$. 
+We also denote the estimated augmented Lagrangian over a subset (batch) of data $B \subseteq W^N$ as~$\hat{L}$.
+We then define the following stationary and $\epsilon$-stationary points. 
+\begin{definition}[Stationary point of the augmented Lagrangian]
+\label{def:stationary_lag}
+Given $\lambda$ and $\mu$, a point $(\alpha,\theta)\in \reals^{q+1}$ is called a stationary point of the augmented Lagrangian function~\eqref{eq:lagrangian} if $0 \in J_L(\alpha,\theta)$, where $J_L(\alpha,\theta)$ denotes the conservative Jacobian (Definition~\ref{def:conserve}) of $L$ in the variables $(\alpha,\theta)$.
+\end{definition}
+
+\begin{definition}[$\epsilon$-stationary point]
+\label{def:eps_stationary}
+Given $\epsilon > 0$, a point $(\alpha,\theta)\in \reals^{q+1}$ is called an $\epsilon$-stationary point of~\eqref{eq:bilevel_sampled} if there is a scalar $\lambda \in \reals$ such that
+\begin{equation}
+\label{eq:stationary}
+\|H(\alpha,\theta)\|_2 \leq \epsilon, \quad \dist(0, J_F(\theta) + \lambda J_{H}(\alpha,\theta)) \leq \epsilon,
+\end{equation}
+where $J_F(\theta)$ is the conservative Jacobian of the objective function $F$ in the variable $\theta$, $J_{H}(\alpha,\theta)$
+denotes the conservative Jacobian of the constraint function in variables $(\alpha,\theta)$, and the distance between a vector $z$ and set $\mathcal{Z}$ is defined as $\dist{(z,\mathcal{Z})} = \min_{y \in \mathcal{Z}} \| z - y \|_2$.
+\end{definition}
+
+These definitions rely on conservative Jacobians, which are a generalized form of Jacobians for functions that are almost everywhere differentiable~\citep{conservative}, and are suitable for our case due to the nonsmooth nature of our problem. In the following section, we detail the assumptions requried for the existance of these conservative Jacobians. Below, in Algorithms~\ref{alg:learning} and~\ref{alg:learning_inner}, we give our proposed stochastic augmented Lagrangian approach to find an $\epsilon$-stationary point for the sampled problem~\eqref{eq:bilevel_sampled}. 
+Later, in Section~\ref{sec:convergence_analysis} on the convergence analysis, for $k \rightarrow \infty$, we prove the convergence of $\theta$ to either a feasible solution satisfying condition~\eqref{eq:sampled_cvar}, or to a stationary point of the constraint violation function $(1/2)\|H(\alpha,\theta)\|^2$.
+
+% Using the stochastic augmented Lagrangian approach outlined in Algorithms~\ref{alg:learning} and~\ref{alg:learning_inner}, and under mild assumptions, we can find a feasible $\theta$ satisfying condition~\eqref{eq:sampled_cvar}.
+% While useful in our convergence analysis, this stationarity condition is hard to evaluate.
+% That's why in practical applications, instead of using it to terminate Algorithm~\ref{alg:learning_inner}, we set the number of iterations $t_{\text{max}}$ to a reasonably large value. 
+% We note, however, that the termination conditions, especially of Algorithm~\ref{alg:learning_inner}, are difficult to verify in practice, and expensive to check on a per-iteration basis. In practical applications, it is instead recommended to forgo the tolerance condition, and set $t_{\text{max}}$ to a reasonably large value. 
+ % \bsnote{add a remark about termination criteria. They are difficult to check and we just run it for enough iterations.}
+% \bsnote{Define batch $B$ here}
+\begin{algorithm}[ht]
+	\caption{Safeguarded stochastic augmented Lagrangian algorithm to solve~\eqref{eq:bilevel_sampled}}
+	\label{alg:learning}
+	\begin{algorithmic}[1]
+	 \State {\bf given} $\theta^0 = (A^{\text{init}},b^{\text{init}})$, $\alpha^0$, $\lambda^0, \mu^0,\epsilon \geq 0,\kappa$, $\sigma > 1$, $\tau < 1$, $\eta \in (0,1)$, $H_{\text{best}} = \infty$
+	 \For{$k=1,\dots,k_{\rm max}$}
+  \State $(\alpha^{k}, \theta^{k}) \gets$ minimize $L(\alpha, \theta, \lambda^{k-1}, \mu^{k-1})$ over $(\alpha, \theta)$ via Algorithm~\ref{alg:learning_inner}
+  \If {$\|H(\alpha^{k},\theta^{k}) \|_2 \leq \epsilon$}
+  \State  {\bf return} $\theta^{k}$ \Comment{$\epsilon$-stationary point found}
+    \ElsIf {$\|H(\alpha^{k},\theta^{k}) \|_2 \leq \tau \|H_{\text{best}}\|_2$}
+	 \State $\lambda^{k} \gets  \Pi_{[{\lambda^{\rm{min}}}, \lambda^{\rm{max}}]}(\lambda^{k-1} + \mu^{k-1}(H(\alpha^{k},\theta^{k}))$) 
+  \Comment{update Lagrange multipliers}
+    \State $H_{\text{best}} \gets \|H(\alpha^{k},\theta^{k}) \|_2$
+    \State $\mu^{k} \gets  \mu^{k-1}$
+    \Else
+	 \State $\mu^{k} \gets  \sigma\mu^{k-1}$ \Comment{update penalty}
+    \State $\lambda^{k} \gets \lambda^{k-1}$
+    \EndIf
+    % \State $t_1 \gets  \sigma_1t_1$ if $(k\mod r_1 = 0)$ else $t_1 \gets t_1$
+    % \State $t_2 \gets  \sigma_2t_2$ if $(k\mod r_2 = 0)$ else $t_2 \gets t_2$
+	 \EndFor
+	 \State {\bf return} $\theta^{k_{\rm max}}$
+	\end{algorithmic}
+\end{algorithm} 
+\begin{algorithm}[ht]
+	\caption{Stochastic gradient descent for the inner loop}
+	\label{alg:learning_inner}
+	\begin{algorithmic}[1]
+	 \State {\bf given} $\theta^0$, $\alpha^0$, $\lambda, \mu,\{\delta^t\}_{t \in \mathbf{N}}, W^N$
+\For{$t=1,\dots,t_{\rm max}$}
+	\State \RC{sample data $W^t = (U^t,X^t) \subseteq W^N$}
+	 \State \RC{$z^{t}(\theta^{t-1},x) \gets $ solve inner \gls{RO} problem~\eqref{eq:robust_prob} for all $x \in X^t$}
+	 \State $J_{\hat{L}} \gets J_{\hat{L}}(\alpha^{t-1},\theta^{t-1})$  \Comment{compute Jacobian of $\hat{L}$ over $W^t$}
+  % \bsnote{need to iron out the notation and mention that we are computing the jacobian (possibly as an algorithm comment)}
+  \State $\alpha^{t} \gets \alpha^{t-1} - \delta^{t} v_{\alpha}^{t},\quad \text{with}\quad v_{\alpha}^{t} \in J_{\hat{L}}(\alpha)$
+\State $\theta^{t} \gets \theta^{t-1} - \delta^t v_{\theta}^{t},\quad \text{with}\quad v_{\theta}^{t} \in J_{\hat{L}}(\theta)$
+   % \If {$\dist(0,J_L(\alpha^{t},s^{t},\theta^{t})) \leq \gamma$}
+   % \textbf{break}
+   % \Comment{evaluate Jacobian of $L$ over $U^N \times Y^J$}
+   % \EndIf
+  \EndFor
+	 \State {\bf return} $(\alpha^t, \theta^t)$
+	\end{algorithmic}
+\end{algorithm} 
+
+% \bsnote{Clarify that we get to an $\epsilon$-stationary point.}
+\subsubsection{Path differentiability and conservative Jacobians}
+% \bsnote{I would define what is a conservative jacobian}
+In order to apply Algorithms~\ref{alg:learning} and~\ref{alg:learning_inner}, we need to establish the existence of $J_L$ and $J_{\hat{L}}$, the conservative Jacobians of the augmented Lagrangian functions $L$ and $\hat{L}$. 
+The conservative Jacobian is defined as follows. 
+% (For consistency, for any function $f$, we denote its Jacobian in variable $x$ as $J_f(x)$.) 
+% As $L$ may be non-differentiable in the traditional sense, however, we turn to the concepts of {\it path differentiability} and {\it convservative Jacobians}. 
+% Conservative Jacobians, introduced in~\citep{conservative}, are a generalized form of Jacobians for functions that are almost everywhere differentiable.
+
+\begin{definition}[Conservative Jacobian~\citep{path-diff}]
+\label{def:conserve}
+Given a locally Lipschitz continuous function $F:\reals^{m} \rightarrow \reals^m$, we call $J_F:\reals^{n} \rightrightarrows \reals^{n\times m}$ its {\it conservative Jacobian} if $J_F$ has a closed graph, is locally bounded, and is nonempty with $$\frac{\text{d}}{\text{d} t}F(\gamma(t))\in J_F(\gamma(t))\dot{\gamma}(t)~~\text{a.e.},$$
+for any absolutely continuous curve $\gamma$ in $\reals^n$. 
+A locally Lipschitz function $F$ that admits a conservative Jacobian $J_F$ is called {\it path differentiable}.
+\end{definition}
+
+
+To obtain the conservative Jacobians~$J_L$ and~$J_{\hat{L}}$, we then note the following assumptions. 
+\begin{assumption} [Definability]
+    \label{ass:define}
+All functions $f$ and $g_l$ in the robust optimization problem~\eqref{eq:robust_prob} are  {\it definable}~\citep{definable,definable2,path-diff}. 
+% \bsnote{the right definition ofg definability comes from ``Geometric categories and o-minimal structures'' by L Van den Dries, C Miller}
+% \bsnote{either do \emph{definable} or ``definable''. Everywhere. }
+\end{assumption} 
+% \bsnote{we need to justify definability (see our chat).}
+The class of definable functions is very wide and includes semi-algebraic functions: functions whose graphs can be described by a finite number of polynomial equalities and inequalities. This includes polynomials, the Euclidean norm, max and mins of finitely many polynomials, as well as piecewise polynomial functions, which encorporates a large number of functions we would expect to use in stochastic optimiation problems. For a more detailed overview, see the works by~\cite{conservative} and~\cite{path-diff}. For a foundational work, see~\cite{definable}. 
+Assuming the definability of the objective and constraint functions, it follows that $F$ and $H$, and subsequently $L$, as compositions of definable pieces, are also definable~\citep{path-diff}. 
+\begin{assumption} [Local Lipschitzness]
+    \label{ass:lip}
+    The Lagrangian function \RC{$L(\alpha,\theta,\lambda,\mu)$} is locally Lipschitz in variables \RC{$\alpha,\theta, \lambda,\mu$}. A function $F:\reals^n \rightarrow \reals^m$ is locally Lipschitz if, for each $z \in \reals^n$, there exists a neighborhood $\mathcal{V}$ of $z$ such that $F$ is Lipschitz on $\mathcal{V}$.
+\end{assumption}
+% \bsnote{I would define exactly what locally Lipschitz is.}
+We also require the augmented Lagrangian to be locally Lipschitz continuous, as definable locally Lipschitz functions are shown to be path differentiable, meaning they admit conservative Jacobians and follow the chain rule~\citep{path-diff}.
+Admittance of the chain rule is imperative, as 
+% \bsnote{move to right after the definability assumption.}
+% We note that $F(z)$ is convex, and as $g$ is a maximum-of-concave function, $H(z)$ is a composition of a maximum-of-concave function with a relu operation. 
+% As convex/concave functions, maximums, and relu mappings are
+$L$ depends on $\theta$ indirectly through the solution \RC{$z(\theta,x)$} of the inner robust problem~\eqref{eq:robust_prob}. 
+In order to establish the conservative Jacobians of $L$ in the variable $\theta$, we thus need to show the path differentiability of the inner problem and compute \RC{$J_{z}(\theta)$}, for which we require a uniqueness assumption.
+\begin{assumption} [Uniqueness]
+    \label{ass:unique}
+    The robust optimization problem~\eqref{eq:robust_prob} has a convex conic reformulation with a unique solution. 
+    % \bsnote{we could simply mention this at the beginning of the paper when we introduce the first robus t problem.}
+\end{assumption} We can then make use of the results of~\cite{diffcp2019} and~\cite{path-diff}, which enables us to find conservative Jacobians of optimal solutions for conic problems by differentiating through the KKT optimality conditions. 
+% This relies on an uniqueness assumption on the solution of the conic problem.
+We state the theorem below, with the proof delayed to Appendix~\ref{appx:subdiff}.
+\begin{theorem}[Path differentiability of the \gls{RO} solution] 
+\label{thm:subdiff}
+	Suppose Assumption~\ref{ass:unique} holds. Let \RC{$z(\theta,x)$ be the unique solution, for a given input pair $(\theta, x)$}, to the convex conic reformulation of the inner optimization problem~\eqref{eq:robust_prob}.
+ % \bsnote{this is identical to the very first problem, let's define it only once}. 
+ This solution is path differentiable with nonempty conservative Jacobian  \RC{$J_{z}(\theta) \neq \emptyset$}.
+\end{theorem}
+
+% \bsnote{Technically, we are not estimating these. They are exact derivatives of the sampled version.}
+We can then establish the existance of the conservative Jacobians of the augmented Lagrangian function. The specific forms of the conservative Jacobians established in Proposition~\ref{prop:jacobians} are given in Appendix~\ref{appx:jacobians}.
+\begin{proposition} [Conservative Jacobians of the augmented Lagrangian~\eqref{eq:lagrangian}] 
+\label{prop:jacobians}
+Suppose Assumptions \ref{ass:define} and~\ref{ass:lip} hold, and for each given input pair \RC{$(\theta, x)$, the solution $z(\theta,x)$} of the optimization problem~\eqref{eq:robust_prob} is path differentiable with conservative Jacobian \RC{$ J_{z}(\theta)$}. \RC{Then, the Lagrangian function $L(\alpha,\theta,\lambda,\mu)$, from equation~\eqref{eq:lagrangian}, and its batched version $\hat{L}(\alpha,\theta,\lambda,\mu)$, are path differentiable with conservative Jacobians $J_L(\alpha,\theta)$ and $J_{\hat{L}}(\alpha,\theta)$.}
+\end{proposition}
+
+
+
+% \bsnote{I think the order of the proposition 1 and theorem 1 should be the opposite. I would first say that the first result as proposition ``Path differentiability of the \gls{RO} solution''. Then, I would state the theorem ``Conservative Jacobian of the Augmented Lagrangian''.}
+
+
+\subsubsection{Convergence analysis}
+\label{sec:convergence_analysis}
+To show convergence of the augmented Lagrangian algorithm, given in Algorithm~\ref{alg:learning}, we require the convergence of the inner loop, Algorithm~\ref{alg:learning_inner}. 
+The convergence of Algorithm~\ref{alg:learning_inner} relies on the path-differentiability of the Lagrangian function, as well as the boundedness of the iterates and the Lagrangian multiplier $\lambda$.
+% \bsnote{prepare the reader to the different time scales, $\mu, \lambda$ updates, etc.}
+% \bsnote{I would use separate $\delta_{\theta}$ and $\delta_{s}$ }
+\begin{assumption}[Boundedness]
+\label{ass:bounded}
+There exists a constant $\alpha^{\rm max} > 0$ and compact set $\mathcal{D}_{\alpha} \subset \reals$, such that for $\alpha^0 \in  \mathcal{D}_{\alpha}$, $\|\alpha^t\| \leq \alpha^{\rm max}$  almost surely.
+Similarly, there exist constants $\theta^{\rm max},\RC{z^{\rm max}}, y^{\rm max} > 0$, compact sets $\mathcal{D}_{\theta} \subset \reals^{q}$, \RC{$\mathcal{Z} \subset \reals^n$}, such that for $\theta^0 \in \mathcal{D}_{\theta}$ and \RC{$x \in \mathcal{D}_x$}, we have $\|\theta^t\| \leq \theta^{\rm max}$ and \RC{$z(\theta^t,x) \in \mathcal{Z} = \{z \in \reals^n \mid \|z\| \le z^{\rm max}\}$ almost surely.}
+In addition, the optimal Lagrangian multiplier $\lambda^\star \in [\lambda^{\rm{min}}$, $\lambda^{\rm{max}}]$.
+\end{assumption}
+% \bsnote{still wonder if we should work with bounded sets directly instead of taking closures.}
+Lastly, we require that the step sizes are nonnegative, square summable, but not summable.
+% that the $\alpha$ and $s$ updates (with step sizes $\delta_\alpha^t$,$\delta_{s}^t$) is on a faster time scale than the $\theta$ update (with step size $\delta_{\theta}^t$). 
+\begin{assumption}[Step sizes]
+\label{ass:step_size}
+The step sizes $\{\delta^t\}_{t \in \mathbf{N}}$ are chosen such that
+\begin{align*}
+   &\sum_{t=1}^\infty \delta^t = \infty, \quad \sum_{t=1}^\infty (\delta^t)^2 < \infty,\quad \delta^t = o(1/\log(t)).
+   % &\sum_{t=1}^\infty \delta_{\theta}^t = \infty, \quad \sum_{t=1}^\infty (\delta_{\theta}^t)^2 < \infty,\quad \delta_{\theta}^t = o(\delta^t_\alpha).
+\end{align*}
+% $$\sum_{t=1}^\infty \delta^t_\alpha = \infty, \quad \sum_{t=1}^\infty (\delta^t_\alpha)^2 < \infty,\quad \delta^t_\alpha = o(1/\log(t)), \quad \delta_{s}^t = \delta_{\alpha}^t$$
+% $$\sum_{t=1}^\infty \delta_{\theta}^t = \infty, \quad \sum_{t=1}^\infty (\delta_{\theta}^t)^2 < \infty,\quad \delta_{\theta}^t = o(\delta^t_\alpha).$$
+\end{assumption}
+% \bsnote{change names. For example, $\alpha^{\rm max}$ $\theta^{\rm max}$ and so on...}
+% \bsnote{Be consistent with $\lambda_{\rm min}$ (superscript vs subscript).}
+% \bsnote{cl should be a command}
+% \begin{assumption}[Safeguards]
+% \label{ass:safe}
+% The optimal Lagrangian multiplier $\lambda^\star \in [\lambda_{\text{min}}$, $\lambda_{\text{max}}]$.
+% \end{assumption}
+% \bsnote{use $\lambda^\star$ instead of $\lambda^\star$ Also, can we merge these two assumptions together since they related to the boundedness??}
+% \bsnote{got to here}
+% Under this assumption, Algorithm~\ref{alg:learning_inner} becomes a two-timescale stochastic approximation algorithm~\citep{borkar} similar to the one presented by~\cite{cvar_markov} for a $\CVaR$-constrained problem. 
+% We provide a similarly styled approach adapted for the stochastic augmented Lagrangian algorithm with conservative Jacobians. 
+% In~$\alpha$ and $s$'s faster time scale convergence analysis, we assume that $\theta,\lambda,\mu$ are fixed. 
+% Then, in the~$\theta$'s slower convergence analysis, we assume that $\alpha$ and $s$ have already converged at the faster time scale, and that $\lambda, \mu$ are fixed. 
+% Then, for the analysis of the convergence of $\lambda$ and $\mu$ in Algorithm~\ref{alg:learning}, by the dynamic tolerance $\|J_L(\alpha^{k},s^{k},\theta^{k})\|_2 \leq \gamma^k$, where $\{\gamma^k\}\to 0$, 
+% % \bsnote{can we just use $\to$ instead of downarrow? We know that $\gamma > 0$ so it can never be $\uparrow$}
+% we assume that $\alpha,s,\theta$ have converged to a $\gamma^k$-stationary point given the current $\lambda^k$ and $\mu^k$.
+% % $\alpha^\star(\lambda)$, 
+% % $\theta^\star(\lambda)$, and $s^\star(\lambda)$.
+% % \bsnote{how about $\mu$??}
+% % \bsnote{be consistent with the arguments of $\alpha^\star$ (for example). I would maybe not even call them with the arguments for now.}
+Under these assumptions, by Theorem 6.2 of~\cite{Davis} and Theorem 3 of~\cite{path-diff},
+the sequence $\{\alpha^{t},\theta^{t}\}$ in Algorithm~\ref{alg:learning_inner} converges to a stationary point of the Lagrangian function~\eqref{eq:lagrangian} with arbitrary $\lambda$ and $\mu$.
+We note that~$\mu^k$ in Algorithm~\ref{alg:learning} is potentially unbounded, in which case it does not not converge.
+% \bsnote{which stationary points? Maybe we should simply say ``they do not converge.''} to stationary points. 
+The stationary point $(\alpha^{k},\theta^{k})$ of the augmented Lagrangian function for any $\lambda^k$ and $\mu^k$ 
+% \bsnote{for the current or for simply any?}
+is, therefore, not guaranteed to be a feasible solution of the $\CVaR$-constrained problem~\eqref{eq:bilevel_sampled}. 
+However, with the use of the safeguards~$[\lambda^{\rm{min}}$, $\lambda^{\rm{max}}]$, we can guarantee that the limit point of the augmented Lagrangian algorithm is at least a stationary point of constraint violation~\cite[Theorem 6.3]{auglag_safe}.  
+More specifically, below we show that the algorithm finds a feasible point of condition~\eqref{eq:sampled_cvar} under mild assumptions, and otherwise converges to a stationary point of the constraint violation function~\RC{$(1/2)\|H(\alpha,\theta)\|^2$}. 
+% \bsnote{this phrase repeates a bit the previous one. Can we consolidate them?}
+% \bsnote{do we define it? I would reference it or at least copy-paste it yere}. 
+The proof is delayed to Appendix~\ref{appx:converge_stationary}. 
+% {\color{blue} Bart: I would be upfront about the fact that we assume the inner loop to converge exactly for in the outer method. It is not ideal but at least they cannot say we are trying to hide this fact. }
+\begin{theorem}
+\label{thm:convergence}
+Suppose Assumptions~\ref{ass:define}~to~\ref{ass:step_size} hold.
+% and let $\epsilon \geq 0$ \bsnote{I would use $\epsilon > 0$}. 
+If the sequence of penalty parameters $\{\mu^k\}$ is bounded, then the sequence of updates $\{\theta^k\}$ in Algorithm~\ref{alg:learning} converges almost surely to a feasible point, \RC{$\theta^\star$}, of the $\widehat{\CVaR}$ condition~\eqref{eq:sampled_cvar} as $k\to\infty$.  % an $\epsilon$-stationary solution 
+% $(\alpha^\star,s^\star,\theta^\star)$ 
+% the $\CVaR$-constrained bi-level problem~\eqref{eq:bilevel_sampled} as $k\to\infty$. 
+% \bsnote{Just mention that cvar constraint is satisfied. (avoid mentioning $\alpha$ and $s$). Just refer to $\theta$ and $\widehat{\CVaR}$}
+\RC{Otherwise, $\{\alpha^k,\theta^k\}$ converges to a stationary point of the constraint violation function  $(1/2)\|Hx(\alpha,\theta)\|^2$.}
+\end{theorem}
+Note that a feasible point $\theta^\star$ of the $\widehat{\CVaR}$ condition~\eqref{eq:sampled_cvar} also implies a feasible point of the constrained problem~\eqref{eq:bilevel_sampled}. 
+% Note that the convergence to a feasible point $\theta^\star$ is achieved with $k \to \infty$. 
+In practice, with a finite number of iterations $k_{\text{max}}$ and some $\epsilon > 0$, we obtain an $\epsilon$-stationary solution of~\eqref{eq:bilevel_sampled} satisfying condition~\eqref{eq:stationary}. The feasibiliy is then ensured through tuning the radius $\rho$ while fixing the other parameters of $\theta$.
+
+% \paragraph{Locally optimal solution.} 
+% When $\{\alpha^k,s^k,\theta^k\}$ 
+% % \bsnote{be consistent with round vs curly brackets for sequences}
+% converges to a feasible solution to problem~\eqref{eq:bilevel_sampled},
+% % ($\epsilon = 0$) \bsnote{$\epsilon$ can never be exactly $0$. We cannot assume that. We could say that $\epsilon$ is below a specific tolerance but not have a case where, in general, it is numerically equivalent to $0$.}
+% % \bsnote{One way to fix this is to have $\epsilon_{\rm feas}$ for feasibility and $\epsilon_{\rm opt}$ for optimality in \eqref{eq:stationary}}, 
+% we can show that, under further assumptions, the converged $(\alpha^\star,s^\star,\theta^\star)$ is a locally optimal solution of~\eqref{eq:bilevel_sampled}. 
+% We make use of a theorem on the local minimizers of the augmented Lagrangian function, adapted from Theorem 17.5 of~\cite{numerical_opt} to the generalized path-differentiable case. 
+% \begin{theorem}
+% \label{thm:licq}
+% Let $(\alpha^\star,s^\star,\theta^\star)$ be a local solution of the constrained problem, where $LICQ$ holds for the conservative Jacobians of the constraints. 
+% In particular, the Jacobian of the equality constraints, $J_{H+s-\kappa}(\alpha^\star,s^\star,\theta^\star)$, has linearly independent rows, 
+% % \bsnote{do we ever use $\hat{H}$?} 
+% % $H(\theta,\alpha) + s - \kappa$ represents the equality constraints, 
+% and the generalized subgradient-form $KKT$ conditions hold with Lagrange multiplier $\lambda^\star$ for problem~\eqref{eq:bilevel_sampled}. 
+% % \bsnote{add reference to equation.}
+% Let the second-order sufficient conditions hold at this $\lambda^\star$, $\ie$,
+% % \bsnote{all $\ie$ and $\ge$ have a comma afterwards in the manuscript--as in, \ie, .... Please be consistent}
+% $$\omega^T H_L(\alpha^\star,s^\star,\theta^\star,\lambda^\star,0)\omega > 0  
+%  \quad \forall \omega \in \mathcal{C}(\alpha^\star,s^\star,\theta^\star,\lambda^\star), \quad \omega \neq 0,$$ where $H_L$ is the Hessian of $L$\bsnote{what is the Hessian definition when you have non-differentiable functions and conservative jacobians?} in variables $(\alpha^\star,s^\star,\theta^\star)$ and $\mathcal{C}(\alpha^\star,s^\star,\theta^\star,\lambda^\star)$ is the critical cone, defined as 
+% $$\mathcal{C}(\alpha^\star,s^\star,\theta^\star,\lambda^\star) \define \{\omega \in \mathcal{F}(\alpha^\star,s^\star,\theta^\star)\mid  J_{\hat{H}}(\alpha^\star,s^\star,\theta^\star)^T\omega =0\},$$
+% where $\mathcal{F}(\alpha^\star,s^\star,\theta^\star)$ is the set of feasible directions. 
+% Then, there exists a value $\bar{\mu}$ such that for all $\mu \geq \bar{\mu}$, $(\alpha^\star,s^\star,\theta^\star)$ is a strict local minimizer of the augmented lagrangian function $L(\alpha,s,\theta,\lambda^\star,\mu)$.
+% \end{theorem}
+% We can now make a statement on the local optimality of the converged solution.
+% \begin{theorem}
+% \label{thm:local_opt} 
+%     Given the limit point $(\alpha^\star,s^\star,\theta^\star,\lambda^\star,\mu^\star)$ from Theorem~\ref{thm:convergence}, in the case where $(\alpha^\star,s^\star,\theta^\star)$ is a feasible solution. If the first and second order optimality conditions of Theorem~\eqref{thm:licq} hold, and $\mu^\star \geq \bar{\mu}$, then $(\alpha^\star,s^\star,\theta^\star)$ is a locally optimal solution of problem~\eqref{eq:bilevel_sampled}.
+% \end{theorem}
+
+% \paragraph{Notes on the Hessian}
+% The Hessian $H_L = \nabla^2 F(\theta^\star) + \sum_{i=1}^d \lambda_i \nabla^2 \hat{H}_i(\alpha^\star,s^\star,\theta^\star)$. We approximate it as 
+% $$H_L = J_F(\theta^\star)^TJ_F(\theta^\star) + \sum_{i=1}^d \lambda_i  J_{\hat{H}_i}(\alpha^\star,s^\star,\theta^\star)^TJ_{\hat{H}_i}(\alpha^\star,s^\star,\theta^\star).$$
+% \subsubsection{Augmented Lagrangian method details (not yet updated)}
+% Augmented Lagrangian algorithms have a two-level double-loop structure, where in the inner problem, the unconstrained augmented Lagrangian problem in variable $z$ is solved using a conventional unconstrained optimization method, while the Lagrangian multipliers and penalty parameter are updated in the outer loop based on the constraint violation of the inner loop solution. 
+% In typical augmented Lagrangian settings, the inner problem is solved to a dynamic tolerance, $\|\nabla L(z^k,s^{k},\lambda^k,\mu^k)\| \leq \omega^k$, where the tolerance is gradually tightened. 
+% However, as we take a stochastic approach, where instead of the true norm $\|\nabla L(z^k,s^{k},\lambda^k,\mu^k)\|$ we obtain an estimate $G_\theta(W^{k}, z^{k},s^{k}, \lambda^k, \mu^k)$ over a mini-batch, we no longer fit in the typical framework for convergence analysis. 
+% Instead of solving the problem to a dynamic tolerance, we adapt the approach given in~\cite{auglag_ref}. 
+
+% For each augmented Lagrangian iteration, we take an pre-set number, $r_1$, of gradient steps, where we only update $z$ and $s$. Then, in the outer loop, our stochastic augmented Lagrangian algorithm accepts an update to either $\lambda$ or $\mu$ depending on the current value of constraint violation, $\|H(z^{k}) + s^k - \kappa \|_2 $. If a sufficient decrease is observed from the previous best-observed value, $\ie$ $\|H(z^{k}) + s^k - \kappa \|_2 \leq 0.95\|H_{\text{best}}\|_2$, an update to the Lagrangian multipliers $\lambda$ occurs. Otherwise, we update the penalty parameter $\mu$ by a fixed factor $\sigma_1$. 
+% It is common practice to gradually decay the step size for SGD iterations as the problem converges towards the solution, to improve model accuracy. Throughout the algorithm, we also adjust the learning rate $t$ every time a pre-set $r_2$ number of steps have been taken.
+
+% \subsubsection{Convergence of the Augmented Lagrangian method}
+% \label{sec:converge}
+% Our formulation fits in the framework of the nonconvex expectation constrained problem of~\cite{aug_lag} and~\cite{aug_lag2}, as such convergence results follow those of~\cite[Algorithm 1]{aug_lag} and~\cite[Algorithm 1]{aug_lag2} for appropriate parameter values and assumptions. We restate the assumptions and results for completeness.
+
+% \begin{definition}[$\epsilon$-KKT point in expectation~\cite{aug_lag}] Given $\epsilon\geq 0$, a point $z = (\theta,\alpha,s) \in \reals^{m\times m}\times \reals^{m}\times\reals\times \reals^m$ is an $\epsilon$-KKT point in expectation to~\eqref{eq:bilevel} if there is a vector $\gamma\in \reals$ such that
+% 	$$\Expect[\|H(z)\|^2] \leq \epsilon^2, \quad \Expect[\mathbf{dist}(0,\partial
+% 	F(z) + J_{H}(z)^T\gamma)]\leq \epsilon^2,$$
+% 	where $J_{H}(z)$ is the Jacobian of function $H$ at $z$.
+% \end{definition}
+
+% To show that Algorithm~\ref{alg:learning} converges to an $\epsilon$-KKT point in expectation to~\eqref{eq:bilevel_new}, we need the following assumptions.
+
+% \begin{assumption}[structured bounded domain]
+% 	\label{assp_1}
+% 	The domain $\Theta$ of the decision variables $z = (\theta, \alpha,s)$ must be compact. In addition, there must exist finite constants $B_0$ and $B_h$ such that
+% 	$$B_0 \geq \max_{z \in \Theta} \max\{|F(z)|,\| \nabla F(z) \|\},\quad B_h \geq \max_{z \in \Theta} \|J_{H}(z) \| $$
+% \end{assumption}
+
+
+% \begin{assumption}[regularity condition, ~\cite{aug_lag}]
+%   \label{assp_2}
+%   There exists a constant $v > 0$ such that for any $z = (\theta,\alpha,s) \in \Theta$,
+%   $$ v \|F(z)\| \leq \mathbf{dist}(-J_{H}(z)^T(H(z), \mathcal{N}_\Theta(z)),$$
+% 	where $\mathcal{N}_\Theta(z)$ is the normal cone of $\Theta$ at $z$.
+% \end{assumption}
+% We also need mean-squared smoothness assumptions on our objective and constraint functions.
+% \begin{assumption}[mean-squared smoothness, ~\cite{aug_lag}]
+% 	\label{assp_3}
+% 	 For any ${z_1,z_2 = (\theta_1,\alpha_1,s_1), (\theta_2, \alpha_2,s_2) \in \Theta}$, the functions $\ell(\cdot,w)$ and $h(\cdot,w)$ satisfy the mean-squared smoothness conditions:
+% 	$$\Expect_w[\|\nabla \ell(z_1,w) - \nabla \ell(z_2,w)\|^2]  \leq L^2_0\| z_1 - z_2\|^2,$$
+% 	$$\Expect_{w}[\|J_{{h}}(z_1, w) - J_{{h}}(z_2,w)\|^2]  \leq L^2_J\| z_1, z_2\|^2,$$
+% 	$$\Expect_{w_1, w_2}[\|J_{h}(z_1, w_1)^T{h}(z_1,w_2) - J_{{h}}(z_2, w_1)^T{h}(z_2,w_2)\|^2]\leq L^2_J\| z_1 - z_2\|^2, $$
+% where $w_1$ and $w_2$ are independent and drawn from $\mathbf{P_u}\times\mathbf{P_y}$.
+% \end{assumption}
+
+% Lastly, we need to assume unbiasedness and bounded variance.
+% \begin{assumption}[unbiasedness and bounded variance~\cite{aug_lag}]
+% 	\label{assp_4}
+% 	For any $z = (\theta,\alpha,s) \in \Theta$, the objective and constraints satisfy
+% 	$$\Expect_{w}[\nabla \ell(z,w)] = \nabla F(z), \quad \Expect_{w}[J_h(z,w)] = J_{H}(z).$$
+% 	Also, there exists $\sigma_f,\sigma_h > 0 $ such that for any $z = (\theta,\alpha,s) \in \Theta$,
+% 	$$ \Expect_{w}[\|\nabla \ell(z,w) - F(z)\|^2] \leq  \sigma_f^2,\quad \Expect_{w}[\|J_h(z,w) - J_{H}(z)\|^2] \leq \sigma_h^2, $$
+% 	$$\Expect_{w_1,w_2}[\|J_h(z,w_1)^Th(z,w_2) - J_{H}(z)^TH(z)\|^2] \leq \sigma_h^2, $$
+% 	where $(w_1)$ and $(w_2)$ are independent and drawn from $\mathbf{P_u}\times\mathbf{P_y}$.
+% \end{assumption}
+% Under these assumptions, it can be shown that $F(\cdot)$ is $L_0$-smooth and $H(\cdot)$ is $L_J$-smooth~\cite{aug_lag}.
+
+% \begin{theorem}
+% Let $\epsilon$ be a small enough number.  Then, under Assumptions~\ref{assp_1},~\ref{assp_2},~\ref{assp_3}, and~\ref{assp_4}, Algorithm~\ref{alg:learning} needs at most $K$ outer iterations to find an $\epsilon$-KKT point in expectation of~\eqref{eq:bilevel}, where
+% $$K = O(1/\epsilon).$$
+% In addition, the number of inner iterations $l^k_{\rm max}$ needed is
+% $$l^k_{\rm max} = O(1/\epsilon^3). $$
+% \end{theorem}
+% This result is an application of~\cite[Theorem 1, Theorem 2]{aug_lag} and~\cite[Corollary 2]{aug_lag2}. In practice, Algorithm~\ref{alg:learning} will converge to an $\epsilon$-KKT point so long as $K$ and $l^k_{\rm max}$ are large enough.
+
+
+% \subsubsection{Augmented Lagrangian method}
+% \label{sec:learn_algo}
+% In order to learn the optimal $z$, we would like to transform the constrained outer function in~\eqref{eq:bilevel} using the augmented Lagrangian method~\cite[Section 17.3]{numerical_opt}.
+% For simplicity of notation, from here onwards we adopt the shorthands
+% $$ F(z) = \Expect_{w}[\ell(z,w)], \quad H(z) = \Expect_{w}[h(z,w)]. $$
+% We, then, create the unconstrained function
+% \begin{equation*}
+% 	\begin{aligned}
+% 		L(z,\lambda,\mu) = F(z) &+ \lambda(H(z)) + \frac{\mu}{2}\|H(z)\|^2,
+% 	\end{aligned}
+% \end{equation*}
+% where $\lambda$ and $\mu$ parameters that we update throughout the iterations of the learning algorithm.
+% % We now solve the bi-level problem using a stochastic gradient-based approach.
+% Our procedure estimates the derivative of $L(z,\lambda,\mu)$ using a subgradient $G(W, z, \lambda, \mu)$ computed over a subset $W$ of the data-points.
+% % the stochastic gradient defined as $G(W_{ij},z,\lambda,\mu)$, where $W_{ij}$ is the data batch used.
+% A key component to evaluating this subgradient lies in computing $\nabla_{\theta} x(\theta,y)$. For this we make use of the results \cite{diffcp2019}, which enable us to find gradients of optimal solutions for convex problems by differentiating through the KKT optimality conditions.
+% % The rest of this gradient computation is done by accumulating gradients using the chain rule.
+% % For more details and implementation, see Section~\ref{sec:set_implementation}.
+% % \subsubsection{Gradient-based approach}
+
+% % Note that when we learn the optimal parameterization $z$, we refer to learning $z = (\theta,\alpha,s)$, where $\theta = (A,b)$, the reshaping parameters.
+% % While $\theta$ may also include $\epsilon$, the size parameter, this parameter can be combined into $A,b$, such that it need not be explicitly stated.
+% The procedure to learn the optimal $z$ is described in Algorithms~\ref{alg:learning} and~\ref{alg:learning2}. Algorithm~\ref{alg:learning} details the outer level Lagrangian updating procedure for convergence to an $\epsilon$-KKT point in expectation to~\eqref{eq:bilevel}, while Algorithm~\ref{alg:learning2} details obtaining $\epsilon$-stationary points in expectation of $L$.
+% % There are two types of parameterizations, the first where learn the entire set of reshaping parameters $(A, b)$, which we initilize as ($A^0, b^0$). For the second, we learn only a resizing parameter $\epsilon$, in which case $A = (1/\epsilon)A^0$, $b = (1/\epsilon)b^0$. We typically set $A^0 = \Sigma^{-1/2}$, the inverse square root of the empirical covariance of the training dataset, and $b^0 = -\Sigma^{-1/2}\bar{d}$, where and $\bar{d}$ is the empirical mean of the training dataset.
+% An $\epsilon$-KKT point in expectation is defined as follows.
+% \begin{definition}[$\epsilon$-KKT point in expectation~\cite{aug_lag}] Given $\epsilon > 0$, a point $z = (\theta,\alpha,s) \in \reals^{m\times m}\times \reals^{m}\times\reals$ is an $\epsilon$-KKT point in expectation to~\eqref{eq:bilevel} if there is a vector $\gamma\in \reals$ such that
+% 	$$\Expect[\|H(z)\|^2] \leq \epsilon^2, \quad \Expect[\mathbf{dist}(0,\partial
+% 	F(z) + J_{H}(z)^T\gamma)^2]\leq \epsilon^2,$$
+% 	where $J_{H}(z)$ is the Jacobian of function $H$ at $z$.
+% \end{definition}
+% While these true expectations cannot be computed, we can guarantee the conditions above at convergence~\cite{aug_lag}.
+% \begin{algorithm}[H]
+% 	\caption{Stochastic augmented Lagrangian algorithm to solve~\eqref{eq:bilevel}}
+% 	\label{alg:learning}
+% 	\begin{algorithmic}[1]
+% 	 \State {\bf given} $z^0 = (A^{\text{init}},b^{\text{init}},\alpha^0)$, $\lambda^0, \mu^0, \kappa,\sigma, \gamma_{\rm max}, \epsilon$
+% 	 \For{$k=1,\dots,k_{\rm max}$}
+% 	 \State obtain $z^k$ satisfying  $\Expect[\mathbf{dist}(0,\partial_{z} L(z^{k},\lambda^{k-1}, \mu^{k-1}))^2]\leq \epsilon^2$ \Comment{using Algorithm~\ref{alg:learning2}}
+% 	 \State $\lambda^k \gets  \lambda^{k-1} + \min\{\mu^{k-1}(H(z^k)),\gamma_{\rm max}\}$ \Comment{update Lagrange multipliers, with all data}
+% 	 \State $\mu^{k} \gets  \sigma\mu^{k-1}$
+% 	 \EndFor
+% 	 \State {\bf return} $z^{k_{\rm max}}$
+% 	\end{algorithmic}
+% \end{algorithm}
+% For each outer iteration $k$, we call Algorithm~\ref{alg:learning2} with dataset ${W^k = U^k \times Y^k \subseteq W^{N\times J}}$, where $U^k \subseteq U^N$ and $Y^k \subseteq Y^J$, sampled uniformly and with overall size $|W^k | = M_1$.
+% We initialize $\lambda = \lambda^{k-1}$, $\mu = \mu^{k-1}$. The values of $\gamma$, and $t$ are initialized as detailed in Appendix~\ref{appx:converge}.
+% For each subsequent inner iteration $t$, we use subsets $W^t$ of the corresponding outer iterations' datasets, with overall size $|W^t| = M_2$.
+% \begin{algorithm}[H]
+% 	\caption{Subroutine to obtain $\epsilon$-stationary points in expectation, $z^k$, for all $k$}
+% 	\label{alg:learning2}
+% 	\begin{algorithmic}[1]
+% 	 \State {\bf given} $\hat{z}^0, \lambda, \mu, \kappa, \gamma,t, W, Y$
+% 	 \State $x^0 \gets $ solve inner problem~\eqref{eq:robust_prob} over $x$ for $ y \in Y$
+% 	 \State $v^0 \gets G(W,\hat{z}^0,\lambda,\mu)$,
+% 	 \For{$t=1,\dots,t_{\rm max}$}
+% 	 \State sample uniformly datasets $W^t \subset W$ and $Y^t \subset Y$
+% 	 \State $\hat{z}^t \gets  \hat{z}^{t-1} - \gamma v^{t-1}$
+% 	 \State $x^t \gets $ solve inner problem~\eqref{eq:robust_prob} over $x$ for all $y \in Y^t$
+% 	 \State $v_1^t \gets G(W^t,\hat{z}^{t-1},\lambda,\mu)$
+% 	 \State $v_2^t \gets G(W^t,\hat{z}^t,\lambda,\mu)$
+% 	 \State $v^t \gets v_2^t + (1-t)(v^{t-1} - v_1^t)$
+% 	 \EndFor
+% 	 \State Choose $\hat{z}$ uniformly at random from $\{\hat{z}^1,\dots,\hat{z}^{t_{\rm max}}\}$
+% 	 \State {\bf return} $\hat{z}$
+% 	\end{algorithmic}
+% \end{algorithm}
+% % Convergence for augmented Lagrangian methods for stochastic optimization problems have been
+% % For convergence analysis, we refer to the results of~\cite{stoch-aug}, which studies the convergence of expectation constrained stochastic optimization problems using a stochastic augmented Lagrangian algorithm. With the assumptions
+% % \begin{assumption}
+% % \end{assumption}
+
+% \subsubsection{Convergence of the Augmented Lagrangian method}
+% \label{sec:converge}
+
+% Our formulation fits in the framework of the nonconvex expectation constrained problem of~\cite{aug_lag} and~\cite{aug_lag2}.
+% % as such convergence results follow those of~\cite[Algorithm 1]{aug_lag} and~\cite[Algorithm 1]{aug_lag2} for appropriate parameter values and assumptions. We restate the assumptions and results for completeness.
+% Under standard bounded gradient, smoothness, and regularity conditions, detailed further in Appendix~\ref{appx:converge}, Algorithm~\ref{alg:learning} converges to an $\epsilon$-KKT point in expectation to~\eqref{eq:bilevel}.
+% In particular, we require the following regularity condition.
+% \begin{assumption}[regularity condition,~\cite{aug_lag,regularity}]
+%   \label{assp_1}
+%   Given the finite and bounded domain $\Theta$ of the decision variable $z = (\theta, \alpha)$, there exists a constant $v > 0$ such that for any $z \in \Theta$,
+%   $$ v \|F(z)\| \leq \mathbf{dist}(-J_{H}(z)^TH(z), \mathcal{N}_\Theta(z)),$$
+% 	where $\mathcal{N}_\Theta(z)$ is the normal cone of $\Theta$ at $z$,
+% 	defined as
+% 	$$ \mathcal{N}_\Theta(z) = \{s \mid s^T(y - z)\leq 0,\quad\forall y \in \Theta \}.$$
+% \end{assumption}
+% This condition ensures that when the penalty $\mu$ is large, a near-stationary point of the augmented Lagrangian function is near feasible to~\eqref{eq:bilevel}.
+% This assumption is neither stronger or weaker than other common regularity conditions such as the Slater's condition and the MFCQ condition, and has been proven for many applications~\cite{regularity, regularity2}.
+
+% We can now give an informal theorem on the convergence of Algorithm~\ref{alg:learning}.
+% \begin{theorem}[algorithm convergence (informal)]
+% 	Let $\epsilon$ be a small enough positive number.  Then, under standard smoothness conditions and regularity Assumption~\ref{assp_1}, Algorithm~\ref{alg:learning} needs at most $k_{\rm max}$ outer iterations to find an $\epsilon$-KKT point in expectation of~\eqref{eq:bilevel}, where
+% $$k_{\rm max} = O(\log_\sigma(1/\epsilon)).$$
+% In addition, the number of inner iterations $t^k_{\rm max}$ needed by Algorithm~\ref{alg:learning2} is
+% $$t^k_{\rm max} = O(1/\epsilon^3). $$
+% \end{theorem}
+% See Appendix~\ref{appx:converge} for the exact terms. This result is an application of~\cite[Theorem 1, Theorem 2]{aug_lag} and~\cite[Corollary 2]{aug_lag2}.
+% % In practice, Algorithm~\ref{alg:learning} will converge to an $\epsilon$-KKT point so long as $k_{\rm max}$ is large enough.
+
+\section{Probabilistic guarantees of constraint satisfaction}
+\label{sec:guarantees}
+In the previous section, we have proved convergence to a feasible solution of the sampled problem~\eqref{eq:bilevel_sampled}, which does not exactly correspond to the probabilistic guarantees of constraint satisfaction~\eqref{eq:prob_guarantee}. 
+In this section, we thus establish this guarantee. We prove two results: one with respect to the joint distribution, as given in~\eqref{eq:prob_guarantee}, and another with respect to the conditional distribution, for the setting introduced in Section~\ref{sec:cond}.
+
+\subsection{Guarantees with respect to the joint distribution}
+To arrive at our desired guarantees, where the inner probability is with respect to the unknown joint distribution~\RC{$\prob_{(u,x)}$}, we need to analyze the generalization behavior of the robust solutions on out-of-sample data. 
+% \bsnote{I would add a few sentences at the beginning of this section, to link it to the previous section. In this way, we motivate why we need this section, \ie, the finite-sample solution that we just computed does not have guarantees of constraint satisfaction.}
+% To this end, we make use of empirical process theory and a covering number argument.
+\RC{In addition to Assumption~\ref{ass:bounded}, we need a boundedness assumption on the function from the $\CVaR$ definition.}
+% \bsnote{use $c^{\rm max}$ and $c^{\rm min}$ instead of $C_1$ and $C_2$}
+% $h(\theta,\alpha,u,y) := g(x(\theta,y),u,y)- \alpha)_+/\eta + \alpha$, the constituents of the constraints of~\eqref{eq:bilevel_sampled}. 
+% Note that, in this section, we assume the constraint function $g$ to be single-valued. 
+% If there exist multiple uncertain constraints in the robust problem, we formulate it as a joint maximum-of-concave constraint.
+\begin{assumption}
+  \label{assup:bound_range} \RC{The function $(g(z(\theta,x),u,x)- \alpha)_+/\eta + \alpha$ maps to values in  $(-c^{\rm min}, c^{\rm max})$, where $0 \leq c^{\rm min}, c^{\rm max} < \infty$, for all $\theta,\alpha,u,x$ in its support.}
+\end{assumption}
+Under Assumption~\ref{assup:bound_range}, we then let $C = c^{\rm min} + c^{\rm max}$ and define the normalized function
+\begin{equation}
+	\label{g_setting}
+\psi_{w}(u, x) = \frac{1}{C} \left(c^{\rm min} + \frac{(g(z(\theta,x), u, x) - \alpha)_{+}}{\eta} + \alpha\right),
+\end{equation}
+% \bsnote{update equation by avoiding definition of $C$}
+where $w = (\theta, \alpha) \in \mathcal{W} \subset \reals^{q+1}$.
+Note that when Assumption~\ref{ass:bounded} holds, we have $\mathcal{W} = \mathcal{D}_{\theta} \times \mathcal{D}_{\alpha}$ being a compact set.
+% \bsnote{can we work directly with a closed set instead of $\cl\mathcal{D}$.}
+The function \RC{$\psi_{w}$} then maps to values in $(0,1)$, and we consider the entire function class
+\RC{$$\Psi =  \{\psi_{w}\}_{w \in\mathcal{W}},$$}
+% where $\mathcal{Z}$ is bounded when Assumption~\ref{ass:bounded} holds, \ie~${\mathcal{Z} = \{z = (x,\alpha) \in \reals^{n+1} : \|z\| \leq R\}}$, with $R = M_1 + M_3$. 
+% \begin{assumption}
+% 	\label{assup:bound_dom}
+% 	The set $\mathcal{Z}$ is bounded, \ie~$ {\mathcal{Z} = \{z = (x,\alpha) \in \reals^{n+1} : \|z\| \leq R\}}$
+% \end{assumption} 
+which we use to acquire the finite sample probabilistic guarantee in Theorem~\ref{thm:fin_sample}.
+% \bsnote{An option is to define $\mathcal{X}$ here, and another set for $\alpha$. Then you have $\mathcal{Z} = \mathcal{X} \times setforalpha$}.
+\begin{theorem}[Finite sample probabilistic guarantee]
+	\label{thm:fin_sample}
+Suppose Assumptions~\ref{ass:define} to~\ref{assup:bound_range} hold.
+For the function class $\Psi$ defined above, suppose the following condition on the covering number $N^{\text{cov}}$ holds with constants $V$ and $K$, relative to the $L_2(Q)$ norm~$\|\psi\|_{Q,2} = (\int |\psi|^2 dQ)^{1/2}$ with probability measure $Q$,
+% \bsnote{Don't assume that the reader knows this stuff. Define it and add a reference.}
+\begin{equation}
+    \label{eq:covering}
+\sup_Q N^{\text{cov}}(\delta,\Psi,L_2(Q)) \leq \left (\frac{K}{\delta}\right )^V,
+\end{equation}
+for every $0 < \delta < K$. Then, when Algorithm~\ref{alg:learning} converges to an $\epsilon$-stationary point of~\eqref{eq:bilevel_sampled}, given as $\theta^\star$, we have the finite sample probabilistic guarantee
+\begin{equation}
+	\label{eq:prob_guarantee_fin}
+	\prob^{N}\left (\prob_{(u,x)}(g(z(\theta^\star,x),u,x)\leq 0) \geq 1 - \eta \right) \geq 1 - \beta,
+	\end{equation}
+	where \RC{$\beta = (D\sqrt{N}C\tau/\sqrt{V})^V\exp(-2NC^2\tau^2)$}, $D$ is a constant that depends only on $K$, and $\tau \leq -(c^{\min}+\kappa+\epsilon)/C$. 
+ % This is stronger than and implies the probabilistic guarantee given in~\eqref{eq:prob_guarantee}, as it holds for all $x\in \mathcal{X}$.
+ % \bsnote{add that this holds for every $\forall x \in \mathcal{X}$  \textit{inside} the probability (with $\mathcal{X} = \{x \in \reals^n \mid \|x\| \le R\}$ being a bounded set)}
+\end{theorem}
+
+\begin{proof}
+By the definition of the function class $\Psi$ and Assumptions~\ref{ass:bounded} and~\ref{assup:bound_range}, we can apply Theorem 2.14.9 by~\cite{empirical} to get
+$$\prob^{N}\left (\sup_{\psi_{w} \in \Psi} \left \|\frac{1}{N}\sum_{i=1}^N \psi_{w}(u^i, x^i) - \Expect_{(u,x)}[\psi_{w}(u,x)] \right \| \leq \tau\right ) \geq 1 - \left (\frac{D\sqrt{N}C\tau}{\sqrt{V}}\right )^V\exp(-2NC^2\tau^2).$$
+By the convergence of Algorithm~\ref{alg:learning} to an $\epsilon$-stationary point of~\eqref{eq:bilevel_sampled},
+% \bsnote{of the Lagrangian?}, 
+we have that the empirical $\CVaR$ will be close to $\kappa$. Given equation~\eqref{g_setting}, this means that at $w^\star = (\theta^\star, \alpha^k)$, we have
+$$\frac{1}{N}\sum_{i=1}^N \psi_{{w}^{\star}}(u^i, x^i) \leq (1/C)(c^{\min} + \kappa+ \epsilon).$$
+Therefore, as $\psi_{{w}^{\star}} \in \Psi$, we have
+$$\prob^{N}\left ( \Expect_{(u,x)}[\psi_{w^\star}(u,x)] \leq (1/C)(c^{\min}+ \kappa+\epsilon) + \tau\right ) \geq 1 - \beta,$$
+where $\beta =(D\sqrt{N}C\tau/\sqrt{V})^V\exp(-2NC^2\tau^2)$.
+If $\kappa$ is set such that $\kappa \leq -C\tau - \epsilon - c^{\min}$, we then have
+$$\prob^{N}\left (\CVaR(g(z(\theta^\star,x),u,x),\eta)\leq 0 \right ) \geq 1 - \beta,$$
+which implies~\eqref{eq:prob_guarantee_fin}.
+\end{proof}
+This probabilistic guarantee holds for our data-driven solutions \RC{$z(\theta^\star,x)$.} 
+% \begin{corollary}
+%     Suppose Assumption~\ref{ass:bounded} holds. For all $\theta^0 \in \mathcal{D}_{\theta}$, $s^0 \in \mathcal{D}_{s}$, and~$y \in \mathcal{D}_y$, Theorem~\ref{thm:fin_sample} implies the probabilistic guarantee~\eqref{eq:prob_guarantee} for the data-driven solution~$x(\theta^\star,y)$, \ie, $\prob^{N\times J}\left\{\prob_{(u,y)}(g(x(\theta^\star,y),u,y) \le 0) \ge 1 - \eta\right\}\geq 1 - \beta.$
+% \end{corollary}
+We note that the covering number requirement holds when $\Psi$ is a class of Lipschitz functions, which is implied when the constraint function $g$ is Lipschitz in \RC{$z$, and $z$ is Lipschitz in $\theta$. 
+For instance, when $g$ is affine or a maximum of affine functions in variable $z$, which is a common scenario in many optimization problems (and is the case for our numerical experiments in Section~\ref{c4:sec:examples}), it is Lipschitz in $z$ for all $(u,x) \in \mathcal{D}_{(u,x)}$,
+% \bsnote{do we need closures here?}
+~\ie,$$|g(z,u,x) - g(z',u,x) |\leq \bar{L}\|z - z'\|_2 \quad \forall z,z'\in \mathcal{Z},~(u,x) \in \mathcal{D}_{(u,x)},$$
+with some Lipschitz constant $\bar{L}$. 
+Then, if $z$ is Lipschitz in $\theta$, \ie,
+$$|z(\theta,x) - z(\theta',x) |\leq L_z\|\theta - \theta'\|_2 \quad \forall \theta,\theta'\in \mathcal{D}_\theta,~x\in \mathcal{D}_x,$$
+we have that $g$ is Lipschitz in $\theta$ with Lipschitz constant $\bar{L}L_z$.
+Then, $\psi_w \in \Psi$ is Lipschitz in $w=(\theta,\alpha)$ with Lipschitz constant $L \leq (1/C)((\bar{L}L_z+1)/\eta + 1)$. }
+We can now derive the following covering number condition.
+\paragraph{Covering number for $L$-Lipschitz functions.} When $\psi_{w}$ is $L$-Lipschitz in $w$ for all $u$ and~$x$,
+% \ie
+% $$|\psi_{z}(u,y) - \psi_{z'}(u,y) |\leq L\|z - z'\|_2,$$
+we can apply standard bounds on the covering number of Lipschitz losses~\citep{empirical,covering,covering2}.
+In this case, the covering number condition~\eqref{eq:covering} reduces to
+\begin{equation*}
+\sup_Q N^{\text{cov}}(\delta,\Psi,L_2(Q)) \leq N(\delta/L,\mathcal{Z},\|\cdot\|_2) \leq  \left (1 + \frac{(\theta^{\rm max} +\alpha^{\rm max})L}{\delta}\right )^{q+1} \leq \left (\frac{K}{\delta}\right )^{q+1},
+\end{equation*} 
+for every $0 < \delta < K$, where $K = \delta + (\theta^{\rm max} +\alpha^{\rm max})L$.
+Then, the confidence parameter can be chosen as $\beta =  (D\sqrt{N}C\tau/\sqrt{q+1})^{q+1}\exp(-2NC^2\tau^2)$.
+% {\color{blue} Bart: Convert this to a condition on $g$?}
+
+% \bsnote{Add corollary where you recover exactly the guarantee we need~\ref{eq:prob_guarantee}.}
+
+\subsection{Guarantees with respect to the conditional distribution}
+\label{sec:cond_guarantee}
+To establish performance guarantees with respect to the conditional distribution $\prob_{(u|x = \bar{x})}$ instead of the joint distribution $\prob_{(u,x)}$, we now consider the optimization problem~\eqref{eq:bilevel_intro_opt_cond_new},
+for which an approximated sampled formulation (alternative for~\eqref{eq:bilevel_sampled}) becomes
+\begin{equation}
+	\label{eq:bilevel_sampled_cond}
+	\begin{array}{ll}
+		\underset{\alpha,\theta}{\mbox{minimize}} & \tilde{F}(\theta,\bar{x}) \\
+		\mbox{subject to} & \tilde{H}(\alpha,\theta,\bar{x}) = 0,\\
+	\end{array}
+\end{equation}
+where
+$$\tilde{F}(\theta,\bar{x}) = \sum_{i=1}^N w(\bar{x},x^i)\Phi_{\gamma}(z(\theta,x^i),u^i, x^i)$$
+and 
+ $$\tilde{H}(\alpha,\theta,\bar{x}) = \sum_{i=1}^N w(\bar{x},x^i)((g(z(\theta,x^i),u^i,x^i)- \alpha)_+/\eta + \alpha - \kappa)_+.$$
+The weights $w(\bar{x},x^i)$ are constructed such that $\sum_{i=1}^Nw(\bar{x},x^i) = 1$ and $w(\bar{x},x^i) \geq 0$ for $i = 1,\dots N$, and is a measure of the proximity of the data-point $x^i$ to $\bar{x}$. With this construction, the conditional distribution $\prob_{(u|x = \bar{x})}$ is approximated as
+$$\tilde{\prob}_{(u|x = \bar{x})} = \sum_{i=1}^Nw(\bar{x},x^i)\delta_{u^i}.$$
+
+As discussed by~\cite{bertsimas2020predictive}, the weights could be constructed using $k$-nearest-neighbors ($k$NN), kernel methods, nonnegative local linear methods, trees, or random forests. Here, we focus on the $k$NN setting, and note that the remaining methods could similarly be applied, albeit with different assumptions.
+
+In the $k$NN setting, we choose the weights
+$$w(\bar{x},x^i) = \frac{1}{k}\ones\{x^i\text{ is a $k$NN of } \bar{x}\}, $$
+where ties are broken randomly, and the nearest-neighbors are decided using the Euclidean distance in $\reals^p$. 
+In their work,~\cite{bertsimas2020predictive} derive asymptotic guarantees for their constructed contextul prescriptors. We, however, require a finite-sample gaurantee analogous to~\eqref{eq:prob_guarantee_fin} for a particular context $\bar{x}$. We therefore require the following assumptions:
+\begin{assumption}[Regular marginal density]
+	\label{ass:positive}
+	The distribution $\prob_x$ of the context variable $x$ admits a density $\mu_x$ with respect to the Lebesgue measure, and $\mu_x$ is continuous at $\bar{x}$ with $\mu_x(\bar{x}) > 0$.
+	Moreover, there exists a radius $R > 0$ such that for all $r \in [0, R]$,
+	$\int_{B(\bar{x},r)} \mu_x(x)\, dx \geq \mu_x(\bar{x})\, V_p\, r^p$,
+	where $B(\bar{x},r) = \{x \in \reals^p \mid \|x - \bar{x}\|_2 < r\}$ is the open ball of radius $r$ centered at $\bar{x}$, and $V_p$ is the volume of the unit ball in $\reals^p$.
+\end{assumption}
+\begin{assumption}[H\"{o}lder continuous conditional expectation]
+	\label{ass:holder}
+There exist constants $L > 0$ and $s > 0$ such that for all $w = (\theta, \alpha) \in \mathcal{W}$ and all $\bar{x}, \bar{x}' \in \mathcal{D}_x$:
+\begin{equation*}
+    \left| \mathbf{E}_{(u \mid {x = \bar{x}})}[\psi_w(u, \bar{x})] - \mathbf{E}_{(u \mid  {x = \bar{x}}')}[\psi_w(u, \bar{x}')] \right| \leq L \| \bar{x} - \bar{x}' \|_2^s.
+\end{equation*}
+\end{assumption}
+Intuitively, the density assumption ensures that the conditional distribution at $\bar{x}$ is meaningful and that the local mass of the ball around $\bar{x}$ is well-behaved, while the continuity assumption ensures that borrowing information from neighboring contexts introduces only a controlled amount of bias.
+We can then derive the following finite-sample guarantee for the conditional distribution. Note that compared with the joint distribution, this bound includes an additional bias term, which arises from the approximation of the conditional distribution.
+\begin{theorem}[Conditional finite sample guarantee]
+	\label{thm:fin_sample_cond}
+Suppose Assumptions~\ref{ass:define} to~\ref{ass:holder} hold.
+For the function class $\Psi$ defined in Section~\ref{sec:guarantees}, suppose the covering number condition~\eqref{eq:covering} holds with constants $V$ and $K$.
+Suppose also that Algorithm~\ref{alg:learning}, adjusted for the conditional sampled problem~\eqref{eq:bilevel_sampled_cond} with $k$NN weights, converges to an $\epsilon$-stationary point $\theta^\star$ for a particular context $\bar{x}$. We then have the conditional finite sample probabilistic guarantee for the given $\bar{x}$:
+\begin{equation}
+	\label{eq:prob_guarantee_cond}
+	\prob^{N}\left (\prob_{(u | x = \bar{x})}(g(z(\theta^\star,\bar{x}),u,\bar{x})\leq 0) \geq 1 - \eta \right ) \geq 1 - \beta_{\mathrm{cond}},
+\end{equation}
+where $\beta_{\mathrm{cond}} = \beta_{\mathrm{var}} + \beta_{\mathrm{bias}}$.
+The variance term is
+$$\beta_{\mathrm{var}} = \left(\frac{D\sqrt{k}\,C\tau_{\mathrm{var}}}{\sqrt{V}}\right)^V\exp(-2kC^2\tau_{\mathrm{var}}^2),$$
+with $D$ a constant depending only on $K$, and $\tau_{\mathrm{var}} \leq -(c^{\min}+\kappa+\epsilon)/C - \tau_{\mathrm{bias}} $.
+The value $\tau_{\mathrm{bias}}$ is chosen as $\tau_{\mathrm{bias}}= L r^s$ for an $r \in \left[\left({k/f_x(\bar{x})\, V_p\, N}\right)^{1/p},\; R\right]$, and the corresponding bias probability is
+$$\beta_{\mathrm{bias}} = \exp\left(-f_x(\bar{x})\, V_p\, r^p\, N\right)\left(\frac{e\,f_x(\bar{x})\, V_p\, r^p\, N}{k}\right)^k.$$
+\end{theorem}
+
+\begin{proof}
+We decompose the error between the $k$NN-weighted empirical estimate and the true conditional expectation as
+$$\sum_{i=1}^N w(\bar{x}, x^i) \psi_w(u^i, x^i) - \Expect_{(u | x = \bar{x})}[\psi_w(u, \bar{x})] = S_{\mathrm{var}} + S_{\mathrm{bias}},$$
+where
+$$S_{\mathrm{var}} = \frac{1}{k}\sum_{i \in k\text{NN}(\bar{x})} \left(\psi_w(u^{i}, x^{i}) - \Expect_{(u | x = x^{i})}[\psi_w(u, x^{i})]\right)$$
+is the variance term, with $k\text{NN}(\bar{x})$ the set of indices of the $k$ nearest neighbors of $\bar{x}$, and
+$$S_{\mathrm{bias}} = \frac{1}{k}\sum_{i \in k\text{NN}(\bar{x})} \Expect_{(u | x = x^{i})}[\psi_w(u, x^{i})] - \Expect_{(u | x = \bar{x})}[\psi_w(u, \bar{x})]$$
+is the bias term. We begin with bounding the variance term, as it follows the logic of the bound from Theorem~\ref{thm:fin_sample}, only with $k$ samples instead of $N$.
+
+\paragraph{Variance bound.}
+By Assumptions~\ref{ass:bounded},~\ref{assup:bound_range} and the normalization step in equation~\eqref{g_setting}, the variance term $S_{\mathrm{var}}$ is an average of $k$ conditionally independent random variables, each bounded in $(0,1)$.
+Applying Theorem 2.14.9 by~\cite{empirical} with the $k$ nearest-neighbor samples in place of the full dataset, we obtain
+$$\prob^{N}\left (\sup_{\psi_{w} \in \Psi} |S_{\mathrm{var}}| \leq \tau_{\mathrm{var}}\right ) \geq 1 - \left (\frac{D\sqrt{k}\,C\tau_{\mathrm{var}}}{\sqrt{V}}\right )^V\exp(-2kC^2\tau_{\mathrm{var}}^2) = 1 - \beta_{\mathrm{var}}.$$
+
+\paragraph{Bias bound.}
+By Assumption~\ref{ass:holder}, the bias term satisfies
+$$\sup_{\psi_w \in \Psi} |S_{\mathrm{bias}}| \leq L r_k(\bar{x})^s,$$
+where $r_k(\bar{x}) = \max_{i \in k\text{NN}(\bar{x})} \|x^{i} - \bar{x}\|_2$ is the $k$NN radius.
+Under Assumption~\ref{ass:positive}, $\prob_x$ satisfies the full dimension condition (Definition 3) of~\cite{singh2016knn} with dimension $p$ and locality radius $R$.
+For any $r \in \left[\left(k/f_x(\bar{x})\, V_p\, N\right)^{1/p},\; R\right]$, Lemma 6 of~\cite{singh2016knn} therefore gives
+$$\prob^N(r_k(\bar{x}) > r) \leq \exp\left(-f_x(\bar{x})\, V_p\, r^p\, N\right)\left(\frac{e\,f_x(\bar{x})\, V_p\, r^p\, N}{k}\right)^k = \beta_{\mathrm{bias}}.$$
+It follows that $\sup_{\psi_w \in \Psi} |S_{\mathrm{bias}}| \leq L r^{s} = \tau_{\mathrm{bias}} $ with probability $ 1 - \beta_{\mathrm{bias}}$.
+
+\paragraph{Combining the bounds.}
+By the convergence of Algorithm~\ref{alg:learning} to an $\epsilon$-stationary point of~\eqref{eq:bilevel_sampled_cond}, analogously to the proof of Theorem~\ref{thm:fin_sample}, we have at $w^\star = (\theta^\star, \alpha^k)$:
+$$\sum_{i=1}^N w(\bar{x}, x^i) \psi_{w^\star}(u^i, x^i) \leq (1/C)(c^{\min} + \kappa + \epsilon).$$
+By a union bound over the variance and bias events, with probability at least $1 - \beta_{\mathrm{var}} - \beta_{\mathrm{bias}}$,
+$$\Expect_{(u | x = \bar{x})}[\psi_{w^\star}(u, \bar{x})] \leq (1/C)(c^{\min} + \kappa + \epsilon) + \tau_{\mathrm{var}} +\tau_{\mathrm{bias}} .$$
+Setting $\kappa$ such that $\kappa \leq -C(\tau_{\mathrm{var}} + \tau_{\mathrm{bias}} ) - \epsilon - c^{\min}$, we obtain
+$$\prob^{N}\left (\CVaR(g(z(\theta^\star,\bar{x}),u,\bar{x}),\eta)\leq 0 \right ) \geq 1 - \beta_{\mathrm{cond}},$$
+which implies~\eqref{eq:prob_guarantee_cond}.
+\end{proof}
+
+% Overall, we note that this result relies on the additional Assumptions~\ref{ass:positive} and~\ref{ass:holder} on the marginal and conditional distributions of $x$, which may be difficult to verify in practice. 
+We note that due to the bias term, and due to the use of $k$ instead of $N$ in the variance term, this result adds additional conservatism to the probabilistic guarantee compared to that of Theorem~\ref{thm:fin_sample}.  
+
+
+\section{Hyperparameter tuning}
+\label{sec:hyper}
+As our learning problem is stochastic, nonsmooth, and nonconvex, our feasible solution is not guaranteed to be a locally or globally optimal solution. 
+Furthermore, as the theoretical guarantees are often conservative, they often require a very large number of samples~$N$. % to obtain a reasonable guarantee. 
+In practice, we thus tune for a target guarantee using a validation dataset; to obtain the best solutions, we employ hyperparameter tuning to select among various feasible solutions.
+
+As given in Algorithm~\ref{alg:learning}, we have multiple tunable parameters; see Table~\ref{tab:default} below, where we list suggested default values.
+We prioritize grid-searching over the most impactful hyperparameters, such as the radius $\rho$, augmented Lagrangian initializations $\lambda^0$ and $\mu^0$, the risk $\eta$, and the objective multiplier $\gamma$. The suggested ranges for these parameters are also given below. For the other parameters, while the given default values may not be optimal, they work consistently well for our numerical experiments.
+\begin{table}[ht]
+	\footnotesize
+  \centering
+	\begin{tabular}{cccccccccccccc}\toprule
+	$\rho$& $\alpha^0$ & $\lambda^0$ & $\mu^0 $ & $\gamma$ &$\kappa$ & $\sigma$ & $\tau$ & $k_{\text{max}}$ & $t_{\text{max}}$ & $\eta$ & $|B|$\\
+		\midrule
+   $[0.00001,5]$ &0  & $[0.1,2]$ & $[0.1,2]$  & $[0,0.5]$ & $-0.01 $& 1.005 & 0.95 & 15 & 20 & $(0,0.3]$& 200\\
+	\bottomrule
+		\end{tabular}
+		\caption{Default hyperparameter values and suggested ranges for the training algorithm~\ref{alg:learning}.}
+		\label{tab:default}
+	\end{table}
+% the parameters $\theta^0, \alpha^0,\lambda^0, \mu^0, \kappa, \sigma, \tau,\eta$, as well as $\gamma$
+% for the performance metric $\Phi$, are all tunable hyperparameters. 
+% In addition, upon training the shape parameter $\theta$, we tune the radius $\rho$. 
+
+Note that, to limit the training cost in practice, we limit the number of inner iterations~$t_{\rm max}$ and outer iterations~$k_{\rm max}$, as the per-iteration gains on the validation dataset are diminishing. 
+% The numbers of iterations we take, $t_{\rm max}$ and $k_{\rm max}$, are also commonly restricted to small values, instead of ensuring convergence with low tolerance, as the per-iteration gains are diminishing. 
+For the step sizes $\delta^t$ given in Algorithm~\ref{alg:learning_inner}, we employ an incrementally decreasing schedule, where we multiply the step size by some value $\hat{\delta}$ every $\hat{k}$ steps. We use the default values $\hat{k} = 50$ and $\hat{\delta}$ = 0.7, and an initial step size $\delta^0 = 0.001$.
+
+For the uncertainty set initialization, we pre-train a contextual mean-variance linear mapping for $\theta^0 = (W_A^0, h_A^0,W_b^0, h_b^0)$, as introduced in~\eqref{eq:lin_map}. We use least-squares on the the stacked vectors of the training data $(U^N,X^N)$ to learn $(W_b^0, h_b^0)$, and similarly use least-squares on the $10\%$-nearest-neighbor covariance matrices to learn $(W_A^0, h_A^0)$, \ie, 
+$\text{minimize}~\|W_b^0X^N + h_b^0 - U^N\|^2,$ and$~\text{minimize}~\|W_A^0X^N + h_A^0 - \hat{\Sigma}^{1/2}(X^N)\|^2.$
+
+Among the solutions obtained from the hyperparameter combinations, we use a validation dataset to select the one with the best performance. 
+
+
+
+\section{Examples}
+\label{c4:sec:examples}
+We run the following experiments on the Princeton Institute for Computational Science and Engineering (PICSciE) facility with 20 parallel 2.4 GHz Skylake cores. We solve the inner optimization problems~\eqref{eq:robust_prob} with the Clarabel optimizer with default settings. The learning procedure relies on the Python package cvxpylayers~\citep{cvxpylayers2019}, and 
+% is implemented using the \gls{LROPT} package. T
+the code to replicate the experiments (along with the baselines) can be accessed at
+\begin{center}
+	\githubrepo
+\end{center}
+\RC{We compare our method with the following baselines. To accommodate non-contextual methods, we restrict ourselves to discrete contexts, so the problems can be solved separately in each context. While we can also use clustering to restrict the number of representative contexts (for problems where the context does not appear in the formulation), here we use the exact contexts for a better comparison. For all experiments, we split the data into three components: training, validation, and testing. For all methods, we tune hyperparameters based on the performance on the validation dataset, for a validation probability of constraint violation below 10\%, and for the best (lowest) 90 percentile validation value (out-of-sample objective value on the validation dataset) among all sets that satisfies the criteria. We report the corresponding test-set values. Below, we detail the tuning procedures for each method.}
+% \bsnote{Do we use LRO or LROPT? In the tables you write LRO. I would be consistent.}
+\begin{itemize}
+\item {\bf Learning for decision-focused \gls{RO} (LRO) (our method)}. We apply the training method given in Section~\ref{sec:training_procedure} on the training data, for an ellipsoidal uncertainty set with $p=2$, and hyperparameter values from Table~\ref{tab:default}. We use the validation dataset to select the hyperparameter combination that has a probability of constraint violation below 10\% and the lowest 90 percentile objective value.
+\item {\bf Mean-Variance \gls{RO} (MV)}. We perform mean-variance \gls{RO}, where the shape of the uncertainty set is determined by the empirical mean and variance of the training data~\citep{ben-tal_robust_2000}. We use grid search over the set size $\rho$ on the validation set to select the $\rho$ that gives a constraint violation below 10\% and the lowest 90 percentile objective value.
+\item{\bf Contextual Mean-Variance \gls{RO} (CMV)}. We perform contextual mean-variance \gls{RO} on the training data, as described in Section~\ref{sec:intro_sets}, and use grid search over the set size $\rho$ on the validation data, as described above.
+\item {\bf Wasserstein \gls{DRO} (W)}. We perform Wasserstein-1 \gls{DRO}~\citep{mohajerin_esfahani_data-driven_2018}, where the uncertainty set is constructed around individual data-points from the training set, regardless of the context. We again perform grid search over the set size $\rho$ on the validation data, as described above.
+\item {\bf Wasserstein \gls{DRO} with separate contexts (CW)}. We perform Wasserstein-1 \gls{DRO} for each context, where the uncertainty set is constructed around individual data-points from the training set for the particular context. For each context, we grid search over the set size $\rho$ on the validation data. We average the final result across all contexts. 
+% \item {\bf Scenario Approach with separate contexts (CSA)}. We implement the scenario approach, inspired by~\cite{scenario}. For each context, we require the constraint to be satisfied by both the associated training and validation uncertainty data. We average the results across all contexts. 
+\item {\bf End-to-End Conditional \gls{RO} (ECRO)}. We implement the end-to-end approach given by~\cite{cond-cov}, where a contextual neural-network is trained on the training data. We use grid search over $\eta \in [0.05,0.3]$ and $\gamma \in [0.1,0.9]$, which controls their objective $\CVaR$ and a conditional coverage objective, with 6 values in each interval. We choose the combination with the best performance on the validation data, as described above. For other hyperparameters, we use the values given in their work. 
+\item {\bf Linear-Convex Ordering \gls{RO} with separate contexts (CLCX)}. We implement the LCX uncertainty set given by~\cite[Section 7]{bertsimas_data-driven_2018}, which is a custom constraint-based uncertainty set built using hypothesis testing. We use the hyperparameters $\alpha = \epsilon = 0.1$, as given in their numerical experiments. We repeat the procedure for each context in the training data, and average the results across all contexts.  
+\end{itemize}
+
+For each setting, we repeat the experiment 10 times, each with a new independent dataset, and evaluate the performance metrics in Table~\ref{tab:perfmetrics}. For all methods with size tuning, we use $60$ values of $\rho$, and for our method, additionally grid over 6 values of $\eta$ and 6 combinations of $(\lambda^0,\mu^0,\gamma$) in the given ranges. Note that the hyperparameter tuning is done separately for each repetition of the experiments.
+\begin{table}[ht]
+	\small
+  \centering
+  % \bsnote{$t$ is also the step size in the next table. Can we use ${\rm time}$ for the CPU time?}}
+  \adjustbox{max width=\linewidth}{
+	\begin{tabular}{ll}\toprule
+		Name & Description\\
+		\midrule
+        $\hat{\eta}$ & Test-set empirical probability of constraint violation\\
+		  10\% worst-case & Test-set 90 percentile objective value\\
+        average-case & Test-set average objective value\\
+        $\CVaR$ & Test-set 10\% Conditional Value-at-Risk\\
+	\bottomrule
+		\end{tabular}}
+	\caption{Performance metrics, averaged over 10 runs.}
+	\label{tab:perfmetrics}
+	\end{table}
+ \subsection{Portfolio optimization}
+ \label{sec:port}
+\paragraph{Problem description.}
+\RC{We consider the classic portfolio management problem, where we select a portfolio $z \in \reals^n$ of stocks to maximize $u^T z$, where $u\in \reals^n$ are the uncertain asset returns.
+We assume to have access to contextual data on the market factors $F \in \reals^{(n,2)}$, which influences the returns covariance, as well as data $h\in \reals^n$ that influences the mean of the returns. 
+This translates to the \gls{RO} problem  
+\begin{equation*}
+	\begin{array}{ll}
+		\mbox{minimize} & t\\
+		\mbox{subject to} & -u^Tz \le t \quad \forall u \in \uncset(\theta,x) \\
+		& \ones^Tz = 1, \quad z \geq 0,
+	\end{array}
+\end{equation*}
+where the contextual information $x = (h, F)$ does not appear in the problem objective or constraints.} 
+
+
+\paragraph{Data.}
+\RC{We consider the cases where $n = 10$ and $n=30$ stocks. For this problem, the uncertainty size $m = n$. 
+We generate 20 different contexts, where for each context we have $x^i = (h^i,F^i),$ with $h^i$ sampled uniformly on $[0.5,1]$ and the components of $F^i$ sampled independently from $N(0,1)$.}
+\RC{
+The contextual uncertain returns $u^i$ is sampled from a multivariate normal distribution $N(\mu^i(h^i)), \Sigma^i(F^i))$, where $\mu^i(h^i) = 0.7\mu +0.3h^i$, and $\Sigma^i(F^i) = 0.2F^iF^{iT}$. The nominal mean $\mu$ is sampled uniformly on $[0.5,1]$. 
+We consider the cases with $N=2000$ and $N=1000$ samples, with the same number of samples for each context. For both cases, we use $30\%$ of the data for training, $20\%$ for validation, and $50\%$ for testing.}
+
+
+\paragraph{Results.}
+In Tables~\ref{table:port_n10} and~\ref{table:port_n30}, we compare the performance of all methods, and note that our method outperforms the others in all objective metrics. This means that not only do we do better in the 10\% worst-case and average case, the total loss we incur in the 10\% worst cases is also consistently lower.
+The second-best method is CMV, where we already identify a good mapping from the context to the uncertainty set. Our learning method initializes from this set, and moves to less conservative mappings. As shown, these improvements cannot be found with traditional size-tuning. The other contextual method, ECRO, also performs relatively well, but suffers from the conservative coverage requirement, which reduces $\hat{\eta}$ in exchange for worse out-of-sample performance.
+% \RC{The CSA uncertainty set performs the worst in terms of probability of constraint violation, as it generally requires more data than the \gls{RO} methods that can tune a size parameter. Since the training data is consistent across all methods, it is unable to achieve the target guarantee.}
+
+
+The non-contextual MV and W uncertainty sets, which use all data-points regardless of the context, suffer from this generalization, as expected. However, such formulations are much more tractable than those of CLCX and CW, for which a separate problem must be solved for each context.
+% \RC{These psuedo-contextual \bsnote{Is pseudo-contextual a name we just came up with? I am not sure if we should use it. For sure, we should clarify what we mean when we discuss the baselins}
+These methods also did not perform as well as the contextual methods, perhaps due to the (relatively) limited number of data-points available for each context.
+Furthermore, these methods could only be employed because we restricted the number of contexts; if we had unique contexts, the contexts may also need to be treated as an uncertainty set, or clustered, and might introduce additional conservatism in compensation for the information loss.
+
+We note that the above behavior trends are consistent across the 4 scenarios, and comparing scenarios, a larger uncertainty set size $m = n$ (which for this problem indicates a larger selection of stocks) allows for better overall solutions, as does a larger $N$. 
+% The effects of these values are relatively similar for all methods.
+%  besides CSA, which is heavily impacted by the lack of data; it requires more data to achieve the 10\% guarantee. 
+A larger $n$ may increase the solving and training time for all problems, as it increases the complexity. A larger $N$, on the other hand, might not affect the training time, as long as the batch size is kept consistent. 
+% \begin{table}[ht]
+%   \centering
+%   \footnotesize
+%  % \adjustbox{max width=\linewidth}
+% {
+% 	\begin{tabular}{cllllllll}   \toprule   
+%           $n=10$& \multicolumn{4}{c}{$N=2000$}
+%            & \multicolumn{4}{c}{$N=1000$}\\
+%          \midrule
+% 		method & $\hat{\eta}$ & Worst-case$ $ & Average-case & $\CVaR$ & $\hat{\eta}$ & Worst-case & Average-case & $\CVaR$ \\
+%         \midrule
+%          LRO & $0.0080$ & $\bf{-0.818}$ & $\bf{-0.862}$ &$\bf{-0.751}$ & $0.0094$ & $\bf{-0.800}$ & $\bf{-0.855}$ &$\bf{-0.739}$\\
+%         \midrule 
+%         MV & $0.0479$ & $-0.578$ & $-0.812$ &$-0.441$ & $0.0407$ & $-0.573$ & $-0.809$ &$-0.440$\\
+%         \midrule 
+%         CMV & $0.0469$ & $-0.780$ & $-0.823$ &$-0.741$ & $0.0434$ & $-0.757$ & $-0.809$ &$-0.688$\\
+%         \midrule 
+%         W & $0.0452$ & $-0.551$ & $-0.810$ &$-0.403$ & $0.0120$& $-0.553$& $-0.807$ &$-0.415$\\
+%         \midrule 
+%         CW & $0.0283$ & $-0.621$ & $-0.828$ & $-0.550$ & $0.0034$ & $-0.479$ & $-0.810$ &$-0.403$\\
+%         \midrule 
+%         % SA & $0.1494$ & $-0.489$ & $-0.803$ &$-0.338$ & $0.2572$ & $-0.484$ & $-0.812$ &$-0.344$\\
+%         % \midrule 
+%         ECRO & $0.0014$ & $-0.656$ & $-0.816$ &$-0.530$ & $\bf{0.0006}$ & $-0.639$ & $-0.822$ &$-0.508$\\
+%         \midrule 
+%         LCX & $\bf{0.0013}$ & $-0.476$ & $-0.810$ &$-0.320$ & $0.0056$ & $-0.425$ & $-0.820$&$-0.291$\\
+%         \bottomrule \\[-8pt]
+%                 \toprule 
+% $n=30$& \multicolumn{4}{c}{$N=2000$}
+%            & \multicolumn{4}{c}{$N=1000$}\\
+%              \midrule
+% 		method & $\hat{\eta}$ & Worst-case & Average-case & $\CVaR$ & $\hat{\eta}$ & Worst-case & Average-case & $\CVaR$ \\
+%  \midrule
+%          LRO & $0.0018$ & $\bf{-0.902}$& $\bf{-0.925}$&$\bf{-0.880}$ & $0.0082$ & $\bf{-0.901}$ & $\bf{-0.927}$ &$\bf{-0.841}$\\
+%         \midrule 
+%         MV & $0.0844$ & $-0.721$ & $-0.831$ & $-0.656$& $0.0858$ & $-0.723$ & $-0.828$ &$-0.659$\\
+%         \midrule 
+%         CMV & $0.0410$ & $-0.871$ & $-0.898$ &$-0.861$ & $0.0320$ & $-0.864$ & $-0.894$ &$-0.840$\\
+%         \midrule 
+%         W & $0.0899$ & $-0.668$ & $-0.842$ & $-0.558$ & $0.0638$ & $-0.666$ & $-0.836$ &$-0.555$\\
+%         \midrule 
+%         CW & $0.0283$ & $-0.621$ & $-0.828$ &$-0.550$& $0.0090$ & $-0.610$ & $-0.822$ &$-0.562$\\
+%         % \midrule 
+%         % SA & $0.2850$ & $-0.652$ & $-0.830$ &$-0.549$ & $0.4310$ & $-0.598$ & $-0.849$ &$-0.488$\\
+%         \midrule 
+%         ECRO & $\bf{0}$ & $-0.773$ & $-0.857$ &$-0.697$ & $\bf{0}$ & $-0.758$ & $-0.854$ &$-0.673$\\
+%         \midrule 
+%         LCX & $0.0001$ & $-0.628$ & $-0.820$ &$-0.528$ & $0.0007$ & $-0.555$ & $-0.834$ &$-0.447$\\
+%  \bottomrule
+% 		\end{tabular}}
+% 		\caption{Portfolio optimization comparisons averaged across 10 runs. The best value for each category is in bold.}
+% 		\label{table2}
+%         \vspace{-1em}
+% 	\end{table}
+% 	\begin{table}[ht]
+%   \centering
+%   \footnotesize
+%  % \adjustbox{max width=\linewidth}
+% {
+% 	\begin{tabular}{cllllllll}   \toprule   
+%           $n=10$& \multicolumn{4}{c}{$N=2000$}
+%            & \multicolumn{4}{c}{$N=1000$}\\
+%          \midrule
+% 		method & $\hat{\eta}$ & Worst-case$ $ & Average-case & $\CVaR$ & $\hat{\eta}$ & Worst-case & Average-case & $\CVaR$ \\
+%         \midrule
+%          LRO & $0.0060$ & $\bf{-0.814}$ & $\bf{-0.861}$ &$\bf{-0.752}$ & $0.0100$ & $\bf{-0.800}$ & $\bf{-0.855}$ &$\bf{-0.731}$\\
+%         \midrule 
+%         MV & $0.0650$ & $-0.573$ & $-0.810$ &$-0.436$ & $0.0324$ & $-0.571$ & $-0.806$ &$-0.433$\\
+%         \midrule 
+%         CMV & $0.0587$ & $-0.780$ & $-0.824$ &$-0.741$ & $0.0410$ & $-0.757$ & $-0.809$ &$-0.690$\\
+%         \midrule 
+%         W & $0.0452$ & $-0.551$ & $-0.810$ &$-0.403$ & $0.0120$& $-0.553$& $-0.807$ &$-0.415$\\
+%         \midrule 
+%         CW & $0.0283$ & $-0.621$ & $-0.828$ & $-0.550$ & $0.0034$ & $-0.479$ & $-0.810$ &$-0.403$\\
+%         \midrule 
+%         % SA & $0.1494$ & $-0.489$ & $-0.803$ &$-0.338$ & $0.2572$ & $-0.484$ & $-0.812$ &$-0.344$\\
+%         % \midrule 
+%         ECRO & $0.0014$ & $-0.656$ & $-0.816$ &$-0.530$ & $\bf{0.0006}$ & $-0.639$ & $-0.822$ &$-0.508$\\
+%         \midrule 
+%         LCX & $\bf{0.0013}$ & $-0.476$ & $-0.810$ &$-0.320$ & $0.0056$ & $-0.425$ & $-0.820$&$-0.291$\\
+%         \bottomrule \\[-8pt]
+%                 \toprule 
+% $n=30$& \multicolumn{4}{c}{$N=2000$}
+%            & \multicolumn{4}{c}{$N=1000$}\\
+%              \midrule
+% 		method & $\hat{\eta}$ & Worst-case & Average-case & $\CVaR$ & $\hat{\eta}$ & Worst-case & Average-case & $\CVaR$ \\
+%  \midrule
+%          LRO & $0.0003$ & $\bf{-0.902}$& $\bf{-0.926}$&$\bf{-0.881}$ & $0.0084$ & $\bf{-0.900}$ & $\bf{-0.926}$ &$-0.837$\\
+%         \midrule 
+%         MV & $0.0832$ & $-0.721$ & $-0.830$ & $-0.651$& $0.0786$ & $-0.716$ & $-0.831$ &$-0.644$\\
+%         \midrule 
+%         CMV & $0.0339$ & $-0.871$ & $-0.897$ &$-0.861$ & $0.0318$ & $-0.864$ & $-0.894$ &$\bf{-0.839}$\\
+%         \midrule 
+%         W & $0.0899$ & $-0.668$ & $-0.842$ & $-0.558$ & $0.0638$ & $-0.666$ & $-0.836$ &$-0.555$\\
+%         \midrule 
+%         CW & $0.0283$ & $-0.621$ & $-0.828$ &$-0.550$& $0.0090$ & $-0.610$ & $-0.822$ &$-0.562$\\
+%         % \midrule 
+%         % SA & $0.2850$ & $-0.652$ & $-0.830$ &$-0.549$ & $0.4310$ & $-0.598$ & $-0.849$ &$-0.488$\\
+%         \midrule 
+%         ECRO & $\bf{0}$ & $-0.773$ & $-0.857$ &$-0.697$ & $\bf{0}$ & $-0.758$ & $-0.854$ &$-0.673$\\
+%         \midrule 
+%         LCX & $0.0001$ & $-0.628$ & $-0.820$ &$-0.528$ & $0.0007$ & $-0.555$ & $-0.834$ &$-0.447$\\
+%  \bottomrule
+% 		\end{tabular}}
+% 		\caption{Portfolio optimization comparisons averaged across 10 runs. The best value for each category is in bold.}
+% 		\label{table3}
+%         \vspace{-1em}
+% 	\end{table}
+
+\begin{table}[ht]
+  \centering
+  \fontsize{9}{11}\selectfont
+{
+	\begin{tabular}{cllll}   \toprule   
+          $n=10$, $N=1000$ & & & & \\
+         \midrule
+		method & $\hat{\eta}$ & 10\% worst-case & average-case & $\CVaR$ \\
+        \midrule
+         LRO & $0.0100$ & $\bf{-0.800 \pm 0.003}$ & $\bf{-0.855 \pm 0.004}$ &$\bf{-0.731 \pm 0.016}$\\
+        \midrule 
+        MV & $0.0324$ & $-0.571 \pm 0.014$ & $-0.806 \pm 0.010$ &$-0.433 \pm 0.023$\\
+        \midrule 
+        CMV & $0.0410$ & $-0.757 \pm 0.006$ & $-0.809 \pm 0.004$ &$-0.690 \pm 0.019$\\
+        \midrule 
+        W & $0.0120$ & $-0.553 \pm 0.017$ & $-0.807 \pm 0.014$ &$-0.415 \pm 0.029$\\
+        \midrule 
+        CW & $0.0034$ & $-0.479 \pm 0.014$ & $-0.810 \pm 0.004$ &$-0.403 \pm 0.020$\\
+        \midrule 
+        ECRO & $\bf{0.0006}$ & $-0.639 \pm 0.024$ & $-0.822 \pm 0.007$ &$-0.508 \pm 0.046$\\
+        \midrule 
+        LCX & $0.0056$ & $-0.425 \pm 0.031$ & $-0.820 \pm 0.018$ &$-0.291 \pm 0.042$\\
+        \bottomrule \\[-8pt]
+                \toprule 
+		$n=10$, $N=2000$ & & & & \\
+             \midrule
+		method & $\hat{\eta}$ & 10\% worst-case & average-case & $\CVaR$ \\
+ \midrule
+         LRO & $0.0060$ & $\bf{-0.814 \pm 0.004}$ & $\bf{-0.861 \pm 0.003}$ &$\bf{-0.752 \pm 0.008}$\\
+        \midrule 
+        MV & $0.0650$ & $-0.573 \pm 0.004$ & $-0.810 \pm 0.002$ &$-0.436 \pm 0.007$\\
+        \midrule 
+        CMV & $0.0587$ & $-0.780 \pm 0.001$ & $-0.824 \pm 0.002$ &$-0.741 \pm 0.006$\\
+        \midrule 
+        W & $0.0452$ & $-0.551 \pm 0.006$ & $-0.810 \pm 0.004$ &$-0.403 \pm 0.011$\\
+        \midrule 
+        CW & $0.0283$ & $-0.621 \pm 0.008$ & $-0.828 \pm 0.003$ &$-0.550 \pm 0.010$\\
+        \midrule 
+        ECRO & $0.0014$ & $-0.656 \pm 0.016$ & $-0.816 \pm 0.010$ &$-0.530 \pm 0.028$\\
+        \midrule 
+        LCX & $\bf{0.0013}$ & $-0.476 \pm 0.006$ & $-0.810 \pm 0.004$ &$-0.320 \pm 0.014$\\
+ \bottomrule
+		\end{tabular}}
+		\caption{Portfolio optimization ($n=10$) averaged across 10 runs. Values shown as mean $\pm$ half-IQR, where half-IQR $= (Q_{.75} - Q_{.25})/2$. The best value for each category is in bold.}
+		\label{table:port_n10}
+        \vspace{-1em}
+\end{table}
+
+\begin{table}[ht]
+  \centering
+  \fontsize{9}{11}\selectfont
+{
+	\begin{tabular}{cllll}   \toprule   
+		$n=30$, $N=1000$ & & & & \\
+             \midrule
+		method & $\hat{\eta}$ & 10\% worst-case & average-case & $\CVaR$ \\
+ \midrule
+         LRO & $0.0090$ & $\bf{-0.899 \pm 0.002}$ & $\bf{-0.926 \pm 0.004}$ &$\bf{-0.842 \pm 0.028}$\\
+        \midrule 
+        MV & $0.0786$ & $-0.716 \pm 0.007$ & $-0.831 \pm 0.009$ &$-0.644 \pm 0.011$\\
+        \midrule 
+        CMV & $0.0318$ & $-0.864 \pm 0.002$ & $-0.894 \pm 0.003$ &$-0.839 \pm 0.007$\\
+        \midrule 
+        W & $0.0638$ & $-0.666 \pm 0.005$ & $-0.836 \pm 0.005$ &$-0.555 \pm 0.013$\\
+        \midrule 
+        CW & $0.0090$ & $-0.610 \pm 0.008$ & $-0.822 \pm 0.005$ &$-0.562 \pm 0.016$\\
+        \midrule 
+        ECRO & $\bf{0}$ & $-0.758 \pm 0.012$ & $-0.854 \pm 0.004$ &$-0.673 \pm 0.031$\\
+        \midrule 
+        LCX & $0.0007$ & $-0.555 \pm 0.017$ & $-0.834 \pm 0.010$ &$-0.447 \pm 0.023$\\
+        \bottomrule \\[-8pt]
+                \toprule 
+		$n=30$, $N=2000$ & & & & \\
+             \midrule
+		method & $\hat{\eta}$ & 10\% worst-case & average-case & $\CVaR$ \\
+ \midrule
+         LRO & $0.0003$ & $\bf{-0.902 \pm 0.002}$ & $\bf{-0.926 \pm 0.001}$ &$\bf{-0.881 \pm 0.006}$\\
+        \midrule 
+        MV & $0.0832$ & $-0.721 \pm 0.005$ & $-0.830 \pm 0.008$ &$-0.651 \pm 0.004$\\
+        \midrule 
+        CMV & $0.0339$ & $-0.871 \pm 0.002$ & $-0.897 \pm 0.001$ &$-0.861 \pm 0.001$\\
+        \midrule 
+        W & $0.0899$ & $-0.668 \pm 0.005$ & $-0.842 \pm 0.004$ &$-0.558 \pm 0.005$\\
+        \midrule 
+        CW & $0.0283$ & $-0.621 \pm 0.008$ & $-0.828 \pm 0.003$ &$-0.550 \pm 0.010$\\
+        \midrule 
+        ECRO & $\bf{0}$ & $-0.773 \pm 0.008$ & $-0.857 \pm 0.005$ &$-0.697 \pm 0.014$\\
+        \midrule 
+        LCX & $0.0001$ & $-0.628 \pm 0.003$ & $-0.820 \pm 0.008$ &$-0.528 \pm 0.011$\\
+ \bottomrule
+		\end{tabular}}
+		\caption{Portfolio optimization ($n=30$) averaged across 10 runs. Values shown as mean $\pm$ half-IQR, where half-IQR $= (Q_{.75} - Q_{.25})/2$. The best value for each category is in bold.}
+		\label{table:port_n30}
+        \vspace{-1em}
+\end{table}
+ 
+
+\subsection{Inventory management}
+% Instead of the deterministic polyhedral uncertainty set considered there, 
+% We assume the uncertainty set to be ellipsoidal, with parameters to be learned from data.
+\paragraph{Problem description. } We consider a two-stage adjustable \gls{RO} problem on inventory management~\citep[Section 5.2.1]{pareto}. There exist a retail network consisting of a single warehouse and $n$ different retail points, indexed by $i = 1, \dots, n$. For simplicity, only a single product is sold.
+There are a total of $C$ units of the product available, and each retail point starts with $0$ inventory and is capable of stocking at most $c_i$ units.
+The transportation costs for distributing the items at the $i$th retail point is $t_i$ currency units per unit of inventory, and the operating cost is $h_i$ per unit.
+\RC{The revenues per unit is $r_i$, which we take as a context parameter, as these values are known but may be subject to minor changes across problem instances, \ie, supplier price changes. 
+Customer demand $u \in \reals^n$ is uncertain, but we have access to contextual data on $q$ market factors, $F \in \reals^{(n,q)}$, which influences the demand covariance.
+The total contextual information is thus $x = (r,F)$.}
+The decision variable is the stocking decisions for all retail points, denoted $s \in \reals^n$.
+In addition, the problem involves a vector $w(u)$ of realized sales at each point, which is dependent on stocking decision $s$ and the unknown factors $u$ affecting the demand; we have
+\RC{$w_i(u) = \min\{s_i,u_i\} $}
+for each retail point.
+The manager makes stocking decisions to maximize worst-case profits, which is equivalent to minimizing worst-case loss, 
+$-r^Tw(u) + (t+h)^Ts$, $\forall u\in \uncset(\theta,x)$.
+For each problem instance, the \gls{RO} formulation is given as
+\begin{equation}
+	\label{eq:inv_1}
+	\begin{array}{ll}
+		\mbox{minimize} & \tau\\
+		\mbox{subject to} & -r^Tw(u) + (t+h)^Ts \le \tau, \quad \forall u\in \uncset(\theta,x)\\
+		& w_i(u) \leq s_i, \quad i = 1, \dots, n, \quad \forall u\in \uncset(\theta,x)\\
+		& w_i(u) \leq u_i, \quad i = 1, \dots, n, \quad \forall u\in \uncset(\theta,x)\\
+			& \ones^Ts = C,\quad 0 \le s \leq c,\\
+	\end{array}
+\end{equation}
+where variables $s\in \reals^n$, $w\in \reals^n$, and $\tau \in \reals$. To get a tractable approximation, we replace the adjustable decision $w_i(u)$ with their affine adjustable robust counterparts $z^0_i + v_i^Tu$, where $z^0_i \in \reals$ and $v_i \in \reals^f$ are auxiliary introduced as part of the linear decision rules~\citep{ben-tal_robust_2009}. 
+The new formulation is
+\RC{\begin{equation}
+	\label{eq:inv_2}
+	\begin{array}{ll}
+		\mbox{minimize} & \tau\\
+		\mbox{subject to} & -r^Tz^0 - r^TVu + (t+h)^Ts \le \tau, \quad \forall u\in \uncset(\theta,x)\\
+		& z^0_i + v_i^Tu\leq s_i, \quad i = 1, \dots, n, \quad \forall u\in \uncset(\theta,x)\\
+		& z^0_i + v_i^Tu \leq u_i, \quad i = 1, \dots, n, \quad \forall u\in \uncset(\theta,x)\\
+			& \ones^Ts = C, \quad 0 \le s \leq c,\\
+	\end{array}
+\end{equation}}
+where $V = [v_1 \cdots v_n]^T \in \reals^{n \times f}$. 
+\RC{We treat the $2n+1$ uncertain constraints as a single joint chance constraint represented as the maximum of concave functions.}
+% As there are multiple uncertain constraints, we next apply a maximum of concave formulation to combine all uncertain constraints into a single joint constraint. The final problem solved is the problem with a single constraint. 
+
+\paragraph{Data.} As in the work by~\cite{pareto}, we let $n = 10$. \RC{This is also the size of the uncertain parameter, \ie, $m=n$. We consider the case where the number of market factors for the contextual information is $q=4$.} We set $C = 200$, and all other problem data are independently sampled from uniformly distributed random variables. 
+Inventory capacities $c$ are between 30 and 50. 
+Transportation and operation costs are between $0.1$ and $0.3$, and sales revenues $r$ are between 2 and 4.
+We consider 10 instances for $r$, perturbing each by random sample of a normal distribution with mean 0 and standard deviation $0.05$.
+\RC{We also consider 10 instances for $F$, each drawn from a standard $N(0,1)^{(n,q)}$ distribution.} 
+\RC{The contextual uncertain demand $u^i$ is sampled from a multivariate normal distribution $N(\mu^i(r^i)), \Sigma^i(F^i))$, where $\mu^i(r^i) = \mu -0.1r^i$, and $\Sigma^i(F^i) = 0.3F^iF^{iT}$. The nominal demand $\mu$ is sampled uniformly on $[10,20]$. 
+We consider the case with $N=1000$ samples, with 100 samples for each context. We use $30\%$ of the data for training, $20\%$ for validation, and $50\%$ for testing.}
+
+\paragraph{Uncertainty sets.}
+\RC{As this problem has $2n+1 = 21$ uncertain constraints, the ECRO uncertainty set, which works with uncertain objectives only, does not apply. In addition, the LCX uncertainty set would require a separate cutting-plane procedure for each uncertain constraint, and also for each context, so we opted to forgo it. 
+For the non-contextual Wasserstein~\gls{DRO} method (W), we use the \gls{MRO} approximation, with the number of clusters $K=30$, given by~\cite{mro}, to obtain a more tractable formulation. 
+For our training method, due to the higher complexity of the problem, we lower the batch size to 30, and the initial step size to $0.0005$. We halve the step size every $20$ steps. To adjust for the smaller step sizes, we increase the number of outer iterations to $25$, bringing the total number of iterations to $500$.}
+
+\paragraph{Results.}
+% We observe in Figure~\ref{fig:inv1} that the testing loss achieved by the best-fit uncertainty set when only $\epsilon$ is learned is sub-par compared to that achieved by learning both $A$ and $b$.
+\RC{In Table~\ref{table1}, we compare the performance of all methods, and note that our method again outperforms the others in the performance metrics. Our decision-focused manner of learning uncertainty sets identifies more effective regions of uncertainty, and therefore reduces the conservatism of the data-driven solutions.}
+\begin{table}[ht]
+  \centering
+  \vspace{-0.3em}
+  \fontsize{9}{11}\selectfont
+ \adjustbox{max width=\linewidth}{
+	\begin{tabular}{cllll}\toprule   
+          $n=10$& \multicolumn{4}{c}{$N=1000$}\\
+         \midrule
+		Method & $\hat{\eta}$ & Worst-case & Average-case & $\CVaR$\\
+        \midrule
+         LRO & $0.0990$ & $\bf{-403.79 \pm 1.17}$& $\bf{-406.75 \pm 0.72}$& $\bf{-403.64 \pm 1.10}$\\
+        \midrule 
+        MV  & $0.1027$ & $-385.38 \pm 1.96$& $-393.67 \pm 1.99$& $-385.38 \pm 1.96$\\
+        \midrule 
+        CMV  & $\bf{0.0962}$ & $-377.95 \pm 3.77 $& $-397.71 \pm 0.96 $& $-377.95 \pm 3.77$\\
+        \midrule 
+        W &  $0.0994$ & $-376.06 \pm 1.08$& $-383.44 \pm 1.05$& $-375.47 \pm 1.05$\\
+        \midrule 
+        CW  & $0.0998$ & $-388.94 \pm 9.63$& $-396.21 \pm 9.79$& $-387.97 \pm 9.60$\\
+ \bottomrule
+		\end{tabular}}
+		\caption{Average inventory management performance over 10 runs. Values shown as mean $\pm$ half-IQR. The best value for each category is in bold.}
+		\label{table1}
+        \vspace{-0.7em}
+	\end{table}
+
+
+\section{Conclusion}
+We develop a data-driven method to learn the contextual shape of uncertainty sets in a decision-focused manner, \ie, using the structure and the solution of the robust counterpart.
+% , \ie, in a decision-focused manner, dependent on the structure of the robust optimization problem.
+By formulating the learning problem as a stochastic optimization problem with $\CVaR$ constraints, we can optimize over a weighted performance metric while enforcing desired probabilistic guarantees. 
+We show convergence of our algorithm using nonsmooth implicit differentiation, and provide finite sample probabilistic guarantees on unseen data.
+Through numerical examples, we demonstrate the performance gain achieved by our method compared to traditional manual tuning methods, for both worst-case and average-case performance.
+
+Several directions for future research remain. One is to extend the performance guarantees to relate to the true global optimal value, though this requires solving the exact formulation provided in Appendix~\ref{appx:bilinear}. Another one is, instead of treating the algorithm as a ``black box", to analyze the geometric properties of the uncertainty sets found in relation to the geometric properties of the optimization problem, and establish theoretical insights. 
+This would add to the empirical demonstrations given in this work, and help inform the best choice for an uncertainty set parametrization for a given problem.  We aim to explore these directions in future works. 

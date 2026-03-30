@@ -1,0 +1,314 @@
+\ifpreprint
+\subsection{Conjugate of a general function}
+\else 
+\section{Conjugate of a general function}
+\fi 
+We first derive the conjugate of general functions, which can then be used in the upcoming reformulations.
+\paragraph{Linear function.}
+For a linear function $g(z,u) = (Pu + a)^Tz$, we compute the conjugate as
+\begin{equation*}
+	\label{eq:conj_affine}
+	[-g]^\star(z,h) =  \sup_u h^Tu - (a + Pu)^Tz =
+	\begin{dcases}
+            a^Tz  & \text{ if}\; h = -P^Tz \\
+		\infty & \text{ otherwise}.
+	\end{dcases}
+\end{equation*}
+\paragraph{Sum of concave functions.}
+For a general function $g(z,u) = \sum_{j=1}^J g_j(u,z)$, where each $g_j$ is concave in $u$, by the theorem of infimal convolutions~\cite[Theorem 11.23(a), p. 493]{rockafellar_wets_1998}, we compute the conjugate as
+\begin{equation*}
+	\begin{aligned}
+	\label{eq:conj_gen}
+	[-g]^\star(z,h) =  \begin{cases}  \underset{h_j,\dots,h_J}{\inf} & \sum_{j=1}^J [-g_j]^\star(z,h_j) \\
+		\mbox{subject to} & \sum_{j=1}^J h_j = h.
+	\end{cases}\\
+\end{aligned}
+	\end{equation*}
+
+\paragraph{Maximum of concave functions.}
+We also consider the maximum of concave functions, $$g(z,u) = \max_{l=1,\dots,L} g_l(z,u).$$ In practice, these functions $g(z,u)$ are often affine functions. For all the reformulations below, we assume $g(z,u)$ to be of this maximum of concave form.
+
+\ifpreprint
+\subsection{Box and Ellipsoidal reformulations}
+\else
+\section{Box and Ellipsoidal reformulations}
+\fi
+\label{apx:boxproof}
+Rewriting the robust constraint as optimization problem, we have
+{\allowdisplaybreaks \begin{align*}
+& \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} & g(z,Av+b) \\
+	\mbox{subject to} & \|v\|_p \le 1
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup}  ~\underset{\lambda \geq 0}{\inf}~g(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
+	\end{array}\\
+	&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~\underset{l}{\max}~g_l(z,Av+b)  - \lambda\|v \|_p  + \lambda\\
+		\end{array}\\
+		&= \begin{array}[t]{ll}
+			\underset{l}{\max}~ \underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~g_l(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
+				\end{array}\\
+			&= \begin{array}[t]{ll}
+					\underset{l}{\max}~ \underset{\lambda \geq 0}{\inf} ~ \underset{Av+b\in S}{\sup}~ g_l(z,Av+b)  - \lambda\| v \|_p  + \lambda\\
+						\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{\lambda_l \geq 0, \tau}{\inf} & \tau\\
+	\mbox{subject to} & \lambda_l + \underset{Av+b\in S}{\sup } g_l(z,Av+b) - \lambda_l  \|v \|_p \leq \tau, \quad l = 1,\dots,L,
+\end{array}
+\end{align*}}
+where $p = \infty$ for box uncertainty and $p \geq 1$ otherwise. We used the Lagrangian in the first equality, and decomposed $g(z,Av+b)$ into its constituents for the second equality. As $l$ and $\lambda$ are separable, in the third step we interchanged the $\inf$ and the $\max$. Next, for each $l$, as the expression is convex in $\lambda$ and concave in $u$, we used the Von Neumann-Fan minimax theorem to interchange the $\inf$ and the $\sup$. We then express the $\max$ in epigraph form by introducing an auxiliary variable $\tau$.
+
+Now, if we define the function $c(v) = \|v\|_p$, then using the definition of conjugate functions, we have, for each $l$, the left-hand-side of the constraint equal to
+\begin{equation*}
+\begin{aligned}
+		\lambda_l + [-g_l(z,A\cdot+b) +\chi_S(A\cdot+b) + \lambda_l c]^\star(0).\\
+\end{aligned}
+\end{equation*}
+We then borrow results from~\cite[Theorem 11.23(a), p. 493]{rockafellar_wets_1998},~\cite[Lemma C.9]{zhen2021mathematical}, and~\cite[Proposition 13.24]{composites} with regards to the inf-convolution of conjugate functions, the conjugate functions of norms, and the conjugate of linear compositions, to note
+\begin{align*}
+	[-g_l(z,A\cdot+b)   +\chi_S(A\cdot+b)+ \lambda_l c]^\star (0) =  \underset{\omega_l, h_l, y_l}{\inf} ([-g_l]^\star(z,h_l) &- b^T(h_l + \omega_l) + \sigma_S(\omega_l)+\indicator_{\|y_l\|_q \leq \lambda_l}\\
+  &+ \indicator_{A^T(h_l + \omega_l)= y_l}),
+\end{align*}
+where  $h_l\in\reals^{m}$, $y_l \in \reals^{\hat{m}}$, $\omega_l \in \reals^{m}$, and $q$ is the conjugate number of $p$. Substituting these back, we arrive at
+\begin{equation*}
+\begin{aligned}
+\begin{array}[t]{ll}
+\underset{z,\tau, h, \omega, y}{\inf} & \tau\\
+\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b^T(h_l + \omega_l) + \|y_l\|_q \leq \tau, \quad l = 1,\dots,L \\
+ & A^T(h_l + \omega_l)= y_l,  \quad l = 1,\dots,L.
+\end{array}
+\end{aligned}
+\end{equation*}
+Recall that this optimization problem upper bounds our original robust constraint, which we constrain to be nonpositive. Therefore, we only need $\tau \leq 0$. For the final step, we can now write the original minimization problem~\eqref{eq:robust_prob} in minimization form for both the objective and constraints, to arrive at
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+	\underset{z, h, \omega}{\text{minimize}} & f(z)\\
+	\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b^T(h_l + \omega_l) + \|A^T(h_l + \omega_l) \|_q \leq 0, \quad l = 1,\dots,L.	\end{array}
+	\end{aligned}
+	\end{equation*}
+
+\ifpreprint
+\subsection{Budget reformulation}
+\else 
+\section{Budget reformulation}
+\fi
+\label{apx:budproof}
+Rewriting the robust constraint as optimization problem, we have
+\begin{equation*}
+	\begin{aligned}
+& \begin{array}[t]{ll}
+	\underset{Az+b\in S}{\sup} & g(z,Av+b) \\
+	\mbox{subject to} & \| v \|_\infty \le \rho_1\\
+	 & \| v \|_1 \le \rho_2\\
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup}~ \underset{\lambda \geq 0}{\inf} ~\underset{l}{\max} ~ g_l(z,Av+b)  - \lambda_1\| v \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
+	\end{array}\\
+ &=  \begin{array}[t]{ll}
+	\underset{l}{\max} ~\underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf} ~g_l(z,Av+b)  - \lambda_1\| z \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
+	\end{array}\\
+	&= \begin{array}[t]{ll}
+		\underset{l}{\max}~\underset{\lambda \geq 0}{\inf}~\underset{Av+b\in S}{\sup} ~g_l(z,v)  - \lambda_1\| v\|_\infty  + \lambda_1\rho_1 - \lambda_2\| v \|_1  + \lambda_2\rho_2,\\
+		\end{array}\\
+\end{aligned}
+\end{equation*}
+where we again used the Lagrangian, separated $g$ into its constituents, and applied the minimax theorem. We now express the max in epigraph form,
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+		\underset{\lambda_{l} \geq 0, \tau}{\inf} & \tau \\
+		\mbox{subject to} & \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + \underset{Av+b\in S}{\sup } g_l(z,Av+b) -\lambda_{l1}\| v \|_\infty - \lambda_{l2}\| v \|_1 \leq \tau, \quad l = 1,\dots,L.
+	\end{array}
+	\end{aligned}
+	\end{equation*}
+
+If we define the functions $c_1(v) = \|v\|_\infty$, $c_2(v) = \|v\|_1$, then using the definition of conjugate functions, we have for each $l$ the left-hand-side of the constraint equal to
+\begin{equation*}
+\begin{aligned}
+		& \lambda_{l1}\rho_1 +  \lambda_{l2}\rho_2 +  [-g_l(z,A\cdot+b) +\chi_S(A\cdot+b) + \lambda_{l1} c_1 + \lambda_{l2} c_2]^\star(0)\\
+		&= 	\underset{h_l,\omega_l, y_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l) + \sigma_S(\omega_l)  +  [\lambda_{l1} c_1 + \lambda_{l2} c_2 ]^\star(-y_l) \\
+  &\hspace{12cm}+ \indicator_{A^T(h_l + \omega_l) = y_l} \\
+		&= \underset{h_l,\omega_l, y_l, r_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l)+ \sigma_S(\omega_l)  + \indicator_{\|r_l-y_l\|_1 \leq \lambda_{l1}} + \indicator_{\|r_l\|_\infty \leq \lambda_{l2}} \\
+  & \hspace{12cm} + \indicator_{A^T(h_l + \omega_l) = y_l}
+\end{aligned}
+\end{equation*}
+We can express this as
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+		\underset{z, h_l,\omega_l, y_l, r_l, \tau}{\inf} & \tau \\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - y_l\|_1  + \rho_2\|r_l\|_\infty \leq \tau, \\
+  &\hfill k =  1, \dots,K \\
+	 & A^T(h_l + \omega_l) = y_l,  \quad l =  1, \dots,L.
+	\end{array}
+	\end{aligned}
+	\end{equation*}
+ We can then let $\tau = 0$ and substitute the new constraints in for the robust constraint in~\eqref{eq:robust_prob},
+\begin{equation*}
+	\begin{array}[t]{ll}
+		{\text{minimize}} & f(z) \\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - A^T(h_l + \omega_l)\|_1  + \rho_2\|r_l\|_\infty \leq 0,\\
+  &\hfill l =  1, \dots,L.	\end{array}
+	\end{equation*}
+
+\ifpreprint
+\subsection{Polyhedral reformulation}
+\else 
+\section{Polyhedral reformulation}
+\fi 
+\label{apx:polyproof}
+Rewriting the robust constraint as an optimization problem, we have
+\begin{equation*}
+	\begin{aligned}
+& \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} & g(z,Av+b) \\
+	\mbox{subject to} & Dz \le d
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{Av+b\in S}{\sup} ~\underset{h \geq 0}{\inf} ~g(z,Av+b)  - (Dv)^Th   + d^Th\\
+	\end{array}\\
+	&= \begin{array}[t]{ll}
+		\underset{Av+b\in S}{\sup}~\underset{h \geq 0}{\inf}~\underset{l}{\max}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+		\end{array}\\
+		&= \begin{array}[t]{ll}
+			\underset{l}{\max}~\underset{Av+b\in S}{\sup}~\underset{h \geq 0}{\inf}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+			\end{array}\\
+		&= \begin{array}[t]{ll}
+				\underset{l}{\max}~\underset{h \geq 0}{\inf}~\underset{Av+b\in S}{\sup}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+				\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{h\geq 0,\tau}{\inf} & \tau \\
+	\mbox{subject to}& d^Th_l + \underset{Av+b\in S}{\sup } g_l(z,Av+b) - (Dv)^Th_l \leq \tau, \quad l = 1,\dots,L
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{h \geq 0, \omega,\tau, y, \gamma}{\inf} &\tau\\
+	\mbox{subject to}& d^Th_l + [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) + \indicator_{D^Th_l = -y_l} \\
+ &\hfill  + \indicator_{A^T(\omega_l+ \gamma_l) = y_l} \leq \tau, \quad l = 1,\dots,L
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{h \geq 0,\omega,\tau,\gamma}{\inf} &\tau\\
+	\mbox{subject to}& [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq \tau, \quad l = 1,\dots,L\\
+	& A^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L,
+\end{array}\\
+\end{aligned}
+\end{equation*}
+where we again used the Lagrangian, the Von Neumann-Fan minimax theorem, the infimal convolution of conjugates, and the conjugate of affine compositions. The final reformulation~\eqref{eq:robust_prob} is then
+\begin{equation*}
+\begin{array}[t]{ll}
+	{\text{minimize}} & f(z)\\
+	\mbox{subject to} & [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq 0, \quad l = 1,\dots,L\\
+	 &A^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L.
+\end{array}
+\end{equation*}
+
+\ifpreprint
+\subsection{Mean Robust Optimization reformulation}
+\else 
+\section{Mean Robust Optimization reformulation}
+\fi
+\label{apx:mroproof}
+We adapt the proof from~\cite[Appendix A.3]{mro}. 
+To simplify notation, we define $c_k(v_{lk}) \define   \|v_{lk} - \bar{d}_k \|^p - \epsilon^p$.
+We also note that $u_{lk} = Av_{lk}+b$. 
+Then, we have
+\begin{equation*}
+	\begin{aligned}
+& \begin{array}[t]{ll}
+	\underset{u_{11}, \dots, u_{LK} \in \supp, \alpha \in \Gamma}{\sup} &\sum_{k=1}^K \sum_{l=1}^L \alpha_{lk} g_l(z,u_{lk}) \\
+	\mbox{~~~~subject to} & \sum_{k=1} ^K \sum_{l=1}^L \alpha_{lk} c_k(v_{lk}) \le 0
+\end{array}\\
+&=\begin{array}[t]{ll}
+	\underset{u_{11}, \dots, u_{LK} \in \supp, \alpha \in \Gamma}{\sup} & \underset{\lambda \geq 0}{\inf}~\sum_{k=1}^K \sum_{l=1}^L \alpha_{lk}g_l(z,u_{lk}) - \lambda\sum_{k=1} ^K \sum_{l=1}^L \alpha_{lk} c_k(v_{lk})\\
+\end{array}\\
+&=\begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf}~\underset{u_{11}, \dots, u_{LK} \in \supp}{\sup} &\sum_{k=1}^K \sum_{l=1}^L \alpha_{lk} g_l(z,u_{lk}) - \lambda\sum_{k=1} ^K \sum_{l=1}^L \alpha_{lk} c_k(v_{lk}).\\
+\end{array}\\
+\end{aligned}
+\end{equation*}
+We applied the Lagrangian in the first equality. Then, as the summation is over upper-semicontinuous functions $g_l(x,u_{lk})$ concave in $u_{lk}$, we applied the Von Neumann-Fan minimax theorem to interchange the inf and the sup. Next, we rewrite the formulation using an epigraph trick, and make a change of variables. 
+\begin{equation*}
+	\begin{aligned}
+&= \begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}~\underset{u_{11}, \dots, u_{LK} \in \supp}{\sup}& \sum_{l=1}^L \alpha_{lk}(g_l(z,u_{lk}) - \lambda c_k(v_{lk})) \le s_k, \quad k = 1,\dots,K
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}~\underset{\alpha_{11}u_{11}, \dots, \alpha_{LK}u_{LK} \in \supp'}{\sup}& \sum_{l=1}^L \alpha_{lk}(g_l(z,(\alpha_{lk}u_{lk})/\alpha_{lk}) \\
+	& - \lambda c_k((\alpha_{lk}v_{lk})/\alpha_{lk})) \le s_k, \quad k = 1,\dots,K.
+\end{array}\\
+\end{aligned}
+\end{equation*}
+In the last step, we rewrote $u_{lk} = (\alpha_{lk}u_{lk})/\alpha_{lk}$, $v_{lk} = (\alpha_{lk}v_{lk})/\alpha_{lk}$, and maximized over $\alpha_{lk}u_{lk} \in S'$, where $S'$ is the support transformed by $\alpha_{lk}$. See~\cite{mro} for details. 
+Next, we make substitutions $h_{ij} = \alpha_{lk}u_{lk}$, $y_{ij} = \alpha_{lk}v_{lk}$, and define functions $g_l'(z,h_{lk}) = \alpha_{lk}g_l(z,h_{lk}/\alpha_{lk})$, $c_k'(y_{lk}) = \alpha_{lk}c_k'(y_{lk}/\alpha_{lk})$.
+\begin{equation*}
+	\begin{aligned}
+&= \begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}~\underset{h_{11}, \dots, h_{lk} \in \supp'}{\sup}& \sum_{l=1}^L g_l'(z,h_{lk})- \lambda c_k'(y_{lk}) \le s_k, \quad k = 1,\dots,K
+\end{array}\\
+&= \begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}& \sum_{l=1}^L [-g_l'(z, A\cdot + b) +\chi_{\supp'}( A\cdot + b) + \lambda c_k']^\star(0) \le s_k, \quad k = 1,\dots,K.
+\end{array}\\
+\end{aligned}
+\end{equation*}
+For the new functions defined, we applied the definition of conjugate functions.
+Now, using the conjugate form $f^\star(y) = \alpha g^\star(y)$ of a right-scalar-multiplied function $f(z) = \alpha g(z/\alpha)$, we rewrite the above as 
+\begin{equation*}
+	\begin{aligned}
+&= \begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0}{\inf} &\sum_{k=1}^K s_k  \\
+	\mbox{subject to}& \sum_{l=1}^L \alpha_{lk}[-g_l(z, A\cdot + b) +\chi_{\supp}(A\cdot + b) + \lambda c_k]^\star(0) \le s_k, \quad k = 1,\dots,K.
+\end{array}\\
+\end{aligned}
+\end{equation*}
+We note that while the support of $h_{lk}$ is $\supp'$, the support of $h_{lk}/\alpha_{lk}$, which is the input of $g_l$, is still $\supp$.  Now, again using properties of conjugate functions, we note that:
+\begin{equation*}
+	\begin{aligned}
+		\alpha_{lk}[(-g_l(z, A\cdot + b) +\chi_{\supp}(A\cdot + b) + \lambda c_k)]^\star (0) &= \alpha_{lk}\underset{\omega_{lk}, h_{lk}, y_{lk}}{\inf} ([-g_l]^\star(z,h_{lk}) - b^T(h_{lk} + \omega_{lk})\\
+  &+ \indicator_{A^T(h_{lk} + \omega_{lk})= y_{lk}} + \sigma_S(\omega_{lk})+[\lambda c_k]^\star (-y_{lk}))
+	\end{aligned}
+\end{equation*}
+and
+\begin{equation*}
+\begin{aligned}
+	[\lambda c_k]^\star (-y_{lk}) =-y_{lk}^T\bar{d}_k + \phi(q)\lambda {\|}y_{lk}/\lambda{\|}^q_* + \lambda \epsilon^p.
+ \end{aligned}
+\end{equation*}
+Substituting these back, we arrive at
+\begin{equation*}
+	\begin{aligned}
+\begin{array}[t]{ll}
+	\underset{\alpha \in \Gamma}{\sup}~\underset{\lambda \geq 0, h_{lk},\omega_{lk}, s_k}{\inf} & \sum_k^K s_k\\
+	\mbox{subject to} & \sum_{l=1}^L \alpha_{lk}([-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk})\\
+	& + \sigma_{\supp}(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k + \phi(q)\lambda {\|}A^T(h_{lk} + \omega_{lk})/\lambda{\|}^q_* + \lambda \epsilon^p ) \le s_k, \\
+	&\hspace{2cm} \quad k = 1,\dots,K, \quad j = 1,\dots,J.
+\end{array}
+\end{aligned}
+\end{equation*}
+Taking the supremum over $\alpha$, noting that $\sum_{l=1}^L \alpha_{lk} = w_k$ for all $k$, we arrive at
+\begin{equation*}
+\begin{aligned}
+\begin{array}[t]{ll}
+\underset{\lambda \geq 0, h_{lk},\omega_{lk}, s_k}{\inf} & \lambda \epsilon^p + \sum_k^K w_k s_k\\
+\mbox{s.t.} & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+& \hfill + \phi(q)\lambda \left\|A^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\\
+& \hfill l = 1,\dots,L, \quad k = 1,\dots,K,
+\end{array}
+\end{aligned}
+\end{equation*}
+for which the final reformulation of~\eqref{eq:robust_prob} is
+\begin{equation*}
+	\begin{aligned}
+	\begin{array}[t]{ll}
+	{\text{minimize}} & f(z)\\
+	\mbox{subject to} &\lambda \epsilon^p + \sum_k^K w_k s_k \leq 0\\
+	 & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+& \hfill + \phi(q)\lambda \left\|A^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\\
+& \hfill l = 1,\dots,L, \quad k = 1,\dots,K.
+	\end{array}
+	\end{aligned}
+	\end{equation*}

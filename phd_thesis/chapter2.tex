@@ -1,0 +1,356 @@
+\chapter{Preliminaries}
+\label{chap:prelim}
+
+
+In this chapter, we introduce the main paradigms for optimization under uncertainty, as well as some preliminary definitions, properties, and prior results that will be useful throughout the rest of this thesis. 
+\section{Optimization under uncertainty}
+\label{sec:opt_under_unc}
+We consider a decision-making problem where some of the parameters are subject to uncertainty.
+Let $z \in \mathcal{Z} \subseteq \reals^n$, where $\mathcal{Z}$ is a compact set, denote the decision variable, and let $u \in \supp \subseteq \reals^m$, where $\supp$ is a convex and closed set, denote the vector of uncertain parameters governed by some probability distribution $\prob$.
+In the data-driven setting, the decision-maker has access to a finite set of $N$ independent samples $\mathcal{D}_N = \{d_i\}_{i=1}^N$ of $u$ drawn from~$\prob$. This dataset is governed by $\prob^N$, the product distribution supported on $\supp^{N}$.
+Given the dataset $\mathcal{D}_N$, the empirical distribution is expressed as $\hat{\prob}^N = \frac{1}{N}\sum_{i=1}^N \delta_{d_i}$, where $\delta_{d_i}$ denotes the Dirac distribution concentrating unit mass at $d_i$.
+In this section, we optimize for the performance under an uncertain loss function $\ell: \reals^m \times \reals^n \rightarrow (-\infty, \infty]$.
+
+
+\subsection{Stochastic optimization and the optimizer's curse}
+\label{sec:so_def}
+In \glsentryfull{SO}, the goal is to minimize the expected cost over the uncertain parameters, taking the form
+\begin{equation}
+\label{eq:so_prob}
+	\begin{array}{ll}
+		\underset{z \in \mathcal{Z}}{\text{minimize}} & \Expect_{\unc \sim \prob}[\ell(\unc,z)].
+	\end{array}
+\end{equation}
+Despite that \gls{SO} problems are ubiquitous in many research areas~\citep{shapiro2021lectures}, their practical deployment is hindered by a fundamental challenge: the distribution $\prob$ governing $\unc$ is rarely accessible to the decision-maker.
+A common data-driven approach to approximate~\eqref{eq:so_prob} is \glsentryfull{SAA}, which replaces the unknown expectation with the sample average over the observed data,
+\begin{equation}
+\label{eq:saa_prob}
+	\begin{array}{ll}
+		\underset{z \in \mathcal{Z}}{\text{minimize}}  ~\Expect_{\unc \sim \hat{\prob}^N}[\ell(\unc,z)] = \underset{z \in \mathcal{Z}}{\text{minimize}} & \frac{1}{N}\sum_{i=1}^N \ell(d_i, z).
+	\end{array}
+\end{equation}
+As $N \to \infty$, the \gls{SAA} objective converges to the true expected cost under mild conditions~\citep{shapiro2021lectures}.
+However, for finite $N$, the quality of the \gls{SAA} solution depends on the sample size and the complexity of the problem, and may very well incur an {\it optimization bias}. Specifically, the \gls{SAA} solution $\hat{z}^{\text{SAA}}_N$ exhibits the following behavior,
+$$ \Expect_{\hat{\prob}^N}[\ell(\unc,\hat{z}^{\text{SAA}}_N)]  \leq \underset{z \in \mathcal{Z}}{\text{minimize}}~\Expect_{\prob}[\ell(\unc,z)] \leq \Expect_{\prob}[\ell(\unc,\hat{z}^{\text{SAA}}_N)],$$
+where the {\it in-sample cost}~\eqref{eq:saa_prob} underestimates the true optimal cost~\eqref{eq:so_prob}, but the {\it out-of-sample cost} under the true distribution $\prob$ actually exceeds the optimal cost. This phenomenon is known as the {\it optimizer's curse}~\citep{kuhn2019wasserstein}. 
+
+The above solution that underestimates the true and out-of-sample costs may not be useful for safety-critical systems. Given a dataset $\mathcal{D}_N$, what we instead desire are principled methods of generating solutions $\hat{z}_N$ and corresponding in-sample certificates $\hat{H}_N$ satisfying the following probabilistic guarantee,
+\begin{equation}
+	\label{eq:prob_guarantees_intro}
+	\prob^N\left( \Expect_{\prob}[\ell(u, \hat{z}_N)] \le  \hat{H}_N \right) \ge 1 - \beta,
+\end{equation}
+such that with respect to the product distribution of the dataset, the in-sample certificate upper bounds the out-of-sample cost with high confidence $1-\beta$.
+This has lead to developements in~\glsentryfull{DRO}.
+
+\subsection{Distributionally robust optimization}
+\label{sec:dro_def}
+
+\Glsentryfull{DRO} addresses the challenge of an unknown distribution by taking a {\it worst-case} approach over a set of candidate distributions.
+Instead of considering a single distribution, \gls{DRO} considers an ambiguity set $\mathcal{P}$ of distributions and minimizes the worst-case expected cost,
+\begin{equation}
+\label{eq:dro_prob_intro}
+	\begin{array}{ll}
+		\underset{z \in \mathcal{Z}}{\text{minimize}} & \sup_{\mathbf{Q} \in \mathcal{P}} \Expect_{\unc \sim \mathbf{Q}}[f(\unc,z)].
+	\end{array}
+\end{equation}
+A popular choice of the ambiguity set, which we refer to throughout this thesis, is a ball of distributions centered at the empirical distribution $\hat{\prob}^N$, measured with respect to the Wasserstein distance. This distance is defined on the space $\mathcal{M}_p(\supp)$ of all probability distributions $\mathbf{Q}$ supported on $\supp$ with bounded $p$-th moments, \ie, $\int_{\supp} \|\unc\|^p \, \mathrm{d}\mathbf{Q}(\unc) < \infty$.
+
+\begin{definition}[Wasserstein distance]
+\label{def:wass}
+The Wasserstein distance of order $p \in [1,\infty)$ between two probability distributions $\mathbf{Q}_1,\mathbf{Q}_2 \in \mathcal{M}_p(\supp)$ is defined by
+\begin{equation}
+\label{eq:wass_dist}
+W_{p}(\mathbf{Q}_1, \mathbf{Q}_2)=\inf _{\pi \in \Pi(\mathbf{Q}_1, \mathbf{Q}_2)} \left (\int_{\supp \times \supp} \left\|\unc_1-\unc_2\right\|^{p} \mathrm{d} \pi\left(\unc_1, \unc_2\right)\right)^{1/{p}},
+\end{equation}
+where $\Pi(\mathbf{Q}_1, \mathbf{Q}_2)$ is the set of all joint distributions (couplings) over $\supp \times \supp$ with marginals $\mathbf{Q}_1$ and $\mathbf{Q}_2$, and $\|\cdot\|$ is a norm on $\reals^m$.
+\end{definition}
+% We say that a probability distribution $\mathbf{Q}$ supported on $\supp$ has bounded $p$-th moments if 
+The Wasserstein ambiguity set of radius $\epsilon > 0$ and order $p$ around $\hat{\prob}^N$ is then the ball
+\begin{equation}
+\label{eq:wass_ball}
+\mathcal{P}_N = \mathbf{B}_\epsilon^p (\hat{\prob}^N) = \left\{\mathbf{Q} \in \mathcal{M}_p(\supp) \mid W_p(\hat{\prob}^N,\mathbf{Q}) \leq \epsilon \right\}.
+\end{equation}
+Intuitively, $\mathcal{P}_N$ contains all distributions that can be obtained by transporting probability mass from $\hat{\prob}^N$ when the transportation budget is at most $\epsilon$.
+This formulation is particularly attractive because, under the following assumption on the loss $\ell$, the Wasserstein DRO problem~\eqref{eq:dro_prob_intro} with $\mathcal{P} = \mathcal{P}_N$ enjoys strong duality and admits tractable primal and dual reformulations, with the number of variables and constraints scaling linearly with the sample size $N$~\citep{kuhn2019wasserstein}.
+From now on, we assume~\eqref{eq:dro_prob_intro} to be exclusively the Wasserstein~\gls{DRO} problem. 
+% as the corresponding Wasserstein \gls{DRO} problem~\eqref{eq:dro_prob_intro} with $\mathcal{P} = \mathcal{P}_N$ is known to admit tractable and equivalent primal and dual formulations when the following assumption on the loss $\ell$ holds.
+\begin{assumption}[Convexity]
+  \label{ass:convex_l}
+  The function $\ell$ takes a maximum-of-concave form, $\ell(u,z) = \max_{j \leq J} \ell_j(u, z)$, where each $-\ell_j$ is proper, convex, and lower-semicontinuous in $u$ for all $z$.
+\end{assumption}
+Such an assumption is largely unrestrictive, as in most applications, the support $\supp$ can be restricted to a compact set, and any continuous function on a compact set can be uniformly approximated to arbitrary precision by a pointwise maximum of finitely many concave functions. 
+
+\subsubsection{Dimension-dependent probabilistic guarantees}
+\label{sec:gua_dependent}
+Using measure concentration results for the Wasserstein distance, solutions to the type-$p$ Wasserstein~\gls{DRO} problem can be constructed to satisfy the desired probabilistic guarantee~\eqref{eq:prob_guarantees_intro}. 
+Specifically, the following results guide the choice of the ambiguity set radius $\epsilon$. We give the results separately for $p \geq 1$ and $p=\infty$. As both depend on the dimension $m$ of the uncertain parameter $u$, we coin them to be dimension-dependent. 
+
+
+\paragraph{Case $p \geq 1$.} For finite $p$, the following light-tailed assumption is required for the true distribution $\prob$. This assumption holds trivially for bounded distributions, and is satisfied by all sub-Gaussian distributions. 
+
+\begin{assumption}[Light-tailed distribution]
+\label{ass:light_tail}
+    There exists an exponent \RC{$r > 1$, such that
+    $R = \Expect_\prob[\exp(\|u\|^{r})] = \int_\supp \exp(\|u\|^{r})\prob(du) < \infty.$}
+\end{assumption} 
+The following result then holds.
+\begin{theorem}[Concentration inequalities~{\citep{fournier2015rate,kuhn2019wasserstein}}]
+\label{thm:measure_gen}
+Suppose that Assumption~\ref{ass:light_tail} holds with $r > \barp$. For $\barp \neq m/2$, there exists constants $c_1, c_2 > 0$ that depend on $\prob$ only through $R$, $r$, and $m$, such that for any $\beta \in (0,1]$ the concentration inequality $\prob^N(\prob \in \mathbf{B}_{\epsilon,\barp}(\hat{\prob}^N)) \geq 1 - \beta$ holds whenever $\epsilon$ exceeds
+\begin{equation}
+\label{eq:eps_N_finite_p}
+	\epsilon_N(\beta) =
+	\begin{cases}
+		\left(\dfrac{\log(c_1/\beta)}{c_2 N}\right)^{\min\{\barp/m,\, 1/2\}}, & \text{if } N \geq \dfrac{\log(c_1/\beta)}{c_2}, \\[10pt]
+		\left(\dfrac{\log(c_1/\beta)}{c_2 N}\right)^{\barp/r}, & \text{if } N < \dfrac{\log(c_1/\beta)}{c_2}.
+	\end{cases}
+\end{equation}
+\end{theorem}
+
+% \paragraph{Case $p \geq 1$.} Wasserstain \gls{DRO} satisfies~\eqref{eq:prob_guarantees1} if the data-generating distribution, supported on a convex and closed set $\supp$, satisfies a {\it light-tailed assumption}~\citep{fournier_guillin_2013,mohajerin_esfahani_data-driven_2018}: there exists an exponent $a > 0$ and $t > 0 $ such that ${A = \Expect^{\prob}(\exp (t \|u \|^a))  = \int_{\reviewChanges{\supp}} \exp (t \| u \| ^a) \prob(du) < \infty.}$
+% We refer to the following theorem.
+% \begin{theorem}[Measure concentration {\citep[Theorem 2]{fournier_guillin_2013}}]
+% \label{theorem_ball}
+% If the light-tailed assumption holds, we have
+% 	\begin{equation*}
+% 	\prob^N(W_p(\prob,\hat{\prob}^N) \geq \epsilon) \le \phi(p, N, \epsilon),
+% 	\end{equation*}
+% where $\phi$ is an exponentially decaying function of $N$.
+% \end{theorem}
+% \begin{theorem}[Measure concentration \citep{fournier_guillin_2013}]
+% \label{theorem_ball}
+% If the light-tailed assumption holds, when p = 1 and $a > 1$, we have
+% \begin{equation*}
+%         \prob^N(W_1(\prob,\hat{\prob}^N) \geq \epsilon)
+%         \leq \begin{cases}
+%                 c_1 \exp(-c_2N \epsilon^{\max\{m,2\}}) \quad \textit{if } \epsilon \leq 1\\
+%                 c_1 \exp(-c_2N \epsilon^{a}) \quad \textit{if }  \epsilon > 1,
+%         \end{cases}
+% \end{equation*}
+%         for all $\epsilon > 0$, $m \neq 2$, and $N \geq 1$. When $p \geq 2$, and $\alpha \in (0,p)$, we have
+%         $$	\prob^N(W_p(\prob,\hat{\prob}^N)^p \geq \epsilon^p)
+%         \leq \begin{cases}
+%                 c_1 \exp(-c_2N \epsilon^{\max\{m,2p\}}) + \exp(-c_2 (N\epsilon^p)^\frac{a-s}{p})  \quad \textit{if } \epsilon \leq 1, \forall s \in (0,a)\\
+%                 c_1 \exp(-c_2 (N \epsilon^p)^{a/p}) \quad \textit{if }  \epsilon > 1,
+%         \end{cases}$$
+%         for all  $\epsilon > 0$, $m \neq 4$, and $N \geq 1$. $c_1,c_2$ are positive constants depending only on $A,a,t, s,$ and $m$.
+% \end{theorem}
+Theorem~\ref{thm:measure_gen} provides the smallest radius $\epsilon_N(\beta)$ such that the Wasserstein ball $\mathbf{B}_{{\epsilon},\barp}(\hat{\prob}^N)$ contains the true distribution with probability at least $1 - \beta$~\citep[Theorem 3.5]{mohajerin_esfahani_data-driven_2018}, which implies the probabilistic guarantee~\eqref{eq:prob_guarantees_intro} for any $z \in \mathcal{Z}$ with the corresponding certificate
+$$\hat{H}_N = \sup_{\mathbf{Q} \in  \mathbf{B}_{{\epsilon},\barp}(\hat{\prob}^N)}\Expect_{\mathbf{Q}}[\ell(\unc,z)]. $$
+This certificate is then optimized by minimizing over the solution space $\mathcal{Z}$, which is equivalent to solving the Wasserstein \gls{DRO} problem~\eqref{eq:dro_prob_intro} with the given radius.
+A similar result can be established for the case $p = \infty$.
+
+\paragraph{Case $p = \infty$.} When $p = \infty$, the solution $\hat{z}_N$ and corresponding in-sample value of the Wasserstein \gls {DRO} problem~\eqref{eq:dro_prob_intro} satisfies the probabilistic guarantee~\eqref{eq:prob_guarantees_intro} under the assumptions and radius given in the following theorem.
+\begin{theorem}[Concentration inequalities, ${p = \infty}$ {\cite[Theorem 1.1]{wass-p-guarantee}}]
+\label{theorem-inf}
+	Let the support $\supp$ be a bounded, connected, open set with Lipschitz boundary.
+	Let $\prob$ be a probability measure on $\supp$ with density $\rho : \supp \rightarrow (0,\infty)$, such that there exists $\lambda \geq 1$ for which ${1/\lambda \leq \rho(x) \leq \lambda}$ for all $x \in \supp$.
+	Then, there exists a constant $C > 0$ depending only on $\supp$ and $\lambda$ such that for any $\beta \in (0,1]$ the concentration inequality $\prob^N(\prob \in \mathbf{B}_{\epsilon,\infty}(\hat{\prob}^N)) \geq 1 - \beta$ holds whenever $\epsilon$ exceeds
+	\begin{equation}
+	\label{eq:eps_N_inf}
+		\epsilon_N(\beta) = C
+		\begin{cases}
+			\dfrac{\log(N)^{3/4}}{N^{1/2}}, & \text{if } m = 2, \\[6pt]
+			\dfrac{\log(N)^{1/m}}{N^{1/m}}, & \text{if } m \geq 3.
+		\end{cases}
+	\end{equation}
+\end{theorem}
+
+For both $p\geq 1$ and $p = \infty$, these results hold asymptotically. In fact, as the number of samples grow, we can simutaneouly reduce the radius $\epsilon$ and the violation level $\beta$, and prove asymptotic consistency of the Wasserstein~\gls{DRO} problem~\cite{kuhn2019wasserstein}. 
+\begin{theorem}[Asymptotic consistency~{\cite[Theorem 20]{kuhn2019wasserstein}}]
+  \label{thm:asymp_dro}
+  Assume that all conditions of Theorem~\ref{thm:measure_gen} hold for the case $p\geq 1$, and that all conditions of Theorem~\ref{theorem-inf} hold for the case $p= \infty$. 
+  For $N \rightarrow \infty$ we can choose confidence levels $\beta_N \in (0,1]$ and corresponding radii $\epsnom_N=\epsnom_N(\beta_N)$ such that $\sum_{t=1}^\infty \beta_N < \infty$ and $\lim_{N \rightarrow \infty} \epsnom_N(\beta_N)= 0.$ If there exist $C\geq 0$ such that $\ell$ satisfies the growth condition $|\ell(u,z)| \leq C(1+\|u\|^p)$ for all $z\in \mathcal{Z}$ and $u\in\supp$, then 
+  $\prob^{\infty}$-almost surely $\hat{H}_N \downarrow H^\star$ as $N \to \infty$, where $H^\star$ is the optimal solution of~\eqref{eq:so_prob}.
+\end{theorem}
+
+\paragraph{Curse of dimensionality.}
+Note that while the asymptotic results hold, the selected radii $\epsilon_N(\beta)$ decay only as $O(N^{-1/m})$, which suffers from the {\it curse of dimensionality}; to reduce the radius by 50\%, the number of samples must be scaled by $2^m$. As the number of constraints and variables of the corresponding Wassersteing~\gls{DRO} problem~\eqref{eq:dro_prob_intro} scales linearly with the number of samples~\cite{mohajerin_esfahani_data-driven_2018}, this leads to a tradeoff between solution quality and efficiency. For any target $\beta$, smaller sample sizes lead to problems that are highly tractable but likely conservative, as more distributional ambiguity (larger radii) is considered, while larger sample sizes lead to reductions in the conservatism level (smaller radii), but may have prohibitive solution times due to the exponentially larger problem sizes. 
+
+% Wasserstein \gls{DRO} with this ambiguity set can be formulated as a convex minimization problem where the number of constraints grows linearly with the number of datapoints~\citep{mohajerin_esfahani_data-driven_2018}.
+
+\subsubsection{Dimension-free probabilistic guarantees}
+To combat the curse of dimensionality, recent work~\cite{gao2016distributionally} decouples the radii $\epsilon$ from the dimension $m$ and provide finite sample guarantees for $p \in [1,2]$, with radii scaling as $\tilde{O}(N^{-1/2})$~($\tilde{O}$ suppressing logarithmic terms). %, breaking the curse of dimensionality. 
+These results require more stringent assumptions on $\prob$, as well as assumptions on the loss function $\ell$.
+Instead of the light-tailed assumption~\ref{ass:light_tail}, $\prob$ must satisfy certain transportation-information inequalities, defined as follows. 
+
+\begin{definition}[Transportation-information inequality]
+\label{def:trans}
+Let $p \in [1,\infty)$.
+A distribution $\prob \in \mathcal{M}_p(\supp)$ satisfies a \emph{transportation-information inequality} $T_p(\tau)$ for some positive constant $\tau$, if
+\begin{equation*}
+	W_p(\mathbf{Q}, \prob) \leq \sqrt{\tau H(\mathbf{Q} \| \prob)}, \quad \forall \mathbf{Q} \in \mathcal{M}_p(\supp),
+\end{equation*}
+where $H(\mathbf{Q} \| \prob)$ denotes the relative entropy $H(\mathbf{Q} \| \prob) := \int_\supp \log(d\mathbf{Q}/d\prob) \, d\mathbf{Q}$, where $d\mathbf{Q}/d\prob$ denotes the Radon-Nikodym derivative.
+\end{definition}
+
+We note that for $p=1$, the assumption that $T_1(\tau)$ is satisfied is equivalent to the light-tailed assumption~\ref{ass:light_tail} with $r = 2$, which holds for all sub-Gaussian distributions. On the other hand, $T_2(\tau)$ is a stonger assumption, typically requiring strongly log-concave distributions, which include Gaussian distributions~\cite{gao2016distributionally}.
+
+On top of conditions on $\prob$, the loss function $\ell$ is also required to satisfy certain curvature conditions. We make use of the following assumptions. 
+\begin{assumption}[Lipschitzness]
+\label{ass:lip_intro}
+For all $z \in \mathcal{Z}$, $\ell$ is Lipschitz continuous with constant~$M$,
+\ie, $\left |\ell(v,z) - \ell(u,z)\right| \leq M\| u - v\|, \; \forall u,v \in \dom \ell$.
+\end{assumption}
+
+\begin{assumption}[Smoothness]
+\label{ass:smooth_intro}
+For all $z \in \mathcal{Z}$, $\ell$ is smooth with constant~$L$,
+\ie, $\left\|\nabla \ell(v,z) - \nabla \ell(u,z)\right\|_\star \leq L\| u - v\|,\; \forall u,v \in \dom \ell$, where $\|\cdot\|_\star$ denotes the dual norm of $\|\cdot\|$.
+\end{assumption}
+
+\begin{assumption}[Gradient regularity]
+\label{ass:grad_reg}
+There exists $\kappa_1 > 0$ such that for all $z \in \mathcal{Z}$, 
+$\sqrt{\mathbf{E}_{\prob} [\|\nabla \ell(u,z)\|_\star^2]} \leq \kappa_1~\forall u \in \dom \ell$, and there exists $\kappa_2 > 0$ such that for all $z \in \mathcal{Z}$,
+$\|\nabla \ell(u,z)\|_\star \leq \kappa_2 \sqrt{\mathbf{E}_{\prob} [\|\nabla \ell(u,z)\|_\star^2]},~\forall u \in \dom \ell$. 
+\end{assumption}
+
+Furthermore, the function class $\mathcal{L}=\{\ell(\cdot,z)\mid z\in\mathcal{Z}\}$ must additionally satisfy conditions on its Rademacher complexity, defined as follows. 
+
+\begin{definition}[Rademacher complexity]
+\label{def:rad}
+The \emph{Rademacher complexity} of a function class $\mathcal{L}=\{\ell(\cdot,z)\mid z\in\mathcal{Z}\}$ given a dataset $\mathcal{D}_N = \{d_i\}_{i=1}^N$ is defined as
+\begin{equation*}
+	\mathfrak{R}_n(\mathcal{L}) := \Expect_\sigma \left[ \sup_{\ell \in \mathcal{L}} \frac{1}{n} \sum_{i=1}^n \sigma_i \ell(d_i) \right],
+\end{equation*}
+where $\sigma_i$ are i.i.d.\ Rademacher random variables with $\prob\{\sigma_i = \pm 1\} = \frac{1}{2}$.
+The Rademacher complexity of the function class $\mathcal{L}$ with respect to $\prob$ for sample size $N$ is defined as $\Expect_{\prob^N}[\mathfrak{R}_n(\mathcal{L})]$.
+\end{definition}
+
+The following sub-root local complexity assumption then controls the richness of the function class $\mathcal{L}$ and ensures that uniform concentration bounds can be established with rates that do not depend on the dimension $m$.
+\begin{assumption}[Sub-root local complexity]
+\label{ass:sub-root}
+There exists a sub-root function $\psi_n : \reals_+ \rightarrow \reals_+$ such that
+\begin{equation*}
+	\psi_n(r) \geq \Expect_{\prob^N} \left[ \mathfrak{R}_n\left( \left\{ c\ell : \ell \in \mathcal{L},\, 0 \leq c \leq 1,\, T(c\ell) \leq r \right\} \right) \right],
+\end{equation*}
+ where $T(\ell) = \|\ell\|_{\text{Lip}}$ when we consider $p=1$ and $T(\ell) = \mathbf{E}_{\prob} [\|\nabla \ell(u,z)\|_\star^2]$ when we consider $p=2$.
+ A function $\psi : \reals_+ \rightarrow \reals_+$ is sub-root if it is non-constant, non-negative, non-decreasing, and the map $r \mapsto \psi(r)/\sqrt{r}$ is non-increasing for all $r > 0$.
+\end{assumption}
+
+We are then ready to summarize the resultant finite-sample probabilistic guarantees.
+% \begin{assumption}
+% \label{ass:gao}
+%     If we consider $r= 1$ for~\eqref{empirical:ball}, then $\prob$ satisfies the transportation-information inequality $T_1(\alpha)$ for some positive constant $\alpha$, \ie, for all $\mathbf{Q}\in \Xi_1(\supp)$, $W_1(\mathbf{Q},\prob) \leq \sqrt{\alpha H(\mathbf{Q}\|\prob)}$, where $H(\mathbf{Q}\|\prob)$ denotes the relative entropy. Furthermore, $f$ satisfies clause 1 of Assumption~\ref{ass:general_ass_lip}. If $r=2$, then $\prob$ satisfies $T_2(\alpha)$ for some positive constant $\alpha$, and $f$ satisfies clause 3 of Assumption~\ref{ass:general_ass_lip}.
+% \end{assumption} If the objective function class $\mathcal{F}=\{f(\cdot,x)\mid x\in\mathcal{X}\}$ additionally satisfies certain assumptions on its Rademacher complexity~\cite[Assumption 5]{gao2016distributionally}, the following holds.
+\begin{theorem}[Dimension-free performance guarantees~\cite{gao2016distributionally}]
+\label{thm:informal_curse} 
+For $p=1$, let Assumptions~\ref{ass:lip_intro} and~\ref{ass:sub-root} hold, and assume $\prob$ satisfies $T_1(\tau)$. For $p=2$, let Assumptions~\ref{ass:smooth_intro},~\ref{ass:grad_reg}, and~\ref{ass:sub-root} hold, and assume $\prob$ satisfies $T_2(\tau)$. We can then choose confidence levels $\beta_N \in (0,1]$ and corresponding radii $\epsilon_N(\beta_N)=\tilde{O}(N^{-1/2})$, such that for all $z \in \mathcal{Z}$, with residual terms $\rho_{N} = \tilde{O}(N^{-1/2}),$ 
+\begin{equation}
+	\label{eq:informal_x}
+	\prob^{N}\left(\Expect_{\prob}[\ell(u, z)] \le \sup_{\mathbf{Q} \in  \mathbf{B}_{{\epsilon},\barp}(\hat{\prob}^N)}\mathbf{E}_{ \mathbf{Q}}[\ell(\unc,z)]+ \rho_{N}\right) \ge 1 - \beta_{N}.
+\end{equation}
+    % $$\prob^{t-1}\left( H_\star \leq \Expect_{\prob}[f(u, x_t)] \le H_t+\rho_{t-1}\right) \ge 1 - \beta_{t-1}.$$
+\end{theorem}
+For simplicity, we omit the exact representations of $\beta_N$, $\epsilon_N(\beta_N)$, and $\rho_N$, which are given in~\cite[Corollary 4, Corollary 6]{gao2016distributionally}.
+Similar to the dimension-dependent case, the optimal in-sample certificate can then be obtained by optimizing over $\mathcal{Z}$, which means solving the corresponding Wasserstein~\gls{DRO} problem~\eqref{eq:dro_prob_intro}. 
+In exchange for a dimension-free radius $\epsnom_N$, this result introduces a nonzero residual~$\rho_N$ to the original probabilistic guarantee~\eqref{eq:prob_guarantees_intro}. However, even with smaller radii, the fundamental difficulties of solving Wasserstein~\gls{DRO} with large $N$ is not addressed. This thus motivates our results in Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, where a separate tradeoff -- a clustering-dependent term, added either to the radius $\epsilon$ of the ambiguity set or to the in-sample certificate --  is established in exchange for a more compact \gls{DRO} formulation.
+
+% the difficulty of solving the DRO problem with a large number of datapoints can be high. We are thus motivated to introduce an additional tradeoff, where a separate residual term is established in exchange for a more compact \gls{DRO} formulation. This leads to our framework below.
+
+% A key ingredient in this thesis is the connection between \gls{DRO} and \gls{RO}, which we review next.
+
+\subsection{Robust optimization}
+\label{sec:ro_def}
+Another popular approach for optimization under uncertainty is \glsentryfull{RO}, which forgoes distributional assumptions and instead restricts data perturbations to be within an uncertainty set $\uncset \subseteq \reals^m$.
+% hedges against realizations of the uncertain parameter within a deterministic uncertainty set $\uncset \subseteq \reals^m$.
+% \Gls{RO} restricts data perturbations to be within an uncertainty set 
+Rewriting the uncertain loss $\ell$ as the uncertain constraint $\ell(u,z) \le \tau$ with epigraph variable $\tau$, the \gls{RO} approach requires constraint satisfaction for every realization of the uncertainty in $\uncset$, \ie, we formulate the problem
+\begin{equation}
+  \label{eq:ro_intro}
+	\begin{array}{ll}
+		\mbox{minimize} & \tau \\
+		\mbox{subject to} & \ell(u, z)  \le \tau  \quad \forall u \in \uncset.
+	\end{array}
+	\end{equation}
+Recalling that the support function~\citep[Section 13]{rockafellar1970convex} of a set $\supp$ is
+\begin{equation*}
+   \sigma_\supp(y) = \sup\limits_{u\in \supp} \left\{y^Tu\right\},
+\end{equation*}
+then for $\ell$ concave in $u$, \ie, satisfying Assumption~\ref{ass:convex_l} with $J = 1$, the robust counterpart of the constraint is 
+\begin{equation*}
+    [-\ell]^*(z,y - h) + \sigma_{\uncset}(-y) + \sigma_S(h)  \leq \tau,
+\end{equation*}
+where $y,h\in \reals^m$ are auxiliary variables, and $[-\ell]^*(y,z) \define \sup_{u\in \dom \ell} y^Tu - [-\ell(u, z)] $ is the conjugate function of $-\ell$ in $u$. When the uncertainty set and support take simple geometric shapes, such as box, ellipsoidal, budget, or polyhedral sets, this results in highly tractable formulations for solving~\eqref{eq:ro_intro}. Particularly, these formulations do not scale with data-sample size. In Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, we thus take ideas from~\gls{RO} to augment~\gls{DRO}.
+
+\subsubsection{Probabilistic guarantees in~\gls{RO}}
+In \gls{RO}, the typical goal is to construct uncertainty sets such that the
+the following {\it chance constraint} is satisfied with high probability, \ie,
+\begin{equation*}
+  \label{eq:chance_intro}
+  \prob (\ell(u,z) \leq \tau ) \geq 1 - \eta.
+\end{equation*}
+One way to guarantee this is to construct $\mathcal{U}$ to cover a large enough percentage of the probability mass,
+$$\prob(u\in\mathcal{U}) \geq 1 - \eta,$$
+which automatically implies the chance constraint. For the simple sets mentioned above, this could be achieved by choosing an appropriately sized radius / scaling factor. 
+To improve upon these sets, in recent years, many data-driven methods have been developed to identify the best (smallest) high-probability-regions of the uncertainty.
+% are thus geared towards  which is then taken to be the uncertainty set. 
+These coverage-based approaches, however, have been noted to be conservative, as the above is a {\it sufficient but not nessesary} condition. Researchers have turned to directly takle the chance constraint~\eqref{eq:chance_intro}, which is equivalent to the following {\it value at risk} constraint,
+\begin{equation*}
+\VaR(\ell(u,z),\eta)\leq \tau~~\Longleftrightarrow~~ \inf\{\gamma \mid \prob(\ell(u,z) \leq \gamma) \geq 1-\alpha\} \leq \tau.
+\end{equation*}
+Unfortunately, except in very special cases, the value at risk function is intractable~\citep{cvaropt}, and approximations must be used instead.
+In this vein, Bertismas et al.~\cite{bertsimas_data-driven_2018} constuct data-driven uncertainty sets that produce upper bounds of the $\VaR$, and note improvements with respect to traditional approaches. Their framework, however, treats maximum-of-concave constraints only through union-bound-type arguments.
+Instead, we wish to consider the constraints hollistically.
+% Expectation constraints of the form~\eqref{eq:expectation} can represent popular risk measures, and can imply constraints commonly used in chance-constrained programming (CCP). 
+% In CCP, the probabilistic constraint considered is
+%   \begin{equation}
+% 		\label{eq:chance}
+% 		\prob(g(u,x)\leq 0) \geq 1-\alpha,
+% 	 \end{equation}
+% which corresponds to the {\it value at risk} being nonpositive, \ie,
+% \begin{equation*}
+% \VaR(g(u,x),\eta) = \inf\{\gamma \mid \prob(g(u,x)\leq \gamma) \geq 1-\alpha\} \leq 0.
+% \end{equation*}
+
+To this end, we note that a tractable approximation of the value at risk is the {\it conditional value at risk}~\citep{cvaropt,cvar}, defined as
+\begin{equation}
+\CVaR(\ell(u,z),\alpha) = \inf_{\omega}\{\Expect(\omega + (1/\alpha)(\ell(u,z)- \omega)_+)\},
+\end{equation}
+where $(a)_+ = \max\{a,0\}$. 
+% This expression can be modeled through our approach, by writing $\CVaR(g(u,x),\alpha) = \inf_{\tau}\{\Expect(\hat{g}(u,x,\tau))\}$, where ${\hat{g}(u,x,\tau) = \tau + (1/\alpha)(g(u,x)- \tau)_+}$ is the maximum of concave functions, which we study in Sections~\ref{sec:max_concave},~\ref{sub:sparse_portfolio_optimization}, and~\ref{sub:facility}.
+It is well known from~\cite{cvaropt} that the relationship between probabilistic guarantees of constraint satisfaction is
+\begin{equation}
+  \label{eq:cvar_relate}
+\CVaR(\ell(u,z),\eta) \leq \tau ~~ \Longrightarrow~~ \VaR(\ell(u,z),\eta)\leq \tau ~~\Longleftrightarrow ~~\prob(\ell(u,z)\leq \tau)) \geq 1 - \eta,
+\end{equation}
+which holds regardless of the structure of $\ell$. 
+% so by directlly bounding the $\CVaR$, we imply the desired guarantees. 
+In Chapter~\ref{chap:lro}, for general constraints with maximum-of-concave structure satisfying Assumption~\ref{ass:convex_l}, we thus construct data-driven formulations that make use of this $\CVaR$ approximation.
+
+
+\subsection{Connecting~\gls{DRO} and~\gls{RO} probabilistic guarantees}
+\label{sec:connect_dro_ro}
+While the~\gls{DRO} guarantee~\eqref{eq:prob_guarantees_intro} is in expectation form, it can also be constructed to imply the chance-constraints introduced above. 
+Give a function $\ell$ satisfying Assumption~\ref{ass:convex_l}, we can define
+$$\hat{\ell}(u,z,\omega,\eta) = \omega + (1/\eta)(\ell(u,z)- \omega)_+,$$
+which preserves its maximum-of-concave structure. By design, the following equivalence holds~\citep{cvaropt},
+$$\underset{z,\eta}{\text{minimize}}~\Expect[\hat{\ell}(u,z,\omega,\eta)] = \underset{z}{\text{minimize}} \CVaR (\ell(u,z),\eta),$$
+so by the relations given in~\eqref{eq:cvar_relate}, solving the~\gls{DRO} problem with the uncertain function~$\hat{\ell}$ instead of $\ell$ implies the guarantee
+\begin{equation}
+	\label{eq:prob_guarantees_intro}
+	\prob^N\left( \prob\left(\ell(u, \hat{z}_N) \leq \hat{H}_N\right) \geq 1 - \eta  \right) \ge 1 - \beta,
+\end{equation}
+which can be stronger than the original guarantee depending on the choice of $\eta$.
+% sets $\mathcal{U}$ are typically constructed to satisfy a {\it chance constraint}, \ie,
+% $$\prob $$ 
+
+% \section{Conservatism and the data-driven shift}
+% \label{sec:conservatism_intro}
+
+% While \gls{RO} often leads to tractable formulations, it can be overly conservative~\citep{reduce_conserve}.
+% \Gls{DRO} reduces conservatism by taking a probabilistic approach, modeling the uncertainty as a random variable following a probability distribution known only to belong to an ambiguity set of distributions.
+% However, decoupling the uncertainty set construction from the subsequent optimization problem may still lead to overly conservative decisions~\citep{reduce_conserve,gao2016distributionally}.
+% In Wasserstein \gls{DRO}, the radius of the ambiguity set must scale with the dimension of the uncertainty, leading to the curse of dimensionality~\citep{wass_rate}.
+% While less conservative than \gls{RO}, data-driven \gls{DRO} can also lead to very large formulations that are intractable, especially when integer variables are involved.
+
+% Traditional approaches design uncertainty sets based on theoretical assumptions on the uncertainty distributions~\citep{ben-tal_robust_2000,bandi_tractable_2012,ben-tal_robust_2009,bertsimas_price_2004}.
+% While these methods have been quite successful, they rely on a priori assumptions that are difficult to verify in practice.
+% On the other hand, the last decade has seen an explosion in the availability of data.
+% This change has brought a shift in focus from a priori assumptions on the probability distributions to data-driven methods in operations research and decision sciences~\citep{bertsimas_data-driven_2018}.
+% In \gls{RO} and \gls{DRO}, this new paradigm has fostered data-driven methods where uncertainty sets are shaped directly from data.
+
+% One can overcome the curse of dimensionality by exploiting structural properties of the subsequent optimization problem when designing the ambiguity set~\citep{DBLP:gao2020}.
+% In fact, significant reduction in conservatism can be achieved by designing the uncertainty set not only based on the distributions generating the data, but also by exploiting structural properties of the subsequent optimization problem.
+% This motivates the approaches developed in this thesis, which design data-driven, problem-aware uncertainty frameworks.

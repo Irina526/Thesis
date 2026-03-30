@@ -1,0 +1,1416 @@
+\chapter{Mean Robust Optimization}
+\label{chap:mro}
+
+\glsresetall
+
+\section{Introduction}
+
+As discussed in Chapter~\ref{chap:intro}, while Wasserstein \gls{DRO} can be less conservative than classic \gls{RO}, it can lead to very large formulations that have prohibitive solution times, especially in \gls{MIO}. 
+We thus employ clustering techniques to reduce the dimensionality of the data, and build a framework that combines the closely data-driven nature of~\gls{DRO} and the tractability of classical~\gls{RO}.
+
+In this chapter, instead of the function $\ell$ introduced in Chapter~\ref{chap:prelim}, we work directly with an uncertain constraint $g$.
+Note that by the epigraph trick of Section~\ref{sec:ro_def}, these two representations are interchangable. 
+
+% since the number of constraints grows linearly with the number of datapoints.
+% A common idea to reduce the dimensionality of data-driven decision-making problems is to use clustering techniques from machine learning.
+% While clustering has recently appeared in various works within the stochastic programming literature~\citep{SAA1, SAA2, SAA3, SAA4}, the focus has been on the improvement of and comparisons to the \gls{SAA} approach and not in a distributionally robust sense.
+% In contrast, recent approaches in the \gls{DRO} literature cluster data into partitions and either build moment-based uncertainty sets for each partition~\citep{Rsome, perakis2022robust}, or enrich Wasserstein \gls{DRO} formulations with partition-specific information (\eg, relative weights)~\citep{partition}.
+% While these approaches are promising, clustering is still used as a pre-processing heuristic on the datasets in \gls{DRO}, without a clear understanding of how it affects the conservatism of the optimal solutions.
+% In particular, choosing the right clustering parameters to carefully balance computational tractability and out-of-sample performance is still an ongoing challenge.
+
+% synonym of unclear
+
+% moment-based
+% partitioning
+
+
+
+% For recent works that do touch upon clustering and \gls{DRO}~\citep{Rsome, partition,perakis2022robust}, the frameworks proposed still differ from ours, as we provide theoretical bounds and guarantees on the clustering effects for all $K$ and for Wasserstein distances of orders 1 to $\infty$.
+% We give a more in-depth discussion on related work in the following section.
+% Furthermore, while there has been literature on probabilistic and finite-sample guarantees for different choices of $\epsilon$, the results are not sharp enough for practical usage -- in practice, $\epsilon$ is chosen through cross-validation \citep{DBLP:gao2020}, which requires extensive experimentation.
+
+
+\subsection{Our contributions}%
+\label{sub:our_contributions}
+In this work, we present~\gls{MRO}, a data-driven method that, via machine learning clustering, bridges between \gls{RO} and  Wasserstein \gls{DRO}.
+\begin{itemize}
+	\item We design the uncertainty set for \gls{RO} as a ball around clustered data. Without clustering, our formulation corresponds to the finite convex reformulation in Wasserstein~\gls{DRO}.
+With just one cluster, our formulation corresponds to the classical \gls{RO} approach.
+The number of clusters is a tunable parameter that provides a tradeoff between the worst-case objective value and computational efficiency, which includes both speed and memory usage.
+	\item We provide probabilistic guarantees of constraint satisfaction for our method, based on the quality of the clustering procedure.
+	\item We derive bounds on the effect of clustering in case of constraints with concave \reviewChanges{and maximum-of-concave} dependency on the uncertainty. In addition, we show that, when constraints are linearly affected by the uncertainty, clustering does not affect the solution nor the probabilistic guarantees.
+	\item We show on various numerical examples that, thanks to our clustering procedure, our approach provides multiple orders of magnitude speedups over classical approaches while guaranteeing the same probability of constraint satisfaction. We also demonstrate that \gls{MRO} offers protection against outliers compared to Wasserstein \gls{DRO}. The code to reproduce our results is available at \url{https://github.com/stellatogrp/mro_experiments}.
+\end{itemize}
+
+
+% \subsection{Related work}%
+% \label{sub:related_work}
+% We refer to Chapter~\ref{chap:intro} for a general overview of \gls{RO}, \gls{DRO}, and data-driven \gls{RO}.
+% Here, we discuss related work specific to \gls{MRO}.
+
+% While many works have recently emerged on the construction of \gls{DRO} ambiguity sets through the partitioning of data~\citep{Rsome, partition,perakis2022robust}, or the discretization of the underlying distribution~\citep{droapprox}, there still exists a gap in the literature.
+% In particular, theoretical bounds on the change in problem performance as affected by the number of clusters, as well as by the quality of the cluster assignment, remain largely unexplored.
+% In this work, we fill this gap by providing such insights.
+
+
+\begin{comment}
+\paragraph{Conditional value-at-risk constrained problems.}
+\gls{RO} problems where probabilistic guarantees are framed in terms of expectation can directly model conditional value-at-risk~(CVaR).
+\cite{mohajerin_esfahani_data-driven_2018} model a hybrid loss and~CVaR of loss objective for portfolio problems, for which guarantees in expectation are provided.
+\cite{drccp-cvar} studies distributionally robust chance constrained programs with Wasserstein distance, and observes that problems with multiple uncertain constraints and mixed integer variables could be reformulated and solved as CVaR constrained optimization problems, further demonstrating the synergy between such concepts.
+\end{comment}
+
+\subsection{Layout of the chapter}%
+\reviewChanges{
+In Section~\ref{sec:mro}, we present our approach for concave uncertainty constraints, then extend the results to maximum-of-concave functions. 
+In Section~\ref{sub:connectionsdro}, we present connections to distributionally robust optimization, and give theoretical guarantees on constraint satisfaction.
+In Section~\ref{sec:conservatism}, we analyze the effect on clustering on the worst-case value of the~\gls{MRO} solutions for both concave and maximum-of-concave constraints}.
+In Section~\ref{sec:parameter_selection}, we give guidelines for choosing hyperparameters.
+In Section~\ref{sec:examples}, we provide computational verification of the speedups obtained through our methodology.
+In Section~\ref{sec:conclusions}, we summarize our conclusions.
+
+\section{Mean robust optimization}%
+\label{sec:mro}
+% We present our approach, Mean Robust Optimization (MRO), in light of both robust and distributionally robust optimization.
+\subsection{The problem}
+\label{sec:intro}
+We consider a deterministic objective $f(z)$ subject to an uncertain constraint of the form
+\begin{equation}
+	\label{eq:constr_original}
+	g(u,z) \le 0,
+\end{equation}
+where $z \in \mathcal{Z} \subseteq \reals^n$ is an optimization variable on the compact set $\mathcal{Z}$, $u \in \supp \subseteq \reals^m$ is an uncertain parameter with convex and closed support $\supp$, governed by the distibution $\prob$, and $-g(u, z)$ is proper, convex, and lower-semicontinuous in~$u$ for all $z$, \ie, satisfying Assumption~\ref{ass:convex_l} with $J = 1$.  In Section~\ref{sec:max_concave}, we extend our results for $g$ being the maximum of of concave functions, where $J \geq 1$.
+Throughout this paper, we assume the support $\supp$ of $u$ to live within the domain of $g$ for the variable $u$, which we will refer to as $\dom{g}$, \ie, $\supp \subseteq \dom{g}$.
+We assume $\dom{g}$ is independent of $z$, and that the following assumption holds. 
+\begin{assumption}
+	\label{assp:dom}
+	% The function $g$ is concave in $u$.
+	% If $g$ is monotonically increasing in $u$, $\dom{g} = \reals_{\geq G}^m$, where $G \in \reals \cup \{-\infty\}$.	If $g$ is monotonically decreasing in $u$, $\dom{g} = \reals_{\leq G}^m$, where $G \in \reals \cup \{\infty\}$.
+	% Otherwise, $\dom{g} = \reals^m$.
+	The domain $\dom{g}$ is $\reals^m$. \reviewChanges{Otherwise, $g$ is either element-wise monotonically increasing in $u$ and only has a (potentially) lower-bounded domain, or element-wise monotonically decreasing in $u$ and only has a (potentially) upper-bounded domain.}
+\end{assumption}
+\reviewChanges{This assumption on the domain and monotonicity of $g$ is very common in practice as it is satisfied by linear and quadratic functions, as well as other common functions (\eg, $\log(u)$, and $1/(1+u)$).}
+
+
+
+% The \gls{RO} approach defines an uncertainty set~$\uncset \subseteq \reals^m$ and forms the {\it robust counterpart} as
+% \begin{equation*}
+% 	g(u,x) \le 0, \quad \forall u \in \uncset,
+% \end{equation*}
+% where the uncertainty set is chosen so that for any solution $x$, the above holds with a certain probability. We define this in terms of expectation,
+% %  \begin{equation}
+% % 	\label{eq:chance}
+% % 	\prob(g(u,x)\leq 0) \geq 1-\alpha.
+% %  \end{equation}
+% % We define, instead, an adjusted version of the uncertain constraint (\ref{eq:constr_original}) as
+% \begin{equation}
+% 	\label{eq:expectation}
+% 	\Expect^\prob (g(u,x)) \le 0,
+% \end{equation}
+% where $\prob$ is the unknown distribution of the uncertainty $u$.
+
+% \reviewChanges{
+% \paragraph{Risk measures.}%
+% \label{par:risk_measures}
+% Expectation constraints of the form~\eqref{eq:expectation} can represent popular risk measures, and can imply constraints commonly used in chance-constrained programming (CCP). 
+% In CCP, the probabilistic constraint considered is
+%   \begin{equation}
+% 		\label{eq:chance}
+% 		\prob(g(u,x)\leq 0) \geq 1-\alpha,
+% 	 \end{equation}
+% which corresponds to the {\it value at risk} being nonpositive, \ie,
+% \begin{equation*}
+% \VaR(g(u,x),\alpha) = \inf\{\gamma \mid \prob(g(u,x)\leq \gamma) \geq 1-\alpha\} \leq 0.
+% \end{equation*}
+% Unfortunately, except in very special cases, the value at risk function is intractable~\citep{cvaropt}.
+% A tractable approximation of the value at risk is the {\it conditional value at risk}~\citep{cvaropt,cvar}, defined as
+% \begin{equation*}
+% \CVaR(g(u,x),\alpha) = \inf_{\tau}\{\Expect(\tau + (1/\alpha)(g(u,x)- \tau)_+)\},
+% \end{equation*}
+% where $(a)_+ = \max\{a,0\}$. 
+% This expression can be modeled through our approach, by writing $\CVaR(g(u,x),\alpha) = \inf_{\tau}\{\Expect(\hat{g}(u,x,\tau))\}$, where ${\hat{g}(u,x,\tau) = \tau + (1/\alpha)(g(u,x)- \tau)_+}$ is the maximum of concave functions, which we study in Sections~\ref{sec:max_concave},~\ref{sub:sparse_portfolio_optimization}, and~\ref{sub:facility}.
+% It is well known from~\cite{cvaropt} that the relationship between these probabilistic guarantees of constraint satisfaction is
+% \begin{equation*}
+% \CVaR(g(u,x),\alpha) \leq 0 ~~ \Longrightarrow~~ \VaR(g(u,x),\alpha)\leq 0 ~~\Longleftrightarrow ~~\prob(g(u,x)\leq 0) \geq 1 - \alpha.
+% \end{equation*}
+% Therefore, our expectation constraint implies common chance constraints.
+% }
+
+% \paragraph{Finite-sample guarantees.}%
+% \label{par:finite_sample_guarantees}
+% We require that the expectation constraint also hold with a certain probability, and this {\it second} probabilistic guarantee can be quantified when we have data.
+In data-driven optimization, while $\prob$ is unknown, it is partially observable through a finite set of $N$ independent samples of the random vector $u$.
+We denote the training dataset of these samples by ${\mathcal{D}}_N \define \{d_i\}_{i\leq N} \subseteq \supp$, and note that this dataset is governed by $\prob^N$, the product distribution supported on $\supp^{N}$.
+% Throughout this paper, we assume $ \supp$ to be a convex and closed set, and set it equivalent to the domain of $g$ in the absence of structural information on $\prob$.
+A data-driven solution of a robust optimization problem is a feasible decision $\hat{z}_N \in \reals^n$ found using the data-driven uncertainty set $\uncset$, which in turn is constructed by the training dataset ${\mathcal{D}}_N $.
+% Specifically, the feasible decision and data-driven uncertainty set $\uncset$ we construct must imply the probabilistic guarantee
+% \begin{equation}
+% 	\label{eq:prob_guarantees1}
+% 	\prob^N\left( \Expect^{\prob}(g(u, \hat{x}_N)) \le 0\right) \ge 1 - \beta,
+% \end{equation}
+% where $\beta > 0$ is the specified probability of constraint violation. From now on, when we refer to probabilistic guarantees of constraint satisfaction, it will be a reference to~\eqref{eq:prob_guarantees1}.
+
+Our goal is to formulate a data-driven approach such that the resultant decision $\hat{z}_N \in \reals^n$ satisfies the probabilistic guarantee 
+\begin{equation}
+	\label{eq:prob_guarantees1}
+	\prob^N\left( \Expect_{\prob}(g(u, \hat{z}_N)) \le 0\right) \ge 1 - \beta,
+\end{equation}
+where $\beta > 0$ is the specified probability of constraint violation. 
+As discussed in Section~\ref{sec:connect_dro_ro}, these guarantees can imply guarantees on chance-constraints as well, which we show in the numerical examples of Sections~\ref{sec:max_concave},~\ref{sub:sparse_portfolio_optimization}, and~\ref{sub:facility}.
+% This expression can be modeled through our approach, by writing $\CVaR(g(u,x),\alpha) = \inf_{\tau}\{\Expect(\hat{g}(u,x,\tau))\}$, where ${\hat{g}(u,x,\tau) = \tau + (1/\alpha)(g(u,x)- \tau)_+}$ is the maximum of concave functions, 
+
+
+\subsection{Our approach}
+To meet the probabilistic guarantees outlined above, we propose to construct $\hat{z}_N$ to satisfy particular constraints, with respect to a particular uncertainty set. 
+\paragraph{Case $p \geq 1$.}
+In the case where $p \geq 1$, the set we consider takes the form
+\begin{equation*}
+	\label{eq:uncset_p}
+	\uncset(K, \epsilon) \define \left\{ u = (v_1,\dots,v_K) \in \supp^{K} \quad\middle|\quad  \sum_{k=1} ^K w_k \| v_k - \bar{d}_k \|^p \le \epsilon^p  \right\},
+\end{equation*}
+where we partition ${\mathcal{D}}_N$ into $K$ disjoint subsets $C_k$, and $\bar{d}_k$ is the centroid of the $k$th subset, for $k=1,\dots,K$.
+The weight $w_k>0$ of each subset is equivalent to the proportion of points in the subset, \ie, $w_k = |C_k|/N$.
+We choose $p$ to be an integer exponent, and $\epsilon > 0$ will be chosen depending on the other parameters to ensure satisfaction of the probability guarantee~\eqref{eq:prob_guarantees1}.
+When $p = 2$ and $\supp = \reals^m$, the set can be visualized as an ellipsoid in $\mathbf{R}^{Km}$ with the center formed by stacking together all $\bar{d}_k$ into a single vector of dimension $\mathbf{R}^{Km}$.
+When we additionally have $K = N$ or $K = 1$, this ellipsoid becomes a ball of dimension $\reals^{Nm}$ or $\reals^{m}$ respectively, as shown in Figure~\ref{fig:unset}.
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.6\textwidth]{unset_crop.pdf}
+	\caption{Visualizing the uncertainty set $\uncset(N, \epsilon)$ and $\uncset(1,\epsilon)$ as high dimension balls when $p = 2$.}%
+	\label{fig:unset}%
+\end{figure}
+
+\paragraph{Case $p = \infty$.}
+In the case where $p = \infty$, the set we consider takes a more specific form,
+\begin{equation*}
+	\label{eq:uncset_inf}
+	\uncset(K, \epsilon) \define \left\{ u = (v_1,\dots,v_K) \in \supp^{K} \quad\middle|\quad \max_{k=1,\dots,K} \| v_k - \bar{d}_k \| \le \epsilon\right\},
+\end{equation*}
+where the constraints for individual $v_k$ become decoupled.
+See Figure~\ref{fig:unset-p} for an example when $K = 3$ and $K = 1$.
+This decoupling follows the result for the Wasserstein type $p = \infty$ metric \citep[Equation 2]{wass-p}, as our uncertainty set is analogous to the set of all distributions within Wasserstein-$\infty$ distance of $\bar{d}$.
+We note that, if any of the decoupled constraints are violated, then $\lim_{p \rightarrow \infty} \sum_{k=1} ^K w_k \| v_k - \bar{d}_k \|^p \geq \epsilon^p$, and the summation constraint will be violated.
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.6\textwidth]{unset_p_crop.pdf}
+	\caption{Visualizing the decoupled uncertainty set $\uncset(K, \epsilon)$ with $p = \infty$.}%
+	\label{fig:unset-p}%
+\end{figure}
+
+For both $p \geq 1$ and $p = \infty$, when~$K = 1$ we have a simple uncertainty set: a ball of radius $\epsilon$ around the empirical mean of the entire dataset, $\uncset(1, \epsilon) \define \left\{ v \in \supp \mid \| v - \bar{d} \| \le \epsilon  \right\}.$
+This is equivalent to the uncertainty set of traditional \gls{RO}, as it is of the same dimension $m$ as the uncertain parameter.
+When $K=N$ and $w_k = 1/N$, both cases closely resemble the ambiguity sets of Wasserstein-$p$ \gls{DRO}.
+This formulation is thus a generalization of traditional sets for both~\gls{RO} and~\gls{DRO}.
+
+Having defined the uncertainty set, we now introduce constraints of the form
+\begin{equation}
+	\label{eq:constraints}
+\bar{g}(u, z) \define  \sum_{k=1} ^K w_k g(v_k, z),
+\end{equation}
+where $g$ is defined in the original constraint~\eqref{eq:constr_original}.
+The weights $w_k$ correspond to the ones defined in the uncertainty set.
+Putting everything together, $\hat{z}_N$ is the solution to the robust optimization problem
+\begin{equation}
+	\label{eq:robustopt}
+	\tag{MRO}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \bar{g}(u, z)  \le 0  \quad \forall u \in \uncset(K, \epsilon).
+	\end{array}
+	\end{equation}
+	 We call this problem the \glsentryfull{MRO} problem.
+
+\paragraph{High-level data-driven procedure.}%
+\label{par:data_driven_procedure_}
+Overall, given the problem data, we formulate the uncertainty set from clustered data using machine learning, with the choice of $K$ and $\epsilon$ chosen experimentally.
+Then, we solve the \gls{MRO} problem to arrive at a data-driven solution $\hat{z}_N$ which satisfies the probabilistic guarantee~\eqref{eq:prob_guarantees1}, see Figure~\ref{fig:mro_proc}.
+	\begin{figure}[h]%
+		\centering
+		\subfloat{{\includegraphics[width=0.9\linewidth]{procedure_crop.pdf} }}%
+		\caption{Mean robust optimization procedure.}%
+		\label{fig:mro_proc}%
+	\end{figure}
+
+\subsection{Solving the robust problem}
+We now outline two ways to solve the~\gls{MRO} problem, using a direct convex reformulation and using a cutting plane algorithm. The reformulation and cutting plane procedure follow usual techniques for \gls{RO} problems in existing literature~\citep{ben-tal_robust_2009,kuhn2019wasserstein,robustadaptopt,cuttingplane}, with adaptations made for the \gls{MRO} setup, as well as a reformulation derived for the case $p = \infty$. We include simple examples and pseudocode for completeness.
+
+\subsubsection{Direct convex reformulation for $p \geq 1$}
+\label{sub:direct}
+In the case where $p \geq 1$, the~\gls{MRO} problem can be rewritten as the optimization problem
+\begin{equation}
+	\label{eq:unif-const}
+	% \tag{P}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \begin{dcases}
+			\begin{rcases}
+		\underset{v_1, \dots, v_K \in \supp}{\text{maximize}} &\quad \sum_{k=1} ^K w_k g(v_k, z) \\
+		\mbox{subject to} & \quad \sum_{k=1} ^K w_k \| v_k - \bar{d}_k \|^p \le \epsilon^p
+			\end{rcases}
+			\end{dcases} \le 0,
+	\end{array}
+\end{equation}
+which, by dualizing the inner maximization problem, has the following reformulation for any $\epsilon > 0$:
+\begin{equation}
+	\label{eq:robustopt_p}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \sum_{k=1}^{K} w_k s_k  \le 0\\
+		& [-g]^*(y_{k} - h_{k}, z) + \sigma_{{\supp}}(h_{k}) - y_{k}^T\bar{d}_k  + \phi(q)\lambda \left\|y_{k}/\lambda \right\|^q_*  +\lambda \epsilon^p \leq s_k\\
+		&\hspace{6cm} \quad k = 1,\dots, K\\
+		& \lambda \geq 0,
+	\end{array}
+\end{equation}
+with variables $\lambda \in \reals$, $s_k \in \reals$, $y_{k} \in \reals^{m}$, and $h_{k} \in \reals^m$.
+Here, $[-g]^*(y, z) \define \sup_{u\in \dom g} y^Tu - [-g(u, z)] $ is the conjugate of $-g$, $\sigma_ \supp(y) \define\sup_{u \in  \supp}  y^Tu$ is the support function of $ \supp \subseteq \mathbf{R}^m$, $\| \cdot \|_*$ is the dual norm of  $\| \cdot \|$, and $\phi(q) = (q-1)^{(q-1)}/q^q$ for $q > 1$~\citep[Theorem 8]{kuhn2019wasserstein}.
+Note that $q$ satisfies $1/p + 1/q = 1$, \ie, $q = p/(p - 1)$.
+% is the conjugate number of $p \in [1,\infty)$.
+\reviewChanges{When $p=1$ and $q =\infty$, we note the formulation in~\eqref{eq:robustp1}.}
+The support function $\sigma_ \supp$ is also the conjugate of $\chi_ \supp$, which is defined $\chi_{\supp}(u) = 0$ if $u \in  \supp$, and $\infty$ otherwise.
+The proof of the derivation and strong duality of the constraint is delayed to Appendix~\ref{app:dual_form}.
+Since the dual of the constraint becomes a minimization problem, any feasible solution that with objective less than or equal to $0$ will satisfy the constraint, so we can remove the minimization to arrive at the above form.
+While traditionally we take the supremum instead of maximizing, here the supremum is always achieved as we assume $g$ to be upper-semicontinuous.
+For specific examples of the conjugate forms of different $g$, see Bertsimas and den Hertog~\cite[Section 2.5]{robustadaptopt} and Beck~\cite[Chapter 4]{amirbeck}.
+
+When $K$ is set to be $N$, $w_k$ is $1/N$, and this is of an analogous form to the convex reduction of the worst case problem for Wasserstein \gls{DRO}; we expand upon this in Section~\ref{sub:connectionsdro}.
+
+\reviewChanges{
+We note the special case when $p = 1$. We observe from~\citep[Section 2.2 Remark 1]{kuhn2019wasserstein} that
+\begin{equation*}
+	 \lim_{q \rightarrow \infty}\phi(q)\lambda \left\|y_{k}/\lambda \right\|^q_* =
+	\begin{dcases} 0 & \text{if}\; \|y_{k} \| \leq \lambda \\
+		\infty & \text{otherwise}.
+	\end{dcases}
+	\end{equation*}
+Therefore, the above formulation becomes
+\begin{equation}
+	\label{eq:robustp1}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \sum_{k=1}^{K} w_k s_k  \le 0\\
+		& [-g]^*(y_{k} - h_{k}, z) + \sigma_{{\supp}}(h_{k}) - y_{k}^T\bar{d}_k  + \lambda\epsilon^p\leq s_k\\
+		&\hspace{6cm} \quad k = 1,\dots, K\\
+		& \|y_{k} \| \leq \lambda, \quad k = 1,\dots, K\\
+		& \lambda \geq 0.
+	\end{array}
+\end{equation}}
+
+
+\paragraph{Example with affine constraints.}
+Consider a single affine constraint of the form
+\begin{equation}
+	\label{eq:affineg}
+	(a + Pu)^Tz \le b,
+\end{equation}
+where $a \in \reals^n$, $P \in \reals^{n \times m}$, and $b \in \reals$.
+In other words, $g(u, z) = (a + Pu)^Tz - b$, and the support set is $\supp = \reals^m$.
+Note that, in this case, $h_k$ must be $0$ for the support function $\sigma_{\supp}(h_k)$ to be finite.
+%In addition, $q = p/(p-1) = 1$ and $\phi(q) = 1$.
+We compute the conjugate as
+\begin{equation}
+\label{eq:conj_affine}
+[-g]^*(y, z) =  \sup_u y^Tu +b - (a + Pu)^Tz =
+\begin{dcases} a^Tz - b & \text{if}\; y + P^Tz = 0\\
+	\infty & \text{otherwise}.
+\end{dcases}
+\end{equation}
+To substitute $\sigma_{\supp}(h_k)$ and $[-g]^*(y_k - h_k, z)$ into~\eqref{eq:robustopt_p}, we note that $h_k = 0$ and $y_k = -P^Tz$, \ie, $y_k$ is independent from $k$.
+Bh combining the $K$ constraints in~\eqref{eq:robustopt_p}, we arrive at the form
+\begin{equation}
+	\label{eq:example-affine-p}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & a^Tz - b + \phi(q)\lambda \left\|P^Tz/\lambda \right\|^q_*  +\lambda \epsilon^p + (P^Tz)^T\sum_{k=1}^{K} w_k \bar{d}_k \le 0\\
+		& \lambda \ge 0,\\
+	\end{array}
+\end{equation}
+where the number of variables or constraints does not depend on $K$.
+Since vector $\sum_{k=1}^{K} w_k \bar{d}_k$ is the average of the datapoints in $\mathcal{D}_N$ for any $K \in \{1,\dots,N\}$, this formulation corresponds to always choosing $K=1$.
+
+
+\subsubsection{Direct convex reformulation for $p = \infty$ }
+\label{sub:direct-p}
+In the case where ${p = \infty}$, the~\gls{MRO} problem can be rewritten as the optimization problem
+\begin{equation}
+	\label{eq:unif-const-p}
+	% \tag{P}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \begin{dcases}
+			\begin{rcases}
+		\underset{v_1, \dots, v_K \in\supp}{\text{maximize}} &\quad \sum_{k=1} ^K w_k g(v_k, z) \\
+		\mbox{subject to} & \quad  \| v_k - \bar{d}_k \| \le \epsilon, \quad k = 1,\dots, K
+			\end{rcases}
+			\end{dcases} \le 0,
+	\end{array}
+\end{equation}
+which has the following reformulation where the constraint above is dualized, for all $\epsilon > 0$:
+	\begin{equation}
+	\label{eq:unif-dual-p}
+	% \tag{D}
+	\begin{array}{ll}
+		\text{minimize} & f(z)\\
+ \text{subject to} \quad & \sum_{k=1}^{K} w_k s_k \leq 0\\
+&[-g]^*(y_{k} - h_{k},z) + \sigma_{{\supp}}(h_{k}) - y_{k}^T\bar{d}_k  + \lambda_k \epsilon \leq s_k\\
+& \hspace{3cm} \quad k = 1,\dots, K\\
+&  \left\|y_{k} \right\|_* \leq \lambda_k \quad k = 1,\dots, K,
+\end{array}
+\end{equation}
+with new variables $s_k \in \reals$, $y_{k} \in \reals^m$, and $h_{k} \in \reals^m$. The proof is delayed to Appendix~\ref{app:dual_form-p}.
+
+\begin{remark}[Case ${p = \infty}$ is the limit of case ${p \geq 1}$]
+	\label{limit-proof}
+	In terms of the primal problem,~\eqref{eq:unif-const-p} is the limiting case of~\eqref{eq:unif-const} as $p \rightarrow \infty$.
+	In terms of the reformulated problem with dualized constraints, problem~\eqref{eq:unif-dual-p} is the limiting case of~\eqref{eq:robustopt_p} as $p \rightarrow \infty$ .
+	The proofs are delayed to Appendix~\ref{app:primal_limit} and Appendix~\ref{app:dual_limit} respectively. These proofs extend the ideas stated in~\cite[Proposition 3]{wass-p-1}.
+\end{remark}
+
+\paragraph{Example with affine constraints.}%
+\label{par:example}
+Consider again the case of affine constraint as in~\eqref{eq:affineg} with support set $\supp = \reals^m$, now with $p=\infty$.
+Following a similar derivation as~\eqref{eq:example-affine-p}, we substitute the conjugate function $[-g]^*$~\eqref{eq:conj_affine} in problem~\eqref{eq:unif-dual-p}, we can obtain
+\begin{equation}
+	\label{eq:example-affine-inf}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & a^Tz - b + \epsilon\left\|P^Tz \right\|_* + (P^Tz)^T\sum_{k=1}^{K} w_k \bar{d}_k \le 0,\\
+	\end{array}
+\end{equation}
+where the number of constraints and variables does not depend on $K$.
+Similairy to problem~\eqref{eq:example-affine-p}, the term $\sum_{k=1}^{K} w_k \bar{d}_k$ is the average of the datapoints in $\mathcal{D}_N$ for any $K \in \{1,\dots,N\}$. Therefore, the choice of $K$ does not affect this formulation.
+\reviewChanges{This can be viewed as the robust counterpart when the uncertainty set is a norm ball of radius $\epsilon$ centered at $(1/N)\sum_{i=1}^N d_i$}
+
+Note that, if $\bar{d} = 0$ the constraint can be simplified even further, obtaining ${a^Tz + \epsilon\|P^Tz\|_* \le b}$, which corresponds to the robust counterpart in \gls{RO} with norm uncertainty sets~\citep[Section 2.3]{robustadaptopt},~\citep[Chapter 2]{ben-tal_robust_2009}.
+
+\begin{remark}
+	When $g$ is affine and \reviewChanges{$\supp = \reals^m$}, for any $\epsilon$ and norm, the convex reformulations for $p = 1$ and $p = \infty$ are identical. The proof appears in Appendix~\ref{app:equivalence}.
+\end{remark}
+
+
+\subsubsection{Cutting plane algorithm}
+The second approach to solve problem~\eqref{eq:robustopt} is to use a cutting plane procedure, in which we consider the minimization problem where $z$ is the variable and $S$ a finite set of values for the uncertainty,
+\begin{equation}
+	\label{eq:mro_min}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \bar{g}(u, z)  \le 0, \quad \forall u \in
+		\hat{S},
+		\end{array}
+\end{equation}
+and the maximization problem over $u$ with $z^k$ fixed,
+\begin{equation}
+	\label{eq:mro_max}
+	\begin{array}{ll}
+		\mbox{maximize} & \bar{g}(u, z^k)\\
+		\mbox{subject to} & u \in \uncset(K, \epsilon)
+	\end{array}
+\end{equation}
+The procedure works as follows.
+We first solve~\eqref{eq:mro_min} with a set $\hat{S} = \{\bar{u}\}$, where $\bar{u}$ is nominal value of the uncertainty, obtaining $z^k$.
+Then, we solve~\eqref{eq:mro_max}, obtaining $u^k$.
+If $\bar{g}(u^k, z^k) > 0$, then we add $u^k$ to the set $\hat{S}$.
+Otherwise, we terminate. This procedure is summarized in Algorithm~\ref{alg:cutting_plane}.
+As demonstrated by Bertimas et al.~\cite{cuttingplane}, the cutting plane and convex reformulation methods are comparable in terms of performance, thus both are viable.
+\begin{algorithm}
+	\caption{Cutting plane algorithm to solve~\eqref{eq:robustopt}}
+	\label{alg:cutting_plane}
+	\begin{algorithmic}[1]
+	 \State {\bf given} $\hat{S} = \{\bar{u}\}$
+	 \For{$k=1,\dots,k_{\rm max}$}
+	 \State $z^k \gets $ solve minimization problem~\eqref{eq:mro_min} over $z$
+	 \State $u^k \gets $ solve maximization problem~\eqref{eq:mro_max} over $u$
+         \If{$\bar{g}(u^{k}, z^{k}) > 0$}
+	 \State $\hat{S} \gets \hat{S} \cup \{u^k\}$
+	 \Else
+	 \State {\bf return} $z^k$
+	 \EndIf
+	 \EndFor
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{\reviewChanges{Maximum-of-concave constraint function}}
+\label{sec:max_concave}
+\reviewChanges{We now consider the general maximum-of-concave function satisfying Assumption~\ref{ass:convex_l}: 
+$$g(u, z) = \max_{j\leq J}g_j(u, z),$$ with each $-g_j$ being proper, convex, and lower-semicontinuous in~$u$ for all $z$. When we take $J=1$, we arrive back at the formulations given in Section~\ref{sec:mro}.
+Note that any problem with multiple uncertain constraints ${g_j(u,z),\; j = 1,\hdots,J}$, where we assume the usual conditions on $g_j$, can be combined to create a joint constraint of this maximum-of-concave form. 
+As mentioned in Section~\ref{sec:intro}, this can also be used to model $\CVaR$ constraints, which has a maximum-of-concave analytical form.}
+
+With the maximum-of-concave $g$ , we construct the~\gls{MRO} constraint as
+\begin{equation}
+	\label{eq:constraints_max}
+\bar{g}(u, z) \define  \sum_{k=1}^K\sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z),
+\end{equation}
+where $\alpha\in \Gamma $, with $\Gamma = \{\alpha~|~\sum_{j=1}^J\alpha_{jk}= w_k, \alpha_{jk}\geq 0 ~\forall k,j\}$. For each constituent function $g_j$, the uncertainty set contains a set of vectors $(v_{j1},\dots,v_{jK})$, and a set of parameters $(\alpha_{j1},\dots, \alpha_{jK})$ to denote the fraction of mass assigned to that function for each $k$. The total amount of mass assigned for each cluster, $\sum_{j=1}^J\alpha_{jk}$, is the weight of the cluster, $w_k$. 
+
+\reviewChanges{We use a summation over weighted pieces $g_j$ instead of a maximum over $g_j$, as this is a generalization of the maximum, and has a more natural dual reformulation. We take inspiration from~\citep[Section 4.2]{mohajerin_esfahani_data-driven_2018}, where $\alpha$ arises from the extremal distribution for Wasserstein \gls{DRO}.
+Note that the intuitive maximization over $g_j$'s is analogous to setting $\alpha_{jk} = w_k$ for a specific $j$ for each $k$, and $\alpha_{jk} = 0$ otherwise.}
+
+\reviewChanges{The uncertainty set is given as follows.}
+\reviewChanges{
+\paragraph{Case $p \geq 1$.}
+In the case where $p \geq 1$, we have
+\begin{equation*}
+	\label{eq:uncset_p_max}
+	\uncset(K, \epsilon) \define \left\{ u = (v_{11},\dots,v_{JK}) \in \supp^{K\times J} \quad\middle|\quad \sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} \| v_{jk} - \bar{d}_k \|^p \le \epsilon^p,\alpha \in \Gamma \right\}.
+\end{equation*}
+Note that the single concave case given previously follows when we take $J = 1$. All parameters are defined as in the single concave case.}
+
+\reviewChanges{\paragraph{Case $p = \infty$.}
+In the case where $p = \infty$, the set we consider becomes
+\begin{equation*}
+	\label{eq:uncset_inf_max}
+	\uncset(K, \epsilon) \define \left\{ u = (v_{11},\dots,v_{JK}) \in \supp^{K\times J} \quad\middle|\quad \max_{k=1,\dots,K} \sum_{j=1}^J (\alpha_{jk}/w_k) \| v_{jk} - \bar{d}_k \| \le \epsilon, \alpha \in \Gamma\right\},
+\end{equation*}
+where we once again introduce weight parameters $\alpha$. 
+}
+
+\reviewChanges{
+Following these changes, $\hat{z}_N$ is again the solution to the robust optimization problem~\eqref{eq:robustopt}, defined now with the generalized uncertainty set and constraint.
+}
+\paragraph{\reviewChanges{Solving the robust problem.}}
+\reviewChanges{We give the direct reformulation approach for solving the generalized problem for $p \geq 1$. The case $p = \infty$ is delayed to Appendix~\ref{app:dual_form-p_max}}.
+\reviewChanges{We write the~\gls{MRO} problem as the optimization problem
+\begin{equation}
+	\label{eq:unif-const_max}
+	% \tag{P}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \begin{dcases}
+			\begin{rcases}
+		\underset{v_{11},\dots,v_{JK} \in \supp, \alpha \in \Gamma}{\text{maximize}} &\quad \sum_{k=1} ^K \sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) \\
+		\mbox{~~~~subject to} & \quad \sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} \| v_{jk} - \bar{d}_k \|^p \le \epsilon^p\\
+			\end{rcases}
+			\end{dcases} \le 0,
+	\end{array}
+\end{equation}
+and, by dualizing the inner maximization problem, arrive at the reformulation for all $\epsilon > 0$:}
+\reviewChanges{
+\begin{equation}
+	\label{eq:robustopt_p_max}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} & \sum_{k=1}^{K} w_k s_k  \le 0\\
+		& [-g_j]^*(y_{jk} - h_{jk}, z) + \sigma_{{\supp}}(h_{jk}) - y_{jk}^T\bar{d}_k  + \phi(q)\lambda \left\|y_{jk}/\lambda \right\|^q_*  +\lambda \epsilon^p \leq s_k\\
+		&\hspace{4cm} \quad k = 1,\dots, K, \quad j =1, \dots, J\\
+		& \lambda \geq 0,
+	\end{array}
+\end{equation}
+with variables $\lambda \in \reals$, $s_k \in \reals$, $y_{jk} \in \reals^{m}$, and $h_{jk} \in \reals^m$. The proof is delayed to Appendix~\ref{app:dual_form_max}.
+Again, while traditionally we take the supremum instead of maximizing, here the supremum is always achieved as we assume \reviewChanges{$g_j$ to be upper-semicontinuous for all $j$.}}
+
+\reviewChanges{In addition, when $K$ is set to be $N$, and $w_k$'s are $1/N$, this is also of an analogous form to the convex reduction of the worst case problem for Wasserstein \gls{DRO}, described below.
+
+
+\section{Links to Wasserstein \gls{DRO}}
+\label{sub:connectionsdro}
+% \Glsentryfull{DRO} solves the problem
+% where the ambiguity set $\mathcal{P}_N$ contains, with high confidence, all distributions that could have generated the training samples $\mathcal{D}^N$, such that the probabilistic guarantee~\eqref{eq:prob_guarantees1} is satisfied.
+% Wasserstein \gls{DRO} constructs $\mathcal{P}_N$ as a ball of radius $\epsilon$ with respect to the Wasserstein metric around the empirical distribution ${\hat{\prob}^N \define \sum_{i=1}^N \delta_{d_i}/N}$, where $\delta_{d_i}$ denotes the Dirac distribution concentrating unit mass at $d_i \in \mathbf{R}^m$.
+% Specifically, we write
+% \begin{equation*}
+% 	\label{eq:Wball}
+% 	\mathcal{P}_N = \mathbf{B}_\epsilon^p (\hat{\prob}^N) \define \{\mathbf{Q} \in \mathcal{M}(\supp) \mid W_p(\hat{\prob}^N,\mathbf{Q}) \leq \epsilon \},
+% \end{equation*}
+% where $\mathcal{M}(\supp)$ is the set of probability distributions supported on $\supp$ satisfying a light-tailed assumption (more details in section~\ref{par:gau}), and
+% $$W_p(\mathbf{Q},\mathbf{Q'}) \define \inf \left\{ \left(\int_\reviewChanges{\supp} \|u - u'\|^p \Pi (\dif u,\dif u') \right)^{1/p} \right\}.$$
+% % This appears already in the next section
+% % The probability distributions are assumed to satisfy ${\Expect^\mathbf{Q}(\|u\|^p)= \int_{\supp} \|u\|^p \mathbf{Q}(\dif u) < \infty}$ on convex and closed support $\supp$, $p > 1$ is any integer greater than 1, and $\Pi$ is any joint distribution of $u$ and $u'$ with marginals $\mathbf{Q}$ and $\mathbf{Q'}$.
+% % The probability distributions are assumed to satisfy ${\Expect^\mathbf{Q}(\|u\|^p)= \int_{\supp} \|u\|^p \mathbf{Q}(\dif u) < \infty}$ on convex and closed support $\supp$,
+% Here, $p$ is any integer greater than 1, and $\Pi$ is any joint distribution of $u$ and $u'$ with marginals $\mathbf{Q}$ and $\mathbf{Q'}$.
+
+
+When $K=N$, the constraint of~\eqref{eq:robustopt} is equivalent to the constraint of the Wasserstein~\gls{DRO} problem
+\begin{equation}
+	\label{eq:dro_prob}
+	\begin{array}{ll}
+		\mbox{minimize} & f(z)\\
+		\mbox{subject to} &   \sup_{\mathbf{Q}\in \mathcal{P}_N} \Expect_\mathbf{Q}(g(u,z))  \le 0,
+	\end{array}
+	\end{equation}
+where the ambiguity set is as introduced in Chapter~\ref{chap:prelim}.
+In particular, for the case $p \geq 1$, the Wasserstein~\gls{DRO} risk
+\begin{equation}
+\label{eq:dro-reduct}
+\begin{aligned}
+    \sup_{\mathbf{Q}\in \mathbf{B}_\epsilon^p(\hat{\prob}^N)} \Expect_\mathbf{Q}(g(u,z))
+	\end{aligned}
+\end{equation}
+is equivalent to the dual of the constraint of~\eqref{eq:unif-const_max}, when $K = N$, and $w_k = 1/N$. 
+This is noted in~\citep{kuhn2019wasserstein,zhen2021mathematical}.
+We give a proof of strong duality in Appendix~\ref{app:convex_red}.
+This is the dual of the generalized max-of-concave form, which is equivalent to the dual of the single concave form~\eqref{eq:unif-const} when $J = 1$. 
+Bh the same logic, in the case where $p = \infty$, the expression is equivalent to the dual of the constraint of~\eqref{eq:unif-const-p}.
+Given the above reductions, we can rewrite the Wasserstein \gls{DRO} problem in the same form as~\eqref{eq:unif-const_max}, the \gls{MRO} problem.
+
+Our approach can then be viewed as a form of Wasserstein \gls{DRO}, with the difference that, when $K<N$, we deal with the clustered and averaged dataset.
+We construct $\mathcal{P}_N$ as a ball around the empirical distribution $\hat{\prob}^K$ of the centroids of our clustered data
+\begin{equation*}
+\hat{\prob}^K \define \sum_{k=1}^K w_k\delta_{\bar{d}_k},
+\end{equation*}
+where $w_k$ is the proportion of data in cluster $k$.
+This formulation allows for the reduction of the sample size while preserving key properties of the sample, which translates directly to a reduction in the number of constraints and variables.
+
+\subsection{Satisfying the probabilistic guarantees}
+\label{par:gau}
+As we have noted the parallels between \gls{MRO} and Wasserstein \gls{DRO}, we now show that the conditions for satisfying the probabilistic guarantees are also analogous. Bh enlarging the Wasserstein ball by a clustering-dependent value $\eta_N(K)$, we ensure that the measure-concentration type results from Section~\ref{sec:gua_dependent} hold also for~\gls{MRO}.
+% \paragraph{Case $p \geq 1$.} Wasserstain \gls{DRO} satisfies~\eqref{eq:prob_guarantees1} if the data-generating distribution, supported on a convex and closed set $\supp$, satisfies a {\it light-tailed assumption}~\citep{fournier_guillin_2013,mohajerin_esfahani_data-driven_2018}: there exists an exponent $a > 0$ and $t > 0 $ such that ${A = \Expect^{\prob}(\exp (t \|u \|^a))  = \int_{\reviewChanges{\supp}} \exp (t \| u \| ^a) \prob(du) < \infty.}$
+% We refer to the following theorem.
+% \begin{theorem}[Measure concentration {\citep[Theorem 2]{fournier_guillin_2013}}]
+% \label{theorem_ball}
+% If the light-tailed assumption holds, we have
+% 	\begin{equation*}
+% 	\prob^N(W_p(\prob,\hat{\prob}^N) \geq \epsilon) \le \phi(p, N, \epsilon),
+% 	\end{equation*}
+% where $\phi$ is an exponentially decaying function of $N$.
+% \end{theorem}
+% % \begin{theorem}[Measure concentration \citep{fournier_guillin_2013}]
+% % \label{theorem_ball}
+% % If the light-tailed assumption holds, when p = 1 and $a > 1$, we have
+% % \begin{equation*}
+% %         \prob^N(W_1(\prob,\hat{\prob}^N) \geq \epsilon)
+% %         \leq \begin{cases}
+% %                 c_1 \exp(-c_2N \epsilon^{\max\{m,2\}}) \quad \textit{if } \epsilon \leq 1\\
+% %                 c_1 \exp(-c_2N \epsilon^{a}) \quad \textit{if }  \epsilon > 1,
+% %         \end{cases}
+% % \end{equation*}
+% %         for all $\epsilon > 0$, $m \neq 2$, and $N \geq 1$. When $p \geq 2$, and $\alpha \in (0,p)$, we have
+% %         $$	\prob^N(W_p(\prob,\hat{\prob}^N)^p \geq \epsilon^p)
+% %         \leq \begin{cases}
+% %                 c_1 \exp(-c_2N \epsilon^{\max\{m,2p\}}) + \exp(-c_2 (N\epsilon^p)^\frac{a-s}{p})  \quad \textit{if } \epsilon \leq 1, \forall s \in (0,a)\\
+% %                 c_1 \exp(-c_2 (N \epsilon^p)^{a/p}) \quad \textit{if }  \epsilon > 1,
+% %         \end{cases}$$
+% %         for all  $\epsilon > 0$, $m \neq 4$, and $N \geq 1$. $c_1,c_2$ are positive constants depending only on $A,a,t, s,$ and $m$.
+% % \end{theorem}
+% Theorem~\eqref{theorem_ball} estimates the probability that the unknown data-generating distribution $\prob$ lies outside the Wasserstein ball $\mathbf{B}_\epsilon^p (\hat{\prob}^N)$, which is our ambiguity set.
+% Thus, we can estimate the smallest radius $\epsilon$ such that the Wasserstein ball contains the true distribution with probability $1 - \beta$, for some target $\beta \in (0,1)$.
+% We equate the right-hand-side to $\beta$, and solve for $\epsilon_N(\beta)$ that provides us the desired guarantees for Wasserstein \gls{DRO}~\citep[Theorem 3.5]{mohajerin_esfahani_data-driven_2018}.
+
+
+% \paragraph{Case $p = \infty$.} When $p = \infty$, Bertsimas et al.~\cite[Section 6]{wass-p-1} note that the light-tailed assumption is no longer sufficient.
+% Wasserstein \gls {DRO} satisfies~\eqref{eq:prob_guarantees1} under stronger assumptions, as given in the following theorem.
+% \begin{theorem}[Measure concentration, $\mathbf{p = \infty}$ {\cite[Theorem 1.1]{wass-p-guarantee}}]
+% \label{theorem-inf}
+% 	Let the support $\supp \subset \reals^m$ of the data-generating distribution be a bounded, connected, open set with Lipschitz boundary. Let $\prob$ be a probability measure on  $\supp$ with density $\rho : \supp \rightarrow(0,\infty)$, such that there exists $\lambda \geq 1$ for which ${1/\lambda \leq \rho(x) \leq \lambda, \hspace{2mm} \forall x \in \supp}$. Then,
+% 	\begin{equation*}
+% 		\prob^N(W_\infty(\prob,\hat{\prob}^N) \geq \epsilon) \le \phi(N, \epsilon),
+% 		\end{equation*}
+% 	where $\phi$ is an exponentially decaying function of $N$.
+% \end{theorem}
+% We can again equate the right-hand-side to $\beta$ and find  $\epsilon_N(\beta)$. We extend this result to the clustered set in \gls{MRO}.
+
+\begin{theorem}[\gls{MRO} finite sample guarantee] \label{theorem_mro} Assume the light-tailed assumption~\ref{ass:light_tail} holds when $p \geq 1$, and the assumptions of Theorem~\ref{theorem-inf} hold when $p = \infty$. If ${\beta \in (0,1]}$, $\eta_N(K)$ is the average $p$-th powered distance of data-points in $\mathcal{D}_N$ from their assigned cluster centers, and $\hat{z}_N$ is the optimal solution to~\eqref{eq:robustopt} with uncertainty set $\uncset(K,\epsilon_N(\beta) + \eta_N(K)^{1/p})$, then the finite sample guarantee~\eqref{eq:prob_guarantees1} holds.
+\end{theorem}
+
+\begin{proof}
+Compared with Wasserstein \gls{DRO}, \gls{MRO} has to account for the additional difference between the two empirical distributions $\hat{\prob}^N$ and $\hat{\prob}^K$.
+We can write
+\begin{equation*}
+	\begin{array}{ll}
+		&\displaystyle \hat{\prob}^N \define \sum_{i=1}^N \frac{1}{N}\delta_{d_i} = \sum_{k=1}^K \sum_{i \in C_k} \frac{|C_k|}{N}\frac{1}{|C_k|}   \delta_{d_i}, \\ % = \sum_{k=1}^K w_k \frac{1}{|C_k|}\sum_{i \in C_k}  \delta_{d_i},\\
+		&\displaystyle \hat{\prob}^K = \sum_{k=1}^K w_k\delta_{\bar{d}_k} = \sum_{i=1}^K \frac{|C_k|}{N}\delta_{\bar{d}_k}. % = \sum_{i=1}^K w_k \delta_{\frac{\sum_{i \in C_k} d_i}{|C_k|}},
+		\end{array}
+	\end{equation*}
+If we introduce a new parameter, $\eta_N(K)$, defined as
+\begin{equation*}
+	\eta_N(K) =  \frac{1}{N} \sum_{i = 1}^K \sum_{i \in C_k} \|d_i - \bar{d}_k\|^p
+	\end{equation*}
+	 the average $p$-powered distance with respect to the norm used in the Wasserstein metric, of all data-points in $\mathcal{D}_N$ from their assigned cluster centers $\bar{d}_k$, we notice that
+\begin{equation*}
+	\begin{aligned}
+	W_p(\hat{\prob}^K,\hat{\prob}^N)^p &= \inf_\Pi \left\{ \int_\reviewChanges{\supp} \|u - u'\|^p \Pi (\dif u,\dif u') \right\} \quad \text{($\Pi$ any joint distribution of $\hat{\prob}^K$, $\hat{\prob}^N$  )}\\
+&=\sum_{i = 1}^K \frac{|C_k|}{N}  \int_\reviewChanges{\supp} \|u - \bar{d}_k\|^p \reviewChanges{\hat{\prob}^N(u|u' =\bar{d}_k)}({\rm d}u)\\
+&\leq \sum_{i = 1}^K \frac{|C_k|}{N}  \frac{1}{|C_k|} \sum_{i \in C_k} \|d_i - \bar{d}_k\|^p\\
+&= \eta_N(K),
+	\end{aligned}
+	\end{equation*}
+where we have replaced the integral with a finite sum, as the distributions are discrete. Therefore, by Theorems~\ref{thm:measure_gen},~\ref{theorem-inf} and the \reviewChanges{triangle inequality for the Wasserstein metric~\cite{wass_tri}},
+\begin{equation*}
+	\begin{aligned}
+	W_p(\prob,\hat{\prob}^K) &\leq W_p(\prob,\hat{\prob}^N) + W_p(\hat{\prob}^K,\hat{\prob}^N)\\
+	&\leq \epsilon_N(\beta) + \eta_N(K)^{1/p},
+\end{aligned}
+	\end{equation*}
+with probability at least $1 - \beta$. We thus have
+\begin{equation*}
+		\prob(\prob \in \mathbf{B}_{\epsilon_N(\beta) + \eta_N(K)^{1/p}}^p (\hat{\prob}^K) )\geq 1 - \beta,
+	\end{equation*}
+which implies the uncertainty set $\uncset(K, \epsilon_N(\beta) + \eta_N(K)^{1/p})$ contains all possible realizations of uncertainty with probability $1-\beta$, so the finite sample guarantee~\eqref{eq:prob_guarantees1} holds.
+\end{proof}
+
+This result introduces a tradeoff between conservatism (affected by the radius) and computational efficiency (affected by the sample size), controlled by the value of $K$. When a large $K$ is chosen, the effect on the radius is small, but the computational savings may also be minimal. The choice of $K$ is thus paramount.
+
+One might note that a blanket increase in the radius regardless of the optimization problem may introduce unneccesary conservatism. This brings us to the next section, where we bring the constraint functions $g$ into our considerations. 
+
+
+\section{Worst-case value of the uncertain constraint}
+\label{sec:conservatism}
+In the previous section, we proposed a theoretical increase in $\epsilon$ to maintain the same finite sample guarantee before and after clustering. 
+However, a question remains: what is the extent of the effects of clustering if we {\it don't} increase $\epsilon$?
+In this section, we thus approach the analysis in a different manner: keeping $\epsilon$ constant, we quantify the change in the {\it worst-case value of the constraint function} that arises from clustering. 
+In fact, for select cases, our results suggest there is no need to increase $\epsilon$ after clustering; under specific curvature conditions on the  constraint function $g$, we may obtain a more conservative, or even unchanged solution after clustering, in which case the original finite sample guarantee is retained. 
+
+We begin with a remark on the clustering value attained. The \gls{MRO} approach is closely centered around the concept of clustering to reduce sample size while maintaining sample diversity.
+We wish to cluster points that are close together, such that the objective is only minimally affected. With this goal, we would like to minimize the average distance of the points in each cluster to their data-center,
+\begin{equation*}
+	D(K)^\star =\text{minimize } D(K) =  \text{minimize } \frac{1}{N}\sum_{k=1}^K \sum_{d_i \in C_k} \| d_i - \bar{d}_k \|^2_2,
+\end{equation*}
+	where $\bar{d}_k$ is the mean of the points in cluster $C_k$.
+	While the best performance is attained with $D(K)^\star$, in practice we work with the approximation $D(K)$, where $C_k$ is decided by {\it any} clustering algorithm. This value upper bounds $D(K)^\star$. A well-known algorithm is $K$-means~\citep{kmeans}, where we create $K$ clusters by iteratively solving a least-squares problem.
+	From here on we use only $D(K)$, and note that for the case $p=2$, we have $D(K)=\eta_N(K)$ from Theorem~\ref{theorem_mro}.
+
+In this section, we then show the effects of clustering on the worst-case value of the constraint function in~\eqref{eq:robustopt}.
+We prove two sets of results, corresponding to $g$ given as a single concave function, and as a more general maximum-of-concave function, which includes the maximum-of-affine function. Later, in Chapter~\ref{chap:online_dro} of this thesis, we show how these results imply finite-sample and asymptotic performance guarantees. 
+
+
+\subsection{\reviewChanges{Single concave function}}
+\label{sub:single-con}
+For the simplest case of a single concave function, we prove that when the support is large enough,
+\begin{itemize}
+	\item If $g$ is affine in $u$, \gls{MRO} does not increase the worst-case value, regardless of $K$.
+	\item If $g$ is concave in $u$ and satisfies certain smoothness conditions, \gls{MRO} has a higher worst-case value than Wasserstein \gls{DRO} and the increase is inversely related to the number of clusters~$K$. In other words, the smaller the $K$, the higher the worst-case value.
+	%\item If $g$ is convex as the finite maximum of at least two affine functions, MRO is less conservative than Wasserstein DRO, and the level of conservatism increases with the number of clusters $K$.
+\end{itemize}
+
+\paragraph{Quantifying the clustering effect.}%
+\label{par:quantify_clustering_effect_}
+To quantify the effect of clustering, we calculate the difference between the following formulations of the worst-case value of the constraint in~\eqref{eq:robustopt}
+\begin{equation}
+	\tag{MRO-N}
+	\begin{aligned}
+	\label{eq:nocluster_one}
+	\bar{g}^N(z) = \underset{v_1\dots v_N}{\text{maximize}} &\quad\frac{1}{N} \sum_{i=1} ^N g(v_i, z) \\
+	\mbox{subject to} & \quad \frac{1}{N} \sum_{i=1} ^N  \| v_i - d_i \|^p \le \epsilon^p\\
+	& \quad v_i\in \supp \quad i = 1,\dots,N,
+	\end{aligned}
+\end{equation}
+\begin{equation}
+	\tag{MRO-K}
+	\label{eq:cluster_one}
+	\begin{aligned}
+		\bar{g}^K(z) = \underset{u_1\dots u_K}{\text{maximize}} &\quad  \sum_{k=1} ^K  \frac{|C_k|}{N} g(u_k, z) \\
+	\mbox{subject to} & \quad\sum_{k=1} ^K \frac{|C_k|}{N}  \| u_k - \bar{d}_k \|^p \le \epsilon^p\\
+	& \quad u_k\in \supp \quad k = 1,\dots,K,
+	\end{aligned}
+\end{equation}
+and
+\begin{equation}
+	\tag{MRO-N*}
+	\label{eq:nocluster_inf}
+	\begin{aligned}
+		\bar{g}^{N*}(z) = \underset{v_1\dots v_N}{\text{maximize}} &\quad\frac{1}{N} \sum_{i=1} ^N g(v_i, z) \\
+		\mbox{subject to} & \quad \frac{1}{N} \sum_{i=1} ^N  \| v_i - d_i \|^p \le \epsilon^p,
+		\end{aligned}
+\end{equation}
+where~\eqref{eq:nocluster_one} is the formulation of the constraint without clustering, akin to traditional Wasserstein \gls{DRO},~\eqref{eq:nocluster_inf} is the same, except we drop the support constraint, and~\eqref{eq:cluster_one} is the formulation with $K$ clusters.
+\reviewChanges{
+From here on, when we mention that the support {\it affects the worst-case constraint value}, we refer to situations where at least one of the constraints $v_i \in \supp$ for $i = 1,\dots,N$ is binding.
+Formally, the definition is $\bar{g}^N(z) \neq \bar{g}^{N*}(z)$ for any $z$ feasible for the \gls{DRO} problem. 
+We note a sufficient but not necessary condition for the support to not affect the worst-case constraint value: the situation in which the support doesn't affect the uncertainty set, which is defined as 
+$$\left \{u \in \reals^{N\times m}: (1/N)\sum_{i=1}^N  \| u_i - d_i \| \le \epsilon\right \} = \left \{ u \in \supp^{N\times m}: (1/N)\sum_{i=1}^N \| u_i - d_i \| \le \epsilon\right \}.$$
+If the support satisfies this condition, then we can conclude that $\bar{g}^N(z) = \bar{g}^{N*}(z)$ for any $z$ feasible for the \gls{DRO} problem, and obtain improved bounds below. 
+While the condition depends on the location of the datapoints, it is acceptable to have this dependency, as this is a condition we can check given data to potentially improve the following bounds, without having to solve the MRO problem.}
+
+With these definitions, we can construct solutions for~\eqref{eq:nocluster_one},~\eqref{eq:cluster_one}, and~\eqref{eq:nocluster_inf} to prove the following relations.
+\begin{theorem}
+	\label{thm:1}
+	\reviewChanges{
+	With the same $z$ and $\epsilon$, and for any integer $p \geq 1$, we always have $$\bar{g}^{N}(z) \le \bar{g}^K(z).$$
+Furthermore, suppose that Assumption~\ref{assp:dom} holds, and $g$ satisfies an $L$-smooth condition on its domain with respect to the $\ell_2$-norm and for a given $z \in \mathcal{Z}$, \ie,
+	\begin{equation*}
+		\left\|\nabla g(v,z) - \nabla g(u,z)\right\|_2 \leq L\| u - v\|_2, \forall u,v \in \dom g.
+	\end{equation*}
+Then, with the same $z$ and $\epsilon$, and for any integer $p \geq 1$, we always have
+	\begin{equation*}
+	  \bar{g}^K(z) \leq \bar{g}^{N*}(z) + (L/2) D(K).
+	\end{equation*}}
+\end{theorem}
+The proof is delayed to Appendix~\ref{app:thm1}. The results also hold for $p = \infty$, as we have shown in Remark~\ref{limit-proof} that the case $p = \infty$ is the limit of the case $p \geq 1$, and these results hold under the limit.
+%We can extend this result to the case of specific convex functions.
+%\begin{corollary}
+%	\label{cor:1}
+%If $g$ is convex in $u$, specifically taking the form of the maximum of affine pieces $g = \max_j g_j$, and satisfies an $L$-smooth condition with an extra constant $M$ with respect to the $\ell_2$-norm, then we always have
+%\begin{equation*}
+%	\begin{array}{ll}
+%(i) &\bar{g}^N(x) \geq \bar{g}^K(x)\\
+% (ii) &\bar{g}^K(x) \geq \bar{g}^N(x) - (L/2) D(K) -  \frac{M}{N} D_1(K).
+%	\end{array}
+%\end{equation*}
+%\end{corollary}
+%To prove this, we simply apply the previous theorem to $-g$.
+
+\reviewChanges{Let $\Delta$ be the maximum difference in constraint value resultant from relaxing the support constraint on the \gls{MRO} uncertainty sets, \ie, ${\Delta = \max_{z\in \mathcal{Z}}\left(\bar{g}^{N*}(z) - \bar{g}^{N}(z)\right)}$, subject to $z$ being feasible for problem~\eqref{eq:robustopt}. 
+As we assume Assumption~\ref{assp:dom} to hold, combined with the smoothness of $g$, we note that when solving for $\bar{g}^{N*}(z)$, the chosen $v_i$ values without the support constraint will still remain in the domain $\dom$ of $g$. 
+Refer to a similar argument in Appendix~\ref{app:thm1} (ii) for details. 
+The function $\bar{g}^{N*}(z) - \bar{g}^{N}(z)$ is then continuous in $z$ and everywhere defined for $z \in \mathcal{Z}$, thus maximizing with respect to $\mathcal{Z}$, a compact set, the value $\Delta$ is finite. }
+Then, we observe that $ \bar{g}^K(z)  - \bar{g}^N(z)\leq \Delta +(L/2) D(K)$ for all such $z$, so the smaller the $D(K)$, (\ie, higher-quality clustering procedure), the smaller the increase in the worst-case constraint value. \reviewChanges{In addition, the value $\Delta$ is independent of $K$, as we calculate it with only $\bar{g}^{N*}(z)$ and $\bar{g}^{N}(z)$.}
+
+\begin{remark} \label{rem:support}
+	% Since we are solving a \gls{DRO} problem, we only consider uncertainty within $\epsilon-$balls of our datapoints, which can be interpreted as manually constructing a new support for the uncertain data.
+% When $\epsilon$ is small and we have high confidence the support will not constrain the uncertainty set, we can remove the support constraint by setting $\supp = \dom{g}$ and arrive at $\Delta = 0$.
+While $\Delta$ could be constructed to be arbitrarily bad, in practice, we expect our relevant range of $\epsilon$ to be small enough such that the difference is insignificant.
+We can then approximate $\Delta \approx 0$ and simply use the upper bound $(L/2)D(K)$, as this bound is often not tight.
+See Sections~\ref{sub:facility} and~\ref{sub:capitalbudget} for examples. Later in Section~\ref{lem:delta}, we give more specific bounds for $\Delta$. 
+\end{remark}
+
+\paragraph{Uncertain objective.}%
+\label{par:uncertain_objective_}
+When the uncertainty is in the objective, Theorem~\ref{thm:1} quantifies the difference in optimal values.
+% such that an uncertain constraint can be created using the epigraph form of the objective function, we note the following corollary.
+\begin{corollary}
+	\label{cor:obj_unc}
+Consider the problem where $g$ is itself the objective function we would like to minimize and $X \subseteq \reals^n$ represents the constraints, which are deterministic.
+Then, $(L/2)D(K)$ + $\Delta$ upper bounds the difference in optimal values of the \gls{MRO} problem with $K$ and $N$ clusters.
+\end{corollary}
+
+% \begin{proof}
+% The feasible region of the \gls{MRO} problem with $K$ and $N$ does not change with clustering, as there are no constraints that involve the uncertain parameter.
+% From Theorem~\ref{thm:1}, for any fixed $\hat{x}$,  we have $\bar{g}^K(\hat{x}) - \bar{g}^N(\hat{x}) \leq  (L/2) D(K) + \Delta$.
+% Therefore, no matter what $\hat{x}$ the \gls{MRO} problem with $K$ clusters selects, the \gls{MRO} problem with $N$ clusters can always choose the same $\hat{x}$ to be at most $(L/2) D(K) + \Delta$ lower in value.
+% \end{proof}
+
+% The difference in the level of conservatism of the two problems then directly depend on $D(K)$.
+
+\paragraph{Uncertain constraints.}%
+\label{par:uncertain_constraints_}
+When the uncertainty is in the constraints, the difference between $\bar{g}^K(z)$ and $\bar{g}^K(z)$ no longer directly reflects the difference in optimal values.
+Instead, clustering creates a restriction on the feasible set for $z$ as follows.
+For the same $\hat{z}$, $\bar{g}^K(\hat{z})$ takes a greater value than $\bar{g}^N(\hat{z})$.
+Since both of them are constrained to be nonpositive from~\eqref{eq:robustopt}, the feasible region with $K$ clusters is smaller.
+
+% in in the MRO problem may render some $x$ values infeasible for (MRO-K), thereby forcing the entire problem to take a higher (more conservative) optimal value. As such, the difference in the level of conservatism is still dependent on the value of $D(K)$, and is inversely proportional to the number of clusters $K$.
+
+\paragraph{Affine dependence on uncertainty.}%
+As a special case, when $g$ is affine in $u$, $L = 0$, so we observe the following corollary.
+\begin{corollary}[Clustering with affine dependence on the uncertainty]
+	\label{cor:affine}
+	\reviewChanges{
+If $g(u,z)$ is affine in $u$ and the worst-case constraint value is not affected by the support constraint, then clustering makes no difference to the optimal value and optimal solution to~\eqref{eq:robustopt}.}
+\end{corollary}
+\begin{proof}
+In view of the primal problem and constraints, from Theorem~\ref{thm:1}, if $g(u,z)$ is affine in $u$ and the support does not affect the uncertainty set, $\bar{g}^N(z) = \bar{g}^K(z)$.
+So for some fixed $\hat{z}$ we have ${\bar{g}^K(\hat{z}) \leq 0 \iff \bar{g}^N(\hat{z}) \leq 0}$. Therefore,
+\[
+    \hat{z} \text{ is feasible to~\eqref{eq:robustopt} for $K = N$} \iff \hat{z} \text{ is feasible to~\eqref{eq:robustopt} for $K < N.$}
+\]
+The feasible region of~\eqref{eq:robustopt} is identical for $K=N$ and $K < N$, and the optimal solutions will be identical so long as the optimal solution to~\eqref{eq:robustopt} is unique.
+In view of the dual problem and constraints, if $g(u,z)$ is affine in $u$ following~\eqref{eq:affineg}, we observe from~\eqref{eq:example-affine-p} that the only term dependent on $K$ is  $(P^Tz)^T\sum_{k=1}^{K} w_k \bar{d}_k$, which is equivalent for all $K$.
+\end{proof}
+% This result corroborates with and extends Remark 6.6 of the work by Esfahani and Kuhn~\cite{mohajerin_esfahani_data-driven_2018}, and can be extended further to the formulation with multiple independent uncertain constraints.
+% \begin{corollary}
+% If the support does not affect the worst-case constraint value and we have multiple uncertain functions $g_l(u,x)$, each of which is affine in $u$ for all $l \in \{1,\dots,L\}$, and we treat them independently as in~\eqref{eq:robustopt-sep-g}, then clustering makes no difference to the optimal value and optimal solution.
+% \end{corollary}
+
+\reviewChanges{
+\subsection{Maximum-of-concave functions}
+\label{sub:maxofconcavebounds}
+We now consider the more general case of a maximum-of-concave constraint function, $g(u,z) = \max_{j\leq J} g_j(u,z)$, subject to a polyhedral support, $\supp = \{u \mid Hu\leq h\}$. We define the new primal problems
+\begin{equation}
+	\tag{MRO-K-MAX}
+	\bar{g}^K(z) = \begin{aligned}[t]
+	\label{eq:nocluster_one_max}
+	\underset{v_{11},\dots,v_{JK} \in \supp, \alpha \in \Gamma}{\text{maximize}} &\quad \sum_{k=1} ^K \sum_{j=1}^J \alpha_{jk} g_j(v_{jk}, z) \\
+	\mbox{subject to} & \quad \sum_{k=1}^K \sum_{j=1}^J \alpha_{jk} \| v_{jk} - \bar{d}_k \|^p \le \epsilon^p\\
+	& \quad v_i\in \supp \quad i = 1,\dots,K,
+	\end{aligned}
+\end{equation}
+\begin{equation}
+	\tag{MRO-N*-MAX}
+	\label{eq:nocluster_inf_max}
+	\bar{g}^{N*}(z) = \begin{aligned}[t]
+		\underset{v_{11},\dots,v_{JN}, \alpha \in \Gamma}{\text{maximize}} &\quad \sum_{i=1} ^N \sum_{j=1}^J \alpha_{ji} g_j(v_{ji}, z) \\
+		\mbox{subject to} & \quad \sum_{i=1}^N \sum_{j=1}^J \alpha_{ji} \| v_{ji} - d_i \|^p \le \epsilon^p\\
+		\end{aligned}
+\end{equation}
+We also make use of the dual versions of the optimization problems, defined as follows. 
+\begin{equation}
+	\tag{MRO-N-Dual}
+	\bar{g}^N(z) =\begin{aligned}[t]
+	\label{eq:nocluster_dual}
+	\underset{\lambda \geq 0, y_{ji},h_{ji}, s_i}{\text{minimize}} & \quad(1/N)\sum_i^N  s_i\\
+	\mbox{subject to} & \quad[-g_j]^*(y_{ji} - H^T\gamma_{ji}) + \gamma_{ji}^T(h-Hd_i) - y_{ji}^Td_i  + \phi(q)\lambda \left\|y_{ji}/\lambda \right\|^q_* \\	
+	& \hspace{3cm} + \lambda \epsilon^p \le s_i, \quad i = 1,\dots,N, \quad j = 1,\dots,J,
+\end{aligned}
+\end{equation}
+where no clustering occurs, and 
+\begin{equation}
+	\tag{MRO-K-Dual}
+	\label{eq:cluster_dual}
+	\begin{aligned}
+		\bar{g}^K(z) = \underset{\lambda \geq 0, y_{jk},h_{jk}, s_k}{\text{minimize}} &\quad \sum_k^K  (|C_k|/N) s_k\\
+	\mbox{subject to} & \quad [-g_j]^*(y_{jk} - H^T\gamma_{jk})+ \gamma_{jk}^T(h-H\bar{d}_k) - y_{jk}^T\bar{d}_k + \lambda \epsilon^p   \\
+	& \hspace{1cm} + \phi(q)\lambda \left\|y_{jk}/\lambda \right\|^q_*\le s_k, \quad k = 1,\dots,K, \quad j = 1,\dots,J,
+\end{aligned}
+\end{equation}
+where we have $K$ clusters.
+Given these definitions, we obtain bounds on the worst-case value of the constraint function for $K$ clusters.
+\begin{theorem}
+	\label{thm:maxconcave}
+	When $g$ is the maximum of concave functions with domain ${\dom{g}= \reals^m}$ and polyhedral support $\supp = \{u \mid Hu\leq h\}$, and where each $g_j$ satisfies an $L_j$-smooth condition on its domain with respect to the $\ell_2$-norm at a given $z \in \mathcal{Z}$, we have, for the same $z$ and $\epsilon$,
+	\begin{equation*}
+		\bar{g}^{N}(z) -\delta(K,y,\gamma) \leq \bar{g}^K(z) \leq  \bar{g}^{N*}(z) + \max_{j\leq J} (L_j/2)D(K),
+	\end{equation*}
+	where $\delta(K,y,\gamma) \define (1/N)\sum_{k=1}^K \sum_{i \in C_k}  \max_{j\leq J}((-y_{jk} -H^T\gamma_{jk})^T(d_i - \bar{d}_k))$, and $y$, $\gamma$ are the dual variable from~\eqref{eq:cluster_one}. 
+	% The constants $L_j$ are the $L$-smoothness constants for the concave functions $g_j$.
+	\end{theorem}
+	The proof is delayed to Appendix~\ref{app:maxconcave}. We note that due to the nonconvex and nonconcave nature of maximum-of-concave functions, we can no longer directly fix the relationship between $\bar{g}^{N}(z)$ and $\bar{g}^{K}(z)$. Instead, we need to define the lower bound with the extra term $\delta(K,y,\gamma)$.
+	However, in the special case where $g$ is a maximum-of-affine function, which is convex, we know $\bar{g}^{N*}(z)$ to be an upper bound on $\bar{g}^{K}(z)$.
+	\begin{corollary}
+		\label{cor:maxaffine}
+		When $g$ is the maximum of affine functions with domain $\dom = \reals^m$ and polyhedral support $\supp = \{u \mid Hu\leq h\}$, for the same $z$ and $\epsilon$,
+		\begin{equation*}
+			\bar{g}^{N}(z) -\delta(K,y,\gamma)  \leq \bar{g}^K(z) \leq \bar{g}^{N*}(z) 
+		\end{equation*}
+	\end{corollary}
+This follows from the fact that $L_j = 0$ for all affine functions $g_j$.}
+% \reviewChanges{ As another special case, if we cluster together datapoints $d_i$ whose corresponding uncertain parameters $v_i$ are maximized on the same function $g_j$, similar bounds as in the single concave case holds. 
+% \begin{corollary}
+% 	\label{cor:strict_cluster}
+% 	When $g$ is the maximum of concave functions, with domain $\dom = \reals^m$, and clustering is performed such that for all datapoints $i \in C_k$ for each $k$, the function $g_j$ chosen by $\max_{j\leq J} g_j(v_i,x)$ is the same, then for the same $x$ and $\epsilon$,
+% 	\begin{equation*}
+% 		\bar{g}^{N}(x) \le \bar{g}^K(x) \leq \bar{g}^{N*}(x) + \max_{j\leq J}(L_j/2) D(K).
+% 	 \end{equation*}
+% \end{corollary}
+% The proof is delayed to Appendix~\ref{app:strict_cluster}.}
+\reviewChanges{
+\paragraph{Uncertain objective.}%
+\label{par:uncertain_objective_max}
+When the uncertainty is in the objective, Theorem~\ref{thm:maxconcave} and Corollary~\ref{cor:maxaffine} quantifies the possible difference in optimal values between the \gls{MRO} problem with $K$ and $N$ clusters. We again define ${\Delta = \max_{z}\left(\bar{g}^{N*}(z) - \bar{g}^{N}(z)\right)}$, subject to $z$ being feasible for problem~\eqref{eq:robustopt}. 
+Note, however, that this is only needed for the upper bound. The lower bound holds without needing to consider $\bar{g}^{N*}(z)$; we need not consider the effect of the support set on the problem.
+\begin{corollary}
+	\label{cor:obj_unc_max}
+Consider the problem where $g$ is itself the objective function we would like to minimize and $X \subseteq \reals^n$ represents the constraints, which are deterministic.
+Then, $\delta(K,y,\gamma)$ upper bounds the possible decrease in optimal values of the \gls{MRO} problem with $K$ clusters compared with that of $N$ clusters. 
+Similarly, $\max_{j\leq J}(L_j/2)D(K) + \Delta$ upper bounds the possible increase in optimal values.
+\end{corollary}}
+% \begin{proof}
+% The feasible region of the \gls{MRO} problem with $K$ and $N$ does not change with clustering, as there are no constraints that involve the uncertain parameter.
+% From Theorem~\ref{thm:maxconcave}, for any fixed $\hat{x}$,  we have $\delta(K,z,\gamma) \geq \bar{g}^N(\hat{x}) - \bar{g}^K(\hat{x})$.
+% Therefore, no matter what $\hat{x}$ the \gls{MRO} problem with $N$ clusters selects, the \gls{MRO} problem with $K$ clusters can always choose the same $\hat{x}$ to be at most $\delta(K,z,\gamma)$ lower in value.
+% From the same theorem, for any fixed $\hat{x}$, we also have 
+% ${\bar{g}^K(\hat{x}) - \bar{g}^N(\hat{x}) \leq  \max_{j\leq J}(L_j/2)D(K) + \Delta}$.
+% No matter what $\hat{x}$ the \gls{MRO} problem with $K$ clusters selects, the \gls{MRO} problem with $N$ clusters can always choose the same $\hat{x}$ to be at most $\max_{j\leq J}(L_j/2)D(K) + \Delta$ lower in value.
+% \end{proof}}
+\reviewChanges{
+\paragraph{Uncertain constraints.}%
+\label{par:uncertain_constraints_max}
+When the uncertainty is in the constraints, the difference between $\bar{g}^N(z)$ and $\bar{g}^K(z)$ as given in Theorem~\ref{thm:maxconcave} no longer directly reflect the difference in optimal values.
+Instead, clustering affects the feasible set for $z$ as follows.
+In the case $\bar{g}^N(z) \geq \bar{g}^K(z)$, for any $\hat{z}$, $\bar{g}^K(\hat{z})$ can be at most $\delta(K,y,\gamma)$ lower in value than $\bar{g}^N(\hat{z})$.
+Since both values are constrained to be nonpositive from~\eqref{eq:robustopt}, the feasible region of the \gls{MRO} problem with $K$ clusters may be less restricted than that of $N$ clusters. This indirectly allows \gls{MRO} with $K$ clusters to obtain a smaller optimal value.
+On the other hand, in the case $\bar{g}^N(\hat{z}) \leq \bar{g}^K(\hat{z})$, 
+$\bar{g}^K(\hat{z})$ can be at most $\max_{j\leq J}(L_j/2)D(K) + \Delta$ higher in value than $\bar{g}^N(\hat{z})$. 
+Since both values are constrained to be nonpositive, the feasible region of the \gls{MRO} problem with $K$ clusters may be more restricted than that of $N$ clusters. This indirectly lets \gls{MRO} with $K$ clusters to obtain a larger optimal value.
+}
+
+
+\section{Parameter selection \reviewChanges{and outliers}}
+\label{sec:parameter_selection}
+
+\paragraph{Choosing $K$.}
+When the uncertain constraint is affine and $\supp$ does not affect the worst-case constraint value, the number of clusters $K$ does not affect the final solution, so it is always best to choose $K = 1$.
+We trivially cluster by averaging all data-points without using any clustering algorithm.
+When $\supp$ affects the worst-case constraint value, there is a difference of at most $\Delta$ between setting $K=1$ and $K=N$, which can often be approximated $\approx 0$ for small $\epsilon$. Therefore, setting $K = 1$ remains the recommendation.
+When the constraint is concave, we choose $K$ to obtain a reasonable upper bound on $\bar{g}^K(z)$, as described in Theorem~\ref{thm:1}.
+This upper bound depends linearly on $D(K)$, the clustering value, so by choosing the {\it elbow} of the plot of $D(K)$, we choose a cluster number that, while being a reasonably low value, best conforms to the shape of the underlying distribution.
+\reviewChanges{When the constraint is maximum-of-concave, the bounds given in Theorem~\ref{thm:maxconcave} also depends on $D(K)$. Notice that the value $\delta(K,y,\gamma)$ in the lower bound is also a weighted transformation of $D(K)$.}
+The elbow method has been commonly used in machine learning problems pertaining the choice of hyper-parameters, especially for $K$-means, and can be traced back to Thorndike~\cite{elbow} in 1953.
+Note that, by directly returning $D(K)$ and examining the elbow as an initial step, this procedure can be completed in the clustering step without having to solve the downstream optimization problem.
+\reviewChanges{To further improve the choice of $K$, or if the elbow is unclear, cross-validation may be used for low $K$ values or $K$ values around the elbow. }
+No matter if the uncertainty lies in the objective or the constraints, this bound will inform us of the potential difference between choosing different $K$.
+% as the value $L/2$ only changes the scale of the upper bound, not the shape.?
+
+\paragraph{Choosing $\epsilon$.}
+While we have outlined theoretical results in Theorem~\ref{theorem_mro} for choosing $\epsilon$, in practice, we experimentally select $\epsilon$ through cross validation to arrive at the desired guarantee.
+Therefore, while the theoretical bounds suggest to choose a larger $\epsilon$ when we cluster, this may not be the case experimentally.
+% while it seems as if we must choose a larger $\epsilon$ for concave $g$ to account for the information-loss of clustering, thereby arriving at an even worse (overly conservative) objective value, this may not be the case experimentally.
+\reviewChanges{In fact, for concave $g$, we may even choose a smaller $\epsilon$, due to the increase in the level of conservatism for small $K$. 
+On the other hand, for maximum-of-concave $g$, we do need to choose larger $\epsilon$, as smaller $K$ leads to less conservative solutions. 
+However, for both cases, we show a powerful result in the upcoming numerical examples: although for the same $\epsilon$, \gls{MRO} with $K$ clusters differs in conservatism from Wasserstein \gls{DRO} ($N$ clusters), there are cases where we can tune $\epsilon$ such that \gls{MRO} and \gls{DRO} provide almost identical tradeoffs between objective values and probabilitic guarantees, such that no loss in performance results from choosing a smaller cluster number $K$.}
+\reviewChanges{
+\paragraph{Data with outliers}
+When the provided dataset contains outliers, one might imagine that the centoids created by the clustering algorithm will be biased towards the outliers. While this is true, the weights of the outliers will not increase through clustering, thus the effect of outliers on these clustered Wasserstein balls is not worse than their effect on the original Wasserstein balls, which include the Wasserstein ball around the outlier point. In fact, by clustering the outlier point with other points, \gls{MRO} offers protection against the outlier. We demonstrate this in on the numerical experiment in Section~\ref{sub:news}, where we compare three methods: \gls{MRO}, \gls{MRO} with outlier removal, and \gls{MRO} with the outlier considered as its own cluster.
+}
+
+\section{Numerical examples}
+\label{sec:examples}
+
+We now illustrate the computational performance and robustness of the proposed method on various numerical examples.
+All the code to reproduce our experiments is available, \reviewChanges{in Python}, at
+\begin{center}
+	\url{https://github.com/stellatogrp/mro_experiments}.
+\end{center}
+We run the experiments on the Princeton Institute for Computational Science and Engineering (PICSciE) facility with 20 parallel 2.4 GHy Skylake cores.
+We solve all optimization problems with MOSEK~\citep{mosek} optimizer with default settings.
+
+\reviewChanges{
+All numerical examples are solved through direct reformulations if not stated otherwise.
+The calculated in-sample objective value and out-of-sample expected values, as well as the out-of-sample probability of constraint violation, are averaged over 50 independent runs of each experiment. For each run, we generate evaluation data of the same size $N$ as the training dataset.}
+
+\reviewChanges{
+For numerical examples with an uncertain objective, the probability of constraint violation is measured as the probability the average out-of-sample value is above the in-sample value.
+For numerical examples with an uncertain constraint, the probablity of constraint violation is measured as the probability the average constraint value is above zero.}
+
+\reviewChanges{In Sections~\ref{sub:capitalbudget},~\ref{sub:quadraticconcave}, and~\ref{sub:logsumexp}, we demonstrate the performance of \gls{MRO} when the uncertain constraint is concave. In Section~\ref{sub:sparse_portfolio_optimization},~\ref{sub:facility}, and~\ref{sub:news}, we demonstrate the performance of \gls{MRO} for maximum-of-affine uncertainty. }
+
+\subsection{Capital budgeting}
+\label{sub:capitalbudget}
+We consider the capital budgeting problem in ~\cite[Section 4.2]{ben-tal_deriving_2015}, where we select a portfolio of investment projects maximizing the total net present value (NPV) of the portfolio, while the weighted sum of the projects is less than a total budget $\theta$.
+% Since maximizing anything is equivalent to minimizing its negation, we instead minimize the negative NPV.
+The NPV for all projects is $\eta(u) \in \reals^n$, where for each project $j$, $\eta_j(u)$ is the sum of discounted cash flows $F_{jt}$ over the years $t = 0,\dots, T$, \ie, $\eta_j(u) = \sum_{t = 0}^T F_{jt}/(1+u_j)^t$. Here, $u_j$ is the discount rate of project $j$.
+We formulate the uncertain function to be minimized as
+\begin{equation*}
+	 g(u,z) = -\eta(u)^Tz,
+\end{equation*}
+where $z = (z_1, \dots, z_n) \in \{0,1\}^n$ is the indicator for selecting each project.
+The discount rate $u_j$ is subject to uncertainty, as it depends on several factors, such as the interest rate of the country where project $j$ is located and the level of return the decision-maker wants to compensate the risk.
+The function $g$ is concave and monotonically increasing in $u$, and we can define a domain $u \geq 0$ so that Assumption~\ref{assp:dom} and Theorem~\ref{thm:1} applies.
+The robust problem can be written as
+\begin{equation*}
+	\begin{array}{ll}
+	\underset{z, t}{\text{minimize}} & \tau\\
+	\text{subject to} & \bar{g}(u,z) \leq \tau,\quad u \in \uncset(K,\epsilon)\\
+	& h^Tz \leq \theta\\
+& z\in \{0,1\},
+\end{array}
+\end{equation*}
+where $h$ is the vector of project weights. We refer to~\eqref{eq:robustopt_p} and arrive at the convex reformulation for $p =2$
+\begin{equation}
+	\label{eq:capital}
+	\begin{array}{ll}
+	\text{minimize} & \tau\\
+	\text{subject to} & \lambda \epsilon^2 + \sum^{K}_{k=1} w_k s_k \leq \tau\\
+	& - F_{0}^Tz + \ones^T(\delta_{k}a - y_{k}) - y_k^T\bar{d}_k + \gamma_k^T(b - C\bar{d}_k) \\
+	& \hspace{3cm} +1/(4\lambda)\| C^T\gamma_k - y_k \|^2_2 \leq s_k, \quad k = 1,\dots,K\\
+	& \left(-(Y_k)_{jt},F_{jt}z_j,(\delta_k)_{jt}\right) \in  \mathcal{K}^{t/(t+1)}, \quad j = 1,\dots,n, \quad t= 1,\dots,T,\\
+	& \hspace{7.4cm} \quad k= 1,\dots,K\\
+	& Y_k \ones  = y_{k}, \quad \quad k= 1,\dots,K\\
+	&  h^Tz \leq \theta\\
+	& \lambda \geq 0, \quad \gamma_k \geq 0, \quad Y_k \leq 0,\quad \delta_{k} \leq 0,  \quad z \in \{0,1\},
+	\end{array}
+\end{equation}
+where $a \in \reals^T$ with $a_t = t^{1/(t+1)} + t^{-t/(t+1)}$ for $t = 1,\dots,T$, and $(z,h,y) \in \mathcal{K}^{\alpha}$ is a power cone constraint given as $z^{\alpha} h^{1 - \alpha} \geq |y|$.
+The vector $F_0$ indicates the first column of $F$, and matrix $C$ and vector $b$ encode the support of $u$, which we take to be $\{u\in \reals^m \mid 0 \leq u \leq \ones\}$, where $m = n$.
+We have variables $z_j \in \reals$, $y_k \in \reals^{n}$, $Y_{k} \in \reals^{n\times T}$, $\delta_{k} \in \reals^{n\times T}$, $\tau \in \reals$, $\gamma_k \in \reals^{2n}$, $s_k \in \reals$, for $j = 1,\dots,n$, $k= 1,\dots,K$, and $t= 1,\dots,T$.
+The derivation of reformulation~\eqref{eq:capital} is in Appendix~\ref{app:capital}.
+Note that there are variables with total dimension $KnT$, which grows swiftly when any of the parameters are large.
+For each cluster $k$, we introduce $nT$ new variables for $h$ and $\delta$, as well as $nT$ new power cone constraints, which greatly increases the compuational complexity of the problem.
+
+\paragraph{Problem setup.}
+We set $n = 20$, $N = 120$, $T= 5$. We generate $F_{jt}$ from a uniform distribution on ${[0.1,0.5+0.004t]}$ for $j = 1,\dots,n$, \quad $t = 0,\dots,T$.
+For all $j$, $h_j$ is generated from a uniform distribution on $[1,3-0.5j]$, and the total budget $\theta$ is set to be 12.
+We generate uncertain data from two slightly different uniform distributions, to simulate two different sets of predictions on the discount rates. The first half is generated on $[0.005j,0.02j]$, and the other half on $[0.01j,0.025j]$, for all $j$. We calculate an upper bound on the $L$-smooth parameter, ${L = \|\nabla^2 \sum_{j=1}^n \sum_{t=0}^T F_{jt}(\hat{z}_N)_j(1+u_j)^{-t} \|_{2,2} \leq  \|\sum_{j=1}^n \sum_{t=0}^T t(t+1)F_{jt}(\hat{z}_N)_j\|_{2,2}}$ for each data-driven solution $\hat{z}_N$.
+\reviewChanges{
+\paragraph{Choosing $K$}
+Plotting the clustering value $D(K)$ over $K$, we note that the elbow occurs around $K=2$, which suggests using cross-validation for $K$ values around 2. }
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.8\textwidth]{capital_k.pdf}
+	\caption{Capital budgeting. $D(K)$ vs. $K$. Dotted red line: $K = 2$.}%
+	\label{fig:capitalk}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{capitaltop2.pdf}
+	\caption{Capital budgeting. Left: in-sample objective values and out-of-sample expected values vs. $\epsilon$ for different $K$. Solid lines are the in-sample objective value, dotted lines are the out-of-sample expected value. Right: objective value vs. $\beta$ for different $K$; each point represents the solution for the $\epsilon$ achieving the smallest objective value. $K = 120^*$ is the formulation without the support constraint. }%
+	\label{fig:capital1}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{capitalbot2.pdf}
+	\caption{Capital budgeting. Left: the difference in the value of the uncertain objective between using $K$ and $N$ clusters, calculated as $\bar{g}^K(z) - \bar{g}^N(z)$, compared with the theoretical upper bound $(L/2)D(K)$ from Corollary~\ref{cor:obj_unc}. Solid lines are the difference, dotted lines are the upper bounds. Right: solve time. }%
+	\label{fig:capital2}%
+\end{figure}
+
+\paragraph{Results.}  We observe in Figure~\ref{fig:capital1} that using two clusters is enough to achieve performance almost identical to that of using 120 clusters.
+Although from the left image, we see that $K=2$ slightly upper bounds $K = 120$, from the right, their tradeoffs between the objective value and relevant constraint violation probability ($\beta \leq 0.2$) are largely the same, so we can always tune $\epsilon$ to achieve the same performance and guarantees.
+Notice that the results for $K = 120$ and $K=120^*$ are near identical for small $\epsilon$, where $K=120^*$ is the formulation without the support constraint. Therefore, while $ \bar{g}^{N*}(z)$ slightly upper bounds $\bar{g}^N(z)$, we can approximate their difference $\Delta \approx 0$ for small enough $\epsilon$, for which the upper bound $(L/2)D(K)$ thus hold.
+In fact in this example, even for larger $\epsilon$ where we observe $\Delta > 0$, the actual difference between $\bar{g}^K$ and $\bar{g}^N$ is bounded by $(L/2)D(K)$.
+\reviewChanges{
+In Figure~\ref{fig:capital2}, we see that the elbow of the upper bound is at $K = 2$, and the true difference follows the same trend, matching the suggestion from Figure~\ref{fig:capitalk}.}
+Therefore, setting $K = 2$ is the optimal decision, with a time reduction of 2 orders of magnitude, and a complexity reduction from 26626 variables and 12000 power cones to 666 variables and 200 power cones.
+
+
+
+\subsection{Quadratic concave uncertainty}
+\label{sub:quadraticconcave}
+We refer to the example from Ben-Tal et al.~\cite[Section 4.2]{ben-tal_deriving_2015} with concave uncertainty of the form $$g(u,z) = \sum_{i=1}^n h_i(u) z_i,$$ where $h_i(u) = -(1/2)u^TA_iu$, each $A_i\in \reals^{m\times m}$ a symmetric positive definite matrix, $u \in \reals^m$, and $z \in \reals^{n}_{+}$. For simplicity, we also require that $z$ sums to 1, $p = 2$, and the support of the uncertainty $\supp = \reals^m$. Assuming the uncertainty is in the objective, such that the uncertain constraint is created using epigraph form, we solve the problem
+\begin{equation*}
+	\begin{array}{ll}
+	\text{minimize} & \tau\\
+	\text{subject to} & \lambda \epsilon^2 + \sum^{K}_{k=1} w_k s_k \leq \tau\\
+	&(1/2)\sum_{i=1}^n \left({(Y_k)_i}^TA_i^{-1}(Y_{k})_i\right)/z_i -y_k^T\bar{d}_k  + 1/(4\lambda) \left\| y_k \right\|^2_2 \leq s_k \\
+	&\hspace{7cm} \quad k = 1,\dots,K\\
+& Y_{k}\ones = y_k, \quad k = 1,\dots,K\\
+	& \ones^T z = 1, \quad \lambda \geq 0,\quad z \geq 0.
+	\end{array}
+\end{equation*}
+The $A_i^{-1}$ terms come from taking the conjugate of $g$, and the derivation can be found in~\cite[Example 24]{ben-tal_deriving_2015}. We have variables $z \in \reals^n$, $y_k \in \reals^{m}$, $Y_{k} \in \reals^{m\times n}$, $\tau \in \reals$, $s_k \in \reals$, for $k= 1,\dots,K$. We let $(Y_k)_i$ indicate the $i$th column of $Y_k$.
+
+\paragraph{Problem setup.}
+We set $n = m = 10, N = 90$, and generate synthetic uncertainty as a multi-modal normal distribution with 5 modes, where $\mu_i = \gamma_j0.03i$ for all $i = 1,\dots, n$ for mode $j$, with mode scales $\gamma = (1, 5,15,25,40)$. The variance is $\sigma_i = 0.02^2 + (0.025i)^2$ for all modes. We generate $A_i$ as random positive semi-definite matrices for all $i = 1,\dots, n$. For the upper bound, we calulate $L = \|\sum_{i=1}^n A_i(\hat{z}_{N})_i\|_{2,2}$ for each data-driven solution $\hat{z}_N$.
+\reviewChanges{
+\paragraph{Choosing $K$}
+Plotting the clustering value $D(K)$ over $K$, we note that the elbow occurs at $K=5$, which suggests a choice of $K=5$. }
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.8\textwidth]{quad_k.pdf}
+	\caption{Quadratic concave uncertainty. $D(K)$ vs. $K$. Dotted red line: $K = 5$.}%
+	\label{fig:concavek}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{5modestop1.pdf}
+	\caption{Quadratic concave uncertainty. Left: in-sample objective values and out-of-sample expected values of $g$ vs. $\epsilon$ for different $K$. Solid lines are the in-sample objective value, dotted lines are the out-of-sample expected value. Right: objective value vs. $\beta$ for different $K$; each point represents the solution for the $\epsilon$ achieving the smallest objective value. }%
+	\label{fig:concave_syn1}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{5modesbot1.pdf}
+	\caption{Quadratic concave uncertainty. Left: the difference in the value of the uncertain objective between using $K$ and $N$ clusters, calculated as $\bar{g}^K(z) - \bar{g}^N(z)$, compared with the theoretical upper bound $(L/2)D(K)$ from Corollary~\eqref{cor:obj_unc}. Solid lines are the difference, dotted lines are the upper bounds. Right: solve time. }%
+	\label{fig:concave_syn2}%
+\end{figure}
+
+\paragraph{Results.}  We observe on the left of Figure~\ref{fig:concave_syn1} that using 5 clusters is enough to achieve performance almost identical to that of using 90 clusters.
+\reviewChanges{
+Indeed, in Figure~\ref{fig:concave_syn2}, the elbow of the upper bound (dotted lines) on the difference in objective values is at $K = 5$, and the true difference follows the same trend, corroborating with Figure~\ref{fig:concavek}.}
+Furthermore, on the left plot of Figure~\ref{fig:concave_syn2}, we note for $K \geq 5$, the tradeoff between the objective value and constraint violation is the same, so we can tune $\epsilon$ to achieve the same performance and guarantees.
+In fact, for this particular example, using a smaller $K$ such as 1 or 2 may allow us to tune $\epsilon$ to achieve an even better tradeoff. However, this result cannot be guaranteed in general, so the recommended action is still to choose $K=5$.
+
+
+\subsection{Robust log-sum-exp optimization}
+\label{sub:logsumexp}
+We also consider uncertainty from Bertimas and den Hertog~\cite[Chapter 14]{robustadaptopt} of the form
+\begin{equation*}
+	g(u,z) = \log\left(\sum_{i = 1}^n u_i e^{z_i}\right),
+\end{equation*}
+concave in $u$ and convex in $z$. This function $g$ is monotonically increasing in $u$, and we can define a domain $u \geq 0.01$ so that Assumption~\ref{assp:dom} and Theorem~\ref{thm:1} apply.
+Assuming the simple case where the uncertainty is in the objective, we add some further restrictions on $z$ and use a cutting plane procedure to solve, for $p = 2$,
+\begin{equation*}
+	\begin{aligned}
+	\underset{z}{\text{minimize}} \hspace{0.5em} \underset{u_1\dots u_k}{\text{maximize}} &\quad \sum_{k=1} ^K w_k  \log\left(\sum_{i = 1}^n u_i e^{z_i}\right) \\
+	\mbox{subject to} & \quad \sum_{k=1} ^K w_k \| u_k - \bar{d}_k \|^2 \le \epsilon^2\\
+	&\quad   \ones^T z \geq 10, \quad z \geq 0, \quad z \leq 10
+	\end{aligned}
+\end{equation*}
+\paragraph{Problem setup.} We set $n = 30, N = 90$, and observe synthetic data from 3 sets of uniform distributions, scaled respectively by $\gamma = (1,3,7)$. Specifically, for each set $j$, each $d_i$ is generated uniformly on the intervals $0.01[\gamma_ji,\gamma_j(i+1)]$ for $i = 1,\dots, n$. For the upper bound, we calculate $L = \|\nabla^2 g\|_{2,2} \leq \exp(\hat{z}_N)^T\exp(\hat{z}_N)\min({d_k}^T\exp(\hat{z}_N))^{-2}$, for each data-driven solution $\hat{z}_N$.
+\reviewChanges{
+\paragraph{Choosing $K$}
+Plotting the clustering value $D(K)$ over $K$, we note that the elbow occurs at $K=3$, which suggests using cross-validation for $K$ values around 3. }
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.8\textwidth]{log_k.pdf}
+	\caption{Log-sum-exp uncertainty. $D(K)$ vs. $K$. Dotted red line: $K = 3$.}%
+	\label{fig:logk}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{logtop2.pdf}
+	\caption{Log-sum-exp uncertainty. Left: in-sample objective values and out-of-sample expected values vs. $\epsilon$ for different $K$. Solid lines are the in-sample objective value, dotted lines are the out-of-sample expected value. Right: objective value vs. $\beta$ for different $K$. }%
+	\label{fig:log_syn1}%
+\end{figure}
+
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{logbot.pdf}
+	\caption{Log-sum-exp uncertainty. Left: the difference in the value of the uncertain objective between using $K$ and $N$ clusters. Solid lines are the difference, the dotted line is the upper bound. Right: solve time. }%
+	\label{fig:log_syn2}%
+\end{figure}
+
+\paragraph{Results.} We observe on the left of Figure~\ref{fig:log_syn1} that while setting $K$ to smaller values increases the objective value, setting $K = 3$, the number of modes of the underlying distribution, already offers near identical performance to that of setting $K = 90$.
+\reviewChanges{On the left of Figure~\ref{fig:log_syn2}, we see that $K = 3$ is at the elbow of upper bound and actual difference, corroborating with Figure~\ref{fig:logk}.}
+Furthermore, we note that setting $K=3$ and above give identical tradeoff curves, therefore, choosing $K=3$ is the time-efficient solution.
+
+
+\subsection{\reviewChanges{Sparse portfolio optimization}}%
+\label{sub:sparse_portfolio_optimization}
+\reviewChanges{
+We consider a market that forbids short-selling and has $m$ assets as in~\citep{mohajerin_esfahani_data-driven_2018}.
+Daily returns of these assets are given by the random vector $d = (d_1, \dots, d_m) \in \reals^m$.
+The percentage weights (of the total capital) invested in each asset are given by the decision vector ${z = (z_1, \dots, z_n) \in \reals^n}$.
+We restrict our selection to at most $\theta$ assets.
+The underlying data-generating distribution $\prob$ is unknown, but we have observed a historical dataset  $\mathcal{D}_N$.
+Our objective is to minimize the CVaR with respect to variable $z$,
+\begin{equation*}
+	\label{eq:portfolio}
+	\begin{array}{ll}
+	\text{minimize  } &\CVaR(- u^Tz,\alpha)\\
+	\text{subject to} & \ones^T z = 1\\
+			  & z \ge 0, \quad \|z\|_1 \leq \theta,
+	\end{array}
+\end{equation*}
+which represents the average of the $\alpha$ largest portfolio losses that occur. In other words, the $\CVaR$ term seeks to ensure that the expected magnitude of portfolio losses, when they occur, is low.
+The objective has an analytical form with an extra variable $\tau$ given as~\citep{cvaropt,mohajerin_esfahani_data-driven_2018}:
+\begin{equation*}
+	\text{minimize} \quad \Expect^{\prob}\left(\tau +\frac{1}{\alpha} \max\{-u^Tz -\tau, 0\}\right).
+\end{equation*}
+From this, we obtain $g$ as the maximum of affine functions,
+\begin{equation*}
+	g(u,z) \define \max\{(-1/\alpha)z^Tu + (1 - 1/\alpha)\tau, \tau \}.
+\end{equation*}
+Using the formulation~\eqref{eq:unif-dual-p} with $p= \infty$, we can write a convex reformulation of the form
+\begin{equation*}
+	\label{eq:portfolio_1}
+	\begin{array}{ll}
+	\text{minimize } & h\\
+	\text{subject to } & \epsilon \left\|(1/\alpha)z\right\|_2 + \sum^{K}_{k=1} w_k s_k \leq h\\
+	&  (1 - 1/\alpha)\tau - (1/\alpha)z^T\bar{d}_k    \leq s_k,\quad k = 1,\dots,K\\
+	&  s_k \geq \tau, \quad k = 1,\dots,K\\
+	& z \geq 0, \quad \mathbf{1}^T z = 1\\
+	& y \in \{0,1\}, \quad y - z \leq 0, \quad \ones^Ty \leq \theta.
+	\end{array}
+\end{equation*}
+with variables $z \in \reals^m$, $y \in \reals^m$, $h \in \reals$, $\tau \in \reals$, $s_k \in \reals$. The variables $y$ are introduced to replace the cardinality constraint using big-$M$ formulation~\citep{sparseportfolio}.}
+\reviewChanges{
+\paragraph{Problem setup.} We take stock data from the past 10 years of S\&P500, and generate synthetic data from their fitted general Pareto distributions.
+We choose a generalized Pareto fit over a normal distribution as it better models the heavy tails of the returns~\citep{tails}.
+See the Github repository for the code, which uses the "Rsafd" R package~\cite{Rsafd}.
+We let $\alpha = 20\%$, $m = 50$ stocks, and generate a dataset size of $N = 1000$. Our portfolio can include at most $\theta = 5$ stocks. For the upper bound $\delta(K,y,\gamma)$ on $\bar{g}^N(z)-\bar{g}^K(z)$, we note the special structure of this problem, where one of the affine pieces is independent of $u$, to arrive at a bound $\delta(K,y,\gamma) = \max_k\{\max_i\{(\bar{d}_k - d_i)^Tz/\alpha\}\}$.}
+
+\reviewChanges{
+\paragraph{Choosing $K$}
+Plotting the clustering value $D(K)$ over $K$, we note that the elbow occurs at $K=5$, which suggests using cross-validation for $K$ values around 5.}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.8\textwidth]{port_k.pdf}
+	\caption{Sparse portfolio. $D(K)$ vs. $K$. Dotted red line: $K = 5$.}%
+	\label{fig:portk}%
+\end{figure}
+
+\reviewChanges{
+\paragraph{Results.}%
+In Figure~\ref{fig:portfolio1}, while setting $K$ to smaller values lead to a decrease in the optimal value across $\epsilon$, we note that for $K=5$ and above, we can already achieve a tradeoff curve between the optimal value and probability of constraint satisfaction that is similar to that of $K = 1000$, and setting $K=10$ brings it slightly closer. In Figures~\ref{fig:portk} and~\ref{fig:portfolio2}, in the plots of $D(K)$ and of the upper bound on the difference, we also note that the elbow is around $K=5$. We thus recommend choosing $K$ through cross validation around 5, as tuning $\epsilon$ for these small $K$ gives 1 - 3 orders of magnitude time reduction.}
+
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{portMIPtop.pdf}
+	\caption{Sparse portfolio. Left: in-sample objective values and out-of-sample expected values vs $\epsilon$ for different $K$. Solid lines are the in-sample objective value, dotted lines are the out-of-sample expected value. Right: objective value vs $\beta$ for different $K$; each point represents the solution for the $\epsilon$ achieving the smallest objective value.}%
+	\label{fig:portfolio1}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{portMIPbot.pdf}
+	\caption{Sparse portfolio. Left: the difference in the value of the uncertain objective between using $N$ and $K$ clusters, calculated as $\bar{g}^N(z) - \bar{g}^K(z)$, compared with the theoretical upper bound $\delta(K,y,\gamma)$ from Corollary~\ref{cor:maxaffine}. Solid lines are the difference, dotted lines are the upper bounds. Right: solve time for $K \geq 5$. }%
+	\label{fig:portfolio2}%
+\end{figure}
+
+
+\subsection{Facility location}
+\label{sub:facility}
+We examine the classic facility location problem~\citep{bertsimas_probabilistic,HOLMBERG1999544}.
+Consider a set of $n$ potential facilities, and $m$ customers.
+Variable $z \in \{0, 1\}^n$ describes whether or not we construct each facility $i$ for $i=1, \dots, n$,  with cost $c_i$.
+In addition, we would like to satisfy the uncertain demand $u\in \reals^m$ at minimal cost.
+We define variable $X\in\mathbf{R}^{n\times m}$ where $X_{ij}$ corresponding to the portion of the demand of customer $j$ shipped from facility $i$ with corresponding cost $C_{ij}$.
+Furthermore, $r \in \reals^n$ represents the production capacity for each facility, and $u\in \reals^m$ represents the uncertain demand from each customer.
+For each customer $j$, $X_j$ represents the proportion of goods shipped from any facility to that customer, which sums to $1$.
+For each facility $i$, $(X^T)_i$ represents the proportion of goods shipped to any customer.
+Putting this all together, we obtain multiple affine uncertain capacity constraints,
+\begin{equation*}
+	g_i(u,z) \define (X^T)_i u - r_i z_i \leq 0 \quad i = 1,\dots,n,
+\end{equation*}
+\reviewChanges{which we combine to create a single maximum-of-affine constraint,
+\begin{equation*}
+	g(u,z) \define \max_{i \leq n}((X^T)_i u - r_i z_i) \leq 0.
+\end{equation*}
+Now, to ensure a high probability of constraint satisfaction, we use the $\CVaR$ reformulation, 
+\begin{equation*}
+	g(u,z,\tau) \define \tau + (1/\alpha)\max \left (\max_{i \leq n}((X^T)_i u - r_i z_i - \tau), 0\right ) \leq 0,
+\end{equation*}
+where we add the auxiliary variable $\tau$. We assume a polyhedral support $\supp= \{u \mid Hu\leq b\}$ for the demand, and solve the problem, for $p = \infty$,
+\begin{equation*}
+	\label{eq:mro_facility_mip_ref}
+	\begin{array}{ll}
+	\text{minimize} & c^Tz  +\Tr(C^TX)\\
+	\text{subject to}  &\ones^TX_j = 1,\quad j = 1,\dots, m \\
+	&   \tau + \sum_{k=1}^K w_k s_{k}  \leq 0,\\
+	 & -(1/\alpha)\tau + \lambda_{k} \epsilon + (1/\alpha)((X^T)_i\bar{d}_k -r_ix_i) + \gamma_{ik}(b - H\bar{d}_k) \leq s_{k},\\
+	 &\hspace{4cm} \quad i = 1,\dots,n, \quad k = 1,\dots, K\\
+	 & \lambda_{k} \epsilon  \leq s_{k}, \quad k = 1,\dots, K\\
+	 & \left\| H^T\gamma_{ik} + (1/\alpha)(X^T)_i\right\|_2 \leq \lambda_{k}, \quad i = 1,\dots,n, \quad k = 1,\dots, K\\
+	 & \gamma_{ik} \geq 0, \quad i = 1,\dots,n, \quad k = 1,\dots, K\\
+	 & z\in \{0,1\}^n, \quad X\in \reals^{n\times m}.
+	\end{array}
+\end{equation*}
+We have variables $z \in \{0,1\}^{n}$, $X \in \reals^{n\times m}$, $s_{k} \in \reals$, $\tau \in \reals$, $\lambda_k \in \reals$, $\gamma_{ik} \in \reals^{m}$, for $i = 1,\dots,n$ and $k= 1,\dots,K$.
+The $\gamma$ variables arise from enforcing the support constraints.}
+
+% Even though we obtain a probabilistic guarantee of the form~\eqref{eq:robustopt-sep-g}, which can be interpreted as a separate probabilistic guarantee for each facility, we can still tune $\epsilon$ to obtain the stricter guarantee
+% \begin{equation}
+% 	\label{eq:robustopt-g}
+%     \prob^N \bigg({\Expect}^{\prob}\left(\underset{l}{\max}\;g_l(u,\hat{x}_N)\right)\leq 0 \bigg) \geq 1- \beta,
+% \end{equation}
+% which guarantees that the uncertain constraints for all facilities are satisfied simultaneously.
+
+\paragraph{Problem setup.}%
+To generate data, we set $n = 5$ facilities, $m = 25$ customers, and $N = 50$ data samples.  \reviewChanges{For the $\CVaR$ reformulation, we set $\alpha = 20\%$. We set costs $c = (46.68, 58.81, 30, 42.09, 35.87)$, and generate the two coordinates of each customer's location from a uniform distribution on $[0,15]$. We then calculate $C$ as the $\ell_2$ distance between each pair of customers. We set production capacities $r = (33, 26, 41, 26, 22)$.
+We assume the demand $d$ is supported between 1 and 6, which we write as $Hu\leq b$, where $H = [-I\; I]^T$ and $b$ is the concatenation of two vectors: a vector of $-1$'s of length $m$, and a vector of $6$'s of length $m$. 
+We generate demands as the combination of two normal distributions. Half of the data is generated from the normal distribution with mean $\mu_1 = 3$ and variance $\sigma_1 = 0.9$, the second half has mean $\mu_1 = 4$ and variance $\sigma_1 = 0.8$.
+We then project the demands onto $(1,6)$.}
+% Since the underlying distribution is uniform, it satisfies the assumptions of Theorem~\ref{theorem-inf}, so theoretical guarantees also exist for $p = \infty$. 
+\reviewChanges{For the upper bound $\delta(K,y,\gamma)$ on  $\bar{g}^N(z) - \bar{g}^K(z)$ from Corollary~\ref{cor:maxaffine}, we have $(1/N)\sum_{k=1}^K \sum_{i \in C_k}  \max(\max_{j\leq J}((X[i] -H^T\gamma_{jk}),0)^T(d_i - \bar{d}_k))$. Note that this upper bounds the difference in constraint values, and only indirectly affects the objective values through restrictions on the feasible region. Therefore, it is not an upper bound on the difference in objective value, merely a rough estimate.
+We cannot directly compare this upper bound against the change in constraint values, as at the optimal chonsen $z, X$ for each $K$, which differ due to differences in the feasible regions, the constraint value will always be near 0 for optimality. We thus compare it against the change in objective values. }
+\reviewChanges{
+\paragraph{Choosing $K$}
+Plotting the clustering value $D(K)$ over $K$, we note that the elbow occurs at $K=2$, which suggests using cross-validation for $K$ values around 2. }
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.8\textwidth]{facility_k.pdf}
+	\caption{Facility location. $D(K)$ vs. $K$. Dotted red line: $K = 2$.}%
+	\label{fig:facilityk}%
+\end{figure}
+
+% \begin{figure}[h]%
+% 	\centering
+% 	\includegraphics[width=\textwidth]{facilitytop.pdf}
+% 	\caption{Facility location. Top left: in-sample objective values vs. $\epsilon$ for different $K$. Top right$^*$: $\epsilon$ vs. the original probabilitic guarantee~\eqref{eq:robustopt-sep-g} for different $K$. Bottom left$^{**}$: $\epsilon$ vs. the stricter probabilistic guarantee~\eqref{eq:robustopt-g}. Bottom right: solve time. $K=1^*$ is the formulation without the support constraint. }%
+% 	\label{fig:facility}%
+% \end{figure}
+\paragraph{Results.}%
+\reviewChanges{
+As expected of maximum-of-affine $g$, we note in Figure~\ref{fig:facility} that setting $K$ to smaller values lead to a decrease in the optimal value across different $\epsilon$ values. 
+While $K=1$ yields poor performance in terms of the probability of constraint violation, we observe that $K=2$ already yields a tradeoff between the objective and probability of constraint violation close to that of $K=50$. Through cross-validation with different $K$, we select $K=5$, which provides a tradeoff curve closer to optimality. 
+As this problem has uncertainty in the constraints and not the objective, the bounds given in Corollary~\ref{cor:maxaffine} do not directly reflect the difference in the objective values. 
+However, they do give a reference value and inform us of the general trend of the difference.
+In this case, they still upper bound the actual difference, as shown in Figure~\ref{fig:facility}.
+We note that the bounds we use do not depend on $\bar{g}^{N*}(z)$, so it is irrelevant whether or not the support has an affect on the worst-case constraint value.
+Overall, choosing $K = 5$ leads to a time reduction of an order of magnitude while achieving near-optimal performance. 
+}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{facilitytop.pdf}
+	\caption{Facility location. Left: in-sample objective values vs $\epsilon$ for different $K$. Right: objective value vs $\beta$ for different $K$; each point represents the solution for the $\epsilon$ achieving the smallest objective value. }%
+	\label{fig:facility}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{facilitybot1.pdf}
+	\caption{Facility location. Left: the difference in the value of the uncertain objective between using $N$ and $K$ clusters, calculated as Obj($N$) - Obj($K$), compared with the theoretical upper bound $\delta(K,y,\gamma)$ on the worst-case constraint value $\bar{g}^N(z) - \bar{g}^K(z)$,  from Corollary~\ref{cor:maxaffine}. Solid lines are the difference, dotted lines are the upper bounds. Right: solve time. }%
+	\label{fig:facility1}%
+\end{figure}
+
+
+\subsection{\reviewChanges{Newsvendor problem}}
+\label{sub:news}
+\reviewChanges{
+We consider a 2-item newsvendor problem where, at the beginning of each day, the vendor orders $z\in \reals^2$ products at price $h=(4,5)$. These products will be sold at the prices $c=(5,6.5)$, until either the uncertain demand $u$ or inventory $z$ is exhausted.
+The objective function to minimize is the sum of the ordering cost minus the revenue:
+\begin{equation*}
+	h^Tz - c^T\min\{z,u\},
+\end{equation*}
+from which we obtain the maximum-of-affine uncertain function $g$ to minimize,
+$$g(u,z) = h^Tz + \max(-c_1z_1 - c_2 z_2, -c_1 z_1 -c_2 u_2, -c_1u_1 -c_2z_2, -c_1u_1 - c_2u_2 ).$$}
+\reviewChanges{
+We assume a polyhedral support $\supp= \{u \mid Cu\leq b\}$, and solve, with $p = 1$,
+\begin{equation*}
+	\label{eq:news}
+	\begin{array}{ll}
+	\text{minimize} & h^Tz  + \lambda\epsilon + \sum_{k=1}^K w_k s_{k} \\
+	\text{subject to}  & -c^Tz + \gamma_{1k}^T(b - C\bar{d}_k)  \leq s{k}, \quad k = 1,\dots, K\\
+	& -c_1 z_1 - \bar{d}_k^T(c_2e_2) + \gamma_{2k}^T(b - C\bar{d}_k) \leq s_k , \quad k = 1,\dots, K\\
+& -c_2 z_2 - \bar{d}_k^T(c_1e_1) + \gamma_{3k}^T(b - C\bar{d}_k) \leq s_k, \quad k = 1,\dots, K\\
+& -\bar{d}_k^T(c) + \gamma_{4k}^T(b - C\bar{d}_k) \leq s_k, \quad k = 1,\dots, K\\
+	 & \left\| -C^T\gamma_{1k} \right\|_2 \leq \lambda_{k}, \quad k = 1,\dots, K\\
+	 & \left\| -C^T\gamma_{2k}+ c_1 e_1 \right\|_2 \leq \lambda_{k}, \quad k = 1,\dots, K\\
+	 & \left\| -C^T\gamma_{3k}+ c_2 e_2\right\|_2 \leq \lambda_{k}, \quad k = 1,\dots, K\\
+	 & \left\| -C^T\gamma_{4k}+ c \right\|_2 \leq \lambda_{k}, \quad k = 1,\dots, K\\
+	 & \gamma_{jk} \geq 0, \quad j = 1,\dots,4, \quad k = 1,\dots, K\\
+	 & z \geq 0
+	\end{array}
+\end{equation*}
+We have variables $z \in \reals^{n}$,$s_{k} \in \reals$, $\lambda \in \reals$, $\gamma_{jk} \in \reals^{m}$, for $j = 1,\dots,4$ and $k= 1,\dots,K$.
+The $\gamma$ variables arise from enforcing the support. We denote $e_1 = (1,0)$ and $e_2 = (0,1)$.}
+
+\reviewChanges{
+For this problem, we consider the effects of outliers on the performance of \gls{MRO}. Therefore, we consider the data to have an outlier at $(0,0)$, the worst-case value of the support set. In Figure~\ref{fig:news}, we show a set of generated data along with this outlier point. }
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.6\textwidth]{news_outliers.pdf}
+	\caption{Newsvendor. Datapoints and the outlier at (0,0). }%
+	\label{fig:news}%
+\end{figure}
+
+\reviewChanges{
+We consider three ways to solve the problem, decribed as follows. 
+\begin{enumerate}
+	\item \gls{MRO}, where we directly apply \gls{MRO} to the dataset with the outlier.
+	\item ROB-\gls{MRO}, where we perform preliminary analysis on the dataset to remove the outlier point, then apply \gls{MRO} to the cleaned dataset. 
+	\item AUG-\gls{MRO}, where we perform the clustering step on data without the outlier, then define an augmented distribution supported on $K+1$ points, where the extra point is the outlier point (0,0), with weight $1/N$. The weights of the other clusters are ajusted accordingly. 
+\end{enumerate}}
+
+
+
+\reviewChanges{
+\paragraph{Problem setup.}%
+To generate data, we set $N = 100$ data samples. We assume demand is supported between 0 and 40, which we write as $Cu\leq b$, where $C = [-I\; I]^T$ and $b = (0,0,0,0,40,40,40,40)$. We allow non-integer demand to allow for more variance in the data.
+We generate the demand from a log-normal distribution, where the underlying normal distribution has parameters
+\begin{equation*}
+	\mu =
+\left[ \begin{array}{l} 3.0 \\
+2.8 \end{array} \right],\quad \Sigma =
+\left[\begin{array}{ll} \phantom{-}0.3 & -0.1\\
+-0.1 & \phantom{-}0.2 \end{array} \right],
+\end{equation*}
+and take the minimum between the generated values and 40. For the upper bound $\delta(K,y,\gamma)$ on  $\bar{g}^N(z) - \bar{g}^K(z)$ from Corollary~\ref{cor:maxaffine}, we have $(1/N)\sum_{k=1}^K \sum_{i \in C_k}  \max_{j\leq 4}((-\tilde{c}_j -C^T\gamma_{jk})^T(d_i - \bar{d}_k))$, where $\tilde{c}_1 = 0,~ \tilde{c}_2 = c_1e_1,~\tilde{c}_3 = c_2e_2,~\tilde{c}_4 = c$.}
+
+\reviewChanges{
+\paragraph{Choosing $K$}
+Plotting the clustering value $D(K)$ over $K$, for the dataset both with and without the outlier, we note an elbow at around $K=5$, though not very prominent. The recommendation is setting $K$ around 5, to be fine tuned through cross-validation.}
+
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=0.8\textwidth]{news_k.pdf}
+	\caption{Newsvendor. $D(K)$ vs. $K$. Dotted red line: $K = 5$.}%
+	\label{fig:newsk}%
+\end{figure}
+\reviewChanges{
+\paragraph{Results.}
+In Figure~\ref{fig:news2}, we compare the in and out-of-sample objective values of the three methods, and note their similar performance. While setting $K=1$ yields suboptimal results, we note that for $K=5$ and above, we can achieve similar performance as setting $K=100$. To examine the effect of the outlier more closely, in Figures~\ref{fig:newscomp} and~\ref{fig:newscomp2}, we compare, for $K=10$ and $K=100$, the objectives and tradeoff curves for the three methods. We note that, when the outlier is averaged with other datapoints, the final in-sample objective may be improved, as the centroid moves closer to the non-outlier points. We observe this in Figure~\ref{fig:newscomp}, where \gls{MRO}, in which the outlier may be clustered with other points, offers a lower in-sample objective than AUG-\gls{MRO}, in which the outlier is considered its own cluster. \gls{MRO} has in fact offered protection against the outlier.  Lastly, as expected, ROB-\gls{MRO}, where the outlier point is removed, yields the best in-sample results. Regardless of the method, we note that the final out-of-sample tradeoff curves are near-identical. Comparing Figures~\ref{fig:newscomp} and~\ref{fig:newscomp2}, we note that the difference between \gls{MRO} and ROB-\gls{MRO} for $K=10$ is not larger than the difference for $K=N=100$, which shows that, while removing outliers before solving the problem may be helpful, the effect of outliers will not be worse for \gls{MRO} compared to classic Wasserstein \gls{DRO}.} 
+
+\reviewChanges{We note in Figure~\ref{fig:news3} that the upper bound on $\bar{g}^N(z) - \bar{g}^K(z)$, given in Corollary~\ref{cor:maxaffine}, holds for \gls{MRO}.
+We again note that bounds we observe do not depend on $\bar{g}^{N*}(z)$, so it is irrelevant whether or not the support has an affect on the worst-case constraint value.
+Regardless, we see that the support only minimally affects the worst-case constraint value, at only at higher values of $\epsilon$.
+Overall, choosing $K=5$, we obtain an order of magnitude computational speed-up.}
+
+\section{Conclusions}
+\label{sec:conclusions}
+We have presented \glsentryfull{MRO}, a data-driven methodology for decision-making under uncertainty that bridges robust and distributionally robust optimization while preserving rigorous probabilistic guarantees.
+Bh clustering the dataset, we solve an efficient and computationally tractable formulation with limited performance degradation.
+In particular, we showed that when the constraints are affine in the uncertainty, clustering does not affect the optimal value of the objective.
+\reviewChanges{When the constraint is concave or maximum-of-concave in the uncertainty, we directly quantified the change in worst-case constraint value that is caused by clustering. For problems with objective uncertainty, this directly bounds the change in the optimal value caused by clustering. }
+% This is especially the case when the uncertainty constraint is affine in the uncertain parameter, as then the conservatism of the solution is completely unaffacted by clustering.
+%We demonstrated this result through a set of applications, and showed significant time-reduction in both continuous and mixed-integer formulations, where traditional Wasserstein \gls{DRO} is known to be computationally expensive.
+We demonstrated this result through a set of numerical examples, where we observed the possibility of tuning the size of the uncertainty set such that using a small number of clusters achieves near-identical performance of traditional \gls{DRO}, with much higher computational efficiency.
+\reviewChanges{In the final example, we also demonstrated that \gls{MRO} offers protection against outliers compared to Wasserstein \gls{DRO}.}
+% A work in-progress is the extension of this idea: after we reduce the problem complexity, it becomes intuitive to utilize an automatic tuning procedure to learn the optimal epsilon, as opposed to the current grid-search and cross validation procedure.
+
+\begin{figure}[H]%
+	\centering
+	\includegraphics[width=\textwidth]{newstop.pdf}
+	\includegraphics[width=\textwidth]{newstop_out.pdf}
+	\includegraphics[width=\textwidth]{newstop_supp.pdf}
+	\caption{Newsvendor. Left: in-sample objective values vs $\epsilon$ for different $K$. Right: objective value vs $\beta$ for different $K$; each point represents the solution for the $\epsilon$ achieving the smallest objective value.  $K = 100^*$ is the formulation without the support constraint. Top: \gls{MRO}. Middle: ROB-\gls{MRO}. Bottom: AUG-\gls{MRO}.}%
+	\label{fig:news2}%
+\end{figure}
+
+
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{newscomp.pdf}
+	\caption{Newsvendor. Left: in-sample objective values vs $\epsilon$ for  $K=10$. Right: objective value vs $\beta$ for $K=10$.}%
+	\label{fig:newscomp}%
+\end{figure}
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{newscomp100.pdf}
+	\caption{Newsvendor. Left: in-sample objective values vs $\epsilon$ for  $K=100$. Right: objective value vs $\beta$ for $K=100$.}%
+	\label{fig:newscomp2}%
+\end{figure}
+
+
+\begin{figure}[h]%
+	\centering
+	\includegraphics[width=\textwidth]{newsbot.pdf}
+	\caption{Newsvendor. Left: the difference in the value of the uncertain objective between using $N$ and $K$ clusters, calculated as $\bar{g}^N(z) - \bar{g}^K(z)$, compared with the theoretical upper bound $\delta(K,y,\gamma)$ from Corollary~\ref{cor:maxaffine}. Solid lines are the difference, dotted lines are the upper bounds. Right: solve time. }%
+	\label{fig:news3}%
+\end{figure}
+
