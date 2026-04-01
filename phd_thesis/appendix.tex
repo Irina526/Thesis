@@ -580,7 +580,7 @@ We have that
 \label{app:dual_limit}
 
 \begin{theorem}
-  Let $S$ be a bounded set.
+  Let $\supp$ be a bounded set.
   Define here
   \begin{equation}
     \label{eq:def:barf}
@@ -728,7 +728,7 @@ We have that
     =  & \lim_{t\to\infty} \sum_{k=1}^K w_k \tilde s_k^t\\
     \reviewChanges{=} & \lim_{t\to\infty} \sum_{k=1}^Kw_k\left([-g]^*(\tilde y^t_{k} - \tilde h^t_{k}) + \sigma_{\supp}(\tilde h^t_{k}) - (\tilde y^t_{k})^T{d}_k  +\epsilon \left\|\tilde y^t_{k} \right\|_* D\left(\tfrac{p_t}{(p_t-1)}\right)\right)\\
     \leq &\lim_{t\to\infty} \sum_{k=1}^Kw_k\left([-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k  +\epsilon \left\|y^t_{k} \right\|_* D\left(\tfrac{p_t}{(p_t-1)}\right)\right)\\
-                                            & \qquad  + \sum_{k=1}^Kw_k\left(\max_{s\in S} \norm{s}+\norm{d_k}+\epsilon D\left(\tfrac{p_t}{(p_t-1)}\right) \right)/t\\
+                                            & \qquad  + \sum_{k=1}^Kw_k\left(\max_{s\in \supp} \norm{s}+\norm{d_k}+\epsilon D\left(\tfrac{p_t}{(p_t-1)}\right) \right)/t\\
     \leq &\lim_{t\to\infty} \sum_{k=1}^Kw_k\left([-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k  +\epsilon \left\|y^t_{k} \right\|_* D\left(\tfrac{p_t}{(p_t-1)}\right)\right)\\
     \reviewChanges{=} &\lim_{t\to\infty} \sum_{k=1}^Kw_k([-g]^*(y^t_{k} - h^t_{k}) + \sigma_{\supp}(h^t_{k}) - (y^t_{k})^T{d}_k  \\
 		& \qquad +\epsilon \left\|y^t_{k} \right\|_* + \epsilon \left\|y^t_{k} \right\|_* \left(D\left(\tfrac{p_t}{(p_t-1)}\right)-1\right))\\
@@ -739,8 +739,8 @@ We have that
   To establish the third inequality observe first that $-(\tilde y^t_{k})^T{d}_k = -(y^t_{k})^T{d}_k - (\tilde y^t_k-y^t_k)^Td_k\leq -(y^t_{k})^T{d}_k + \norm{\tilde y^t_k-y^t_k}_* \norm{d_k}\leq -(y^t_{k})^T{d}_k + \norm{d_k}/t$. \reviewChanges{Second, remark that we have 
     \begin{align*}
       \sigma_{\supp}(\tilde h^t_{k}) = & \sigma_{\supp}(h^t_{k}+(\tilde y^t_k-y_k^t)) \\
-      \leq & \max_{s\in S} s^T(h^t_{k}+(\tilde y^t_k-y_k^t)) \\
-      \leq & \max_{s\in S} s^Th^t_{k}+\max_{s\in S} s^T(\tilde y^t_k-y_k^t)\leq \norm{s}\norm{\tilde y^t_k-y_k^t}_* \leq 1/t \max_{s\in S} \norm{s} .
+      \leq & \max_{s\in \supp} s^T(h^t_{k}+(\tilde y^t_k-y_k^t)) \\
+      \leq & \max_{s\in \supp} s^Th^t_{k}+\max_{s\in \supp} s^T(\tilde y^t_k-y_k^t)\leq \norm{s}\norm{\tilde y^t_k-y_k^t}_* \leq 1/t \max_{s\in \supp} \norm{s} .
     \end{align*}
     as $\norm{\tilde y_t-y_t}\leq 1/t$.
   }
@@ -897,7 +897,7 @@ where we have applied triangle inequality, Jensen's inequality for the convex fu
 }
 
 Since we have shown that the $u_k$'s satisfies the constraints for~\eqref{eq:cluster_one}, it is a feasible solution. We now show that for this pair of feasible solutions, in terms of the objective value, $\bar{g}^K(z) \geq \bar{g}^N(z)$.
-Bh assumption, $g$ is concave in the uncertain parameter, so by Jensen's inequality,
+Byassumption, $g$ is concave in the uncertain parameter, so by Jensen's inequality,
 \begin{align*}
 \sum_{k = 1}^K \frac{|C_k|}{N} g \left(\frac{1}{|C_k|}\sum_{i \in C_k}v_i, z\right) &\geq  \sum_{k = 1}^K \frac{|C_k|}{N} \frac{1}{|C_k|}\sum_{i \in C_k} g(v_i)\\
 \sum_{k = 1}^K \frac{|C_k|}{N}g(u_k,z) &\geq \frac{1}{N}\sum_{i \in N} g(v_i).
@@ -1024,7 +1024,7 @@ Substituting this back into the expression for the conjugate, we have, for each 
 	&\hspace{4cm} - F_{jt}(tF_{jt}z_j(-h{jt})^{-1})^{-t/(t+1)}\\
 &= -h_{jt} - ((-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)})(t^{1/(t+1)} + t^{-1/(t+1)}),
 	\end{align*}
-after combining terms. Note that $-(-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)}$ can be replaced by an auxiliary variable $\delta_{jtk} \leq 0$, by introducing the power cone constraint $(-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)} \geq |\delta_{jtk} |$. Bh substituting these results into~\eqref{eq:robustopt_p} and further vectoring some constraints, we arrive at the desired formulation.
+after combining terms. Note that $-(-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)}$ can be replaced by an auxiliary variable $\delta_{jtk} \leq 0$, by introducing the power cone constraint $(-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)} \geq |\delta_{jtk} |$. Bysubstituting these results into~\eqref{eq:robustopt_p} and further vectoring some constraints, we arrive at the desired formulation.
 
 \chapter{Proofs for Online Distributionally Robust Optimization}
 \label{app:online_dro}
@@ -1033,10 +1033,10 @@ after combining terms. Note that $-(-h_{jt})^{t/(t+1)}(F_{jt}z_j)^{1/(t+1)}$ can
 
 \label{app:gen_proofs}
 \begin{proof}[Proof of Lemma~\ref{lem:delta}]
-    For all $t$, let $\tilde{\mathbf{Q}}_t \in  \tilde{\mathbf{B}}_{\epsnom_t}^{r}(\hat{\prob}_t)$ and $\mathbf{Q}_t \in  \mathcal{P}_t$. Bh~\cite[Lemma 3.7]{mohajerin2018data}, we observe {$\prob^{\infty}\{ \lim_{t\to\infty}\tilde{\mathbf{Q}}_t \rightarrow  \prob\}=1$} and $\prob^{\infty}\left\{ \lim_{t\to\infty}\mathbf{Q}_t \rightarrow \prob \right \}=1$. \RC{The first result follows. 
+    For all $t$, let $\tilde{\mathbf{Q}}_t \in  \tilde{\mathbf{B}}_{\epsnom_t}^{r}(\hat{\prob}_t)$ and $\mathbf{Q}_t \in  \mathcal{P}_t$. By~\cite[Lemma 3.7]{mohajerin2018data}, we observe {$\prob^{\infty}\{ \lim_{t\to\infty}\tilde{\mathbf{Q}}_t \rightarrow  \prob\}=1$} and $\prob^{\infty}\left\{ \lim_{t\to\infty}\mathbf{Q}_t \rightarrow \prob \right \}=1$. \RC{The first result follows. 
     If $f$ is Lipschitz, by the Kantorovich-Rubinstein duality~\cite{kantorovich_duality}, and by noting $W_1(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)\leq W_r(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t) \leq 2\epsnom_{t}$ (by the ordering of Wasserstein distances and the triangle inequality), we obtain $\Delta_t\leq 2\max_{j\leq J}M_j \epsnom_{t}$.}
     \RC{If $f$ is $L$-smooth, then by the descent lemma and~\eqref{eq:wass_dist}, 
-    $\mathbf{E}_{\mathbf{\tilde{Q}_t}}[f(\unc, z_{t})] - \mathbf{E}_{\mathbf{{Q}_t}}[f(\unc, z_{t})] \leq \inf_{\pi \in \Pi(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)}\int_{S\times S} \nabla f(v,z_t)^T(u-v)d\pi(u,v) + (L/2)W_2(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)^2.$ Bh the Cauchy-Schwartz inequality and H\"{o}lder's inequality with order 2, the integral is upper bounded by $(\textstyle \int \|\nabla f(v,z_t)\|^2d{\mathbf{Q}}_t)^{1/2} (\int \|u-v\|^2d\pi(u,v))^{1/2} = \|\nabla f_{z_t}\|_{L_2({\mathbf{Q}}_t)}W_2(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)$. When $r\geq 2$, this simplifies to $\Delta_t \leq \|\nabla f_{z_t}\|_{L_2({\mathbf{Q}}_t)}2\epsnom_t + 2L\epsnom_t^2$. The result follows.}
+    $\mathbf{E}_{\mathbf{\tilde{Q}_t}}[f(\unc, z_{t})] - \mathbf{E}_{\mathbf{{Q}_t}}[f(\unc, z_{t})] \leq \inf_{\pi \in \Pi(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)}\int_{S\times S} \nabla f(v,z_t)^T(u-v)d\pi(u,v) + (L/2)W_2(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)^2.$ Bythe Cauchy-Schwartz inequality and H\"{o}lder's inequality with order 2, the integral is upper bounded by $(\textstyle \int \|\nabla f(v,z_t)\|^2d{\mathbf{Q}}_t)^{1/2} (\int \|u-v\|^2d\pi(u,v))^{1/2} = \|\nabla f_{z_t}\|_{L_2({\mathbf{Q}}_t)}W_2(\tilde{\mathbf{Q}}_t,\mathbf{Q}_t)$. When $r\geq 2$, this simplifies to $\Delta_t \leq \|\nabla f_{z_t}\|_{L_2({\mathbf{Q}}_t)}2\epsnom_t + 2L\epsnom_t^2$. The result follows.}
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:nominal_performance}]
@@ -1166,9 +1166,9 @@ We use this to prove Theorem~\ref{thm:regret} and its corollaries.
 We examine the terms in $R(T,K)$ individually, for a finite value $T \gg \tau$.
 As we assume the Lipschitz condition, we use the corresponding terms in $\underline{\psi}^K_{t}$ and $\bar{\psi}^K_t$ as the upper bounds. 
 % We first examine the terms on the right-hand-side of the minimum clauses. 
-Bh assumption, $\epsnom_t\sim (\log(\beta_t^{-1})/t)^{1/m}$, so their averages are $O((\log(\beta_T^{-1})/T)^{1/m}).$
+Byassumption, $\epsnom_t\sim (\log(\beta_t^{-1})/t)^{1/m}$, so their averages are $O((\log(\beta_T^{-1})/T)^{1/m}).$
 Note that by the summability of $\beta_t$, the convergence rate of $\beta_t$ is at least sublinear. 
-Next, recall by the triangle inequality,  $$d^K_{t,1} \leq W_1(\hat{\prob}_t,\prob) + W_1(\prob,\prob^K_\star) + W_1(\prob^K_\star,\prob^K_{t}).$$ Bh Theorem~\ref{thm:measure_gen}, we can construct a summable sequence $\beta_t$ such that $\prob(W_1(\hat{\prob}_t,\prob) \leq \epsnom_t) \geq  1-\beta_t$, where $\epsnom_t$ is the same as above. Bh Theorem~\ref{lem:conditional_Conv}, a similar result holds for $W_1(\prob^K_\star,\hat{\prob}^K_t)$, with a sequence of radii $\tilde{\epsnom}_t\leq O(\epsnom_t)$ for $t \geq \tau$. Since $T \gg \tau$, the finite values $\tilde{\epsnom}_t/T$ for $t\leq \tau$ are dominated by $O(\epsnom_T)$.
+Next, recall by the triangle inequality,  $$d^K_{t,1} \leq W_1(\hat{\prob}_t,\prob) + W_1(\prob,\prob^K_\star) + W_1(\prob^K_\star,\prob^K_{t}).$$ ByTheorem~\ref{thm:measure_gen}, we can construct a summable sequence $\beta_t$ such that $\prob(W_1(\hat{\prob}_t,\prob) \leq \epsnom_t) \geq  1-\beta_t$, where $\epsnom_t$ is the same as above. ByTheorem~\ref{lem:conditional_Conv}, a similar result holds for $W_1(\prob^K_\star,\hat{\prob}^K_t)$, with a sequence of radii $\tilde{\epsnom}_t\leq O(\epsnom_t)$ for $t \geq \tau$. Since $T \gg \tau$, the finite values $\tilde{\epsnom}_t/T$ for $t\leq \tau$ are dominated by $O(\epsnom_T)$.
 Therefore, the terms involving $d^K_{t,1}$ and $d^K_{t-1,1}$ are together $O(W_1(\prob,\prob^K_\star) + \left(\log(\beta_{T}^{-1})/T\right)^{1/m})$, with probability at least $\Pi_{t=1}^{T}(1-\beta_t)^2$. This probability can be constructed to converge to a nonzero value due to the summability of $\beta_t$. 
 % Now, we note the terms on the left-hand-side of the minimum clauses. These terms quantify the distances between the empirical and the compressed empirical distributions, $\hat{\prob}_t$ and $\hat{\prob}^K_t$, at times $t$ and $t-1$. They converge to their asymptotic values at the convergence rates of $W_1(\hat{\prob}_t,\prob)$ and $W_1(\prob^K_\star,\prob^K_{t})$, which, as shown above, is $O(\epsnom_t)$. 
 % Overall, then, the sum of the two minimum clauses are bounded by $O\left(\underline{\psi}_\star^K + \bar{\psi}_\star^K\right)$ + $O(\epsnom_t)$.
@@ -1202,7 +1202,7 @@ The result for $K \rightarrow \infty$ follows from Theorem~\ref{thm:clustering_c
 \label{app:bounded_perf_1}
 \begin{proof}[Proof of Lemma~\ref{lem:dist}]
 % Let the center of the $k$-th cluster be $a^k$.
-Bh definition of the Wasserstein metric,
+Bydefinition of the Wasserstein metric,
 \begin{equation*}
 \begin{aligned}
 (\ld^K_{t,p})^p = W_p(\hat{\prob}_t, \hat{\mathbf{P}}^K_t)^p & = \inf_{\pi \in \Pi}\left \{\int_{{\supp}^2} \|\unc - \unc^\prime\|^p\pi(d\unc, d\unc^\prime)\right\}\\
@@ -1235,7 +1235,7 @@ $\lim_{t \rightarrow \infty} 2\eps_{t} = 4\eta_K$, we conclude $\lim_{t\rightarr
 
 
 \begin{proof}[Proof of Theorem~\ref{thm:asy_eta}]
-Bh the finite sample performance guarantee in Theorem~\ref{lemma:guarantees_fin} and the summability of $\beta_t$, the Borel–Cantelli Lemma implies that $$ \mathbf{P}^\infty\left\{ H_\star \leq \limsup_{t \rightarrow \infty } \Expect_\prob[f(\unc,z^K_{t})]\leq  \limsup_{t \rightarrow \infty } H^K_t\right\} = 1.$$
+Bythe finite sample performance guarantee in Theorem~\ref{lemma:guarantees_fin} and the summability of $\beta_t$, the Borel–Cantelli Lemma implies that $$ \mathbf{P}^\infty\left\{ H_\star \leq \limsup_{t \rightarrow \infty } \Expect_\prob[f(\unc,z^K_{t})]\leq  \limsup_{t \rightarrow \infty } H^K_t\right\} = 1.$$
 Now, choose any $\gamma >0$, and fix a $\gamma$-optimal solution $z_{\gamma} \in \mathcal{Z}$ of~\eqref{eq:opt} such that $\Expect_{\prob}[f(z_{\gamma},u)] \leq H_\star + \gamma$. For each $t$, we choose a $\gamma$-optimal distribution $\mathbf{Q}_t \in \mathcal{P}^{t-1}$ such that $ \sup_{\mathbf{Q} \in \mathcal{P}^{t-1}}\Expect_{\mathbf{Q}}[f(z_{\gamma},u)] \leq \Expect_{\mathbf{Q}_t}[f(z_{\gamma},u)] + \gamma.$
 Then, we observe that
 \begin{equation*}
@@ -1368,16 +1368,16 @@ $$g(z,u) = \max_{l=1,\dots,L} g_l(z,u), \qquad g(z,u) = \max_{l=1,\dots,L} (P_l(
 
 \paragraph{Box and Ellipsoidal uncertainty.}
 The ellipsoidal uncertainty set is defined as
-\RC{$$ \uncset(\theta,x) = \left\{u = A(x)v+b(x) \mid \| v\|_p \leq 1,\quad u \in S\right\},$$
+\RC{$$ \uncset(\theta,x) = \left\{u = A(x)v+b(x) \mid \| v\|_p \leq 1,\quad u \in \supp\right\},$$
 where $A(x)\in \reals^{m\times \hat{m}}$, $b(x)\in \reals^{m}$, $p \in \reals$}
 % \bsnote{sets should go outside the definition of $\theta$. Also, I do not think $\theta$ includes $p$ here since this is not something we tune. I have no idea how $p$ could be a differentiable parameter of the robust counterpart.}
-, and $S$ includes additional support information such as upper and lower bounds. We let $p$ be the order of the norm, which is any integer value $\geq 1$, or equal to $\infty$. In the latter case, this becomes the box uncertainty set. The trainable parameter \RC{$\theta = (A(\cdot),b(\cdot))$, the mapping from the context parameter to the reshaping matrices.} Note that if $A = \rho I$, $b = 0$, and~$S = \reals^m$, this is equivalent to the traditional ellipsoidal uncertainty set ${ \{ u \mid\| u\|_p \leq \rho \}}$. 
+, and $\supp$ includes additional support information such as upper and lower bounds. We let $p$ be the order of the norm, which is any integer value $\geq 1$, or equal to $\infty$. In the latter case, this becomes the box uncertainty set. The trainable parameter \RC{$\theta = (A(\cdot),b(\cdot))$, the mapping from the context parameter to the reshaping matrices.} Note that if $A = \rho I$, $b = 0$, and~$\supp = \reals^m$, this is equivalent to the traditional ellipsoidal uncertainty set ${ \{ u \mid\| u\|_p \leq \rho \}}$. 
 For the maximum of concave constraint, we have the following reformulation,
 % The proofs are in Appendix~\ref{apx:boxproof}. 
 \begin{equation*}
 	\begin{array}{ll}
 	\text{minimize} & f(z)\\
-	\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b\RC{(x)}^T(h_l + \omega_l) + \|A\RC{(x)}^T(h_l + \omega_l) \|_q \leq 0, \quad l = 1,\dots,L,
+	\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_\supp(\omega_l)  -b\RC{(x)}^T(h_l + \omega_l) + \|A\RC{(x)}^T(h_l + \omega_l) \|_q \leq 0, \quad l = 1,\dots,L,
 	\end{array}
 	\end{equation*}
 with auxiliary variables $\omega_l, h_l \in \reals^m$ for $l = 1,\dots,L$, and $g^\star(z,h)$ the conjugate function. This result follows from the theorem of infimal convolutions and composites for conjugate functions~\citep{rockafellar_wets_1998},~\citep{composites}. In the special (maximum of affine) case, we instead have
@@ -1385,19 +1385,19 @@ with auxiliary variables $\omega_l, h_l \in \reals^m$ for $l = 1,\dots,L$, and $
 	\label{eq:ellip_max}
 	\begin{array}{ll}
 		\mbox{minimize} & f(z)\\
-		\mbox{subject to} & a_l(z) + \sigma_S(\omega_l)+ b\RC{(x)}^T(P_l(z) - \omega_l) +  \|A\RC{(x)}^T(\omega_l -P_l(z))\|_q \le 0, \quad l = 1,\dots,L.	\end{array}
+		\mbox{subject to} & a_l(z) + \sigma_\supp(\omega_l)+ b\RC{(x)}^T(P_l(z) - \omega_l) +  \|A\RC{(x)}^T(\omega_l -P_l(z))\|_q \le 0, \quad l = 1,\dots,L.	\end{array}
 \end{equation*}
 
 \paragraph{Budget uncertainty.}
 The budget uncertainty set requires both box and ellipsoidal constraints,
-\RC{$$ \uncset_{\text{bud}}(\theta,x) = \{u = A\RC{(x)}v+b\RC{(x)} \mid \| v\|_\infty \leq \rho_1, \quad \| v \|_1 \leq \rho_2, \quad u \in S\},$$
+\RC{$$ \uncset_{\text{bud}}(\theta,x) = \{u = A\RC{(x)}v+b\RC{(x)} \mid \| v\|_\infty \leq \rho_1, \quad \| v \|_1 \leq \rho_2, \quad u \in \supp\},$$
 where $\theta = (A(\cdot),b(\cdot), \rho_1, \rho_2)$.}
 % For the two types of constraints, we have the following reformulations. The proofs are in Appendix~\ref{apx:budproof}. For max of concave:
 For the maximum of concave constraint, we have the following reformulation.
 \begin{equation*}
 	\begin{array}{ll}
 		{\text{minimize}} & f(z) \\
-		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b\RC{(x)}^T(h_l + \omega_l) + \rho_1\|r_l - A\RC{(x)}^T(h_l + \omega_l)\|_1  + \rho_2\|r_l\|_\infty \leq 0,\\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_\supp(\omega_l) -  b\RC{(x)}^T(h_l + \omega_l) + \rho_1\|r_l - A\RC{(x)}^T(h_l + \omega_l)\|_1  + \rho_2\|r_l\|_\infty \leq 0,\\
 		&\hfill \quad l =  1, \dots,L,	\end{array}
 	\end{equation*}
 with $r_l \in \reals^{\hat{m}}$, $\omega_l, h_l \in \reals^m$ for $l = 1,\dots,L$ as auxiliary variables. The maximum of affine reformulation is 
@@ -1405,7 +1405,7 @@ with $r_l \in \reals^{\hat{m}}$, $\omega_l, h_l \in \reals^m$ for $l = 1,\dots,L
 	\label{eq:budget_max}
 	\begin{array}{ll}
 		\mbox{minimize} & f(z)\\
-		\mbox{subject to} &  a_l(z) + \sigma_S(\omega_l) + b\RC{(x)}^T(P_l(z) - \omega_l) + \rho_1\|r_l - A\RC{(x)}^T(P_l(z) +\omega_l)\|_1 + \rho_2\|r_l\|_\infty \leq 0,\\
+		\mbox{subject to} &  a_l(z) + \sigma_\supp(\omega_l) + b\RC{(x)}^T(P_l(z) - \omega_l) + \rho_1\|r_l - A\RC{(x)}^T(P_l(z) +\omega_l)\|_1 + \rho_2\|r_l\|_\infty \leq 0,\\
 		&\hfill \quad l = 1,\dots,L.
 	\end{array}
 \end{equation}
@@ -1413,7 +1413,7 @@ with $r_l \in \reals^{\hat{m}}$, $\omega_l, h_l \in \reals^m$ for $l = 1,\dots,L
 \paragraph{Polyhedral uncertainty.}
 The polyhedral uncertainty set is defined as
 \RC{\begin{equation*}
-    \uncset(\theta) = \{ u = A\RC{(x)}v+b\RC{(x)} \mid Dv \leq d, \quad u \in S\},\end{equation*}
+    \uncset(\theta) = \{ u = A\RC{(x)}v+b\RC{(x)} \mid Dv \leq d, \quad u \in \supp\},\end{equation*}
 where $\theta = (A(\cdot),b(\cdot),D,d)$.}
 % For the two types of constraints, we have the following reformulations. 
 % The proofs are in Appendix~\ref{apx:polyproof}. 
@@ -1422,7 +1422,7 @@ For the maximum of concave constraint, we have the following reformulation.
 \begin{equation*}
 \begin{array}{ll}
 	{\text{minimize}} & f(z)\\
-	\mbox{subject to} & [-g_l]^\star(z,\omega_l) - b\RC{(x)}^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq 0, \quad l = 1,\dots,L\\
+	\mbox{subject to} & [-g_l]^\star(z,\omega_l) - b\RC{(x)}^T(\omega_l + \gamma_l) + \sigma_\supp(\gamma_l) \leq 0, \quad l = 1,\dots,L\\
 	 &A\RC{(x)}^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L.
 \end{array}
 \end{equation*}
@@ -1460,7 +1460,7 @@ For the maximum of concave constraint, we have the following reformulation,
 	\begin{array}{ll}
 	{\text{minimize}} & f(z)\\
 	\mbox{subject to} &\lambda \rho^p + \sum_{k=1}^K w_k s_k \leq 0\\
-	 & [-g_l]^\star(x,h_{lk}) -b\RC{(x)}^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A\RC{(x)}^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+	 & [-g_l]^\star(x,h_{lk}) -b\RC{(x)}^T(h_{lk} + \omega_{lk}) + \sigma_\supp(\omega_{lk}) - (A\RC{(x)}^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
 & \qquad \qquad + \phi(q)\lambda \left\|A\RC{(x)}^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\quad  l = 1,\dots,L, \quad k = 1,\dots,K\\
 & \lambda \geq 0.
 	\end{array}
@@ -1473,7 +1473,7 @@ with auxiliary variables  $s, h_{lk}, \omega_{lk} \in \reals^m$ for $j = 1,\dots
 		\begin{array}{ll}
 			\text{minimize } & f(z)\\
 			\mbox{subject to} & \lambda\rho^p  + \sum_{k=1}^{K} w_{k} s_{k}  \le 0\\
-			& a_l(z) + \sigma_S(\omega_{lk}) - b\RC{(x)}^T(\omega_{lk} - P_l(x)) - (A\RC{(x)}^T(\omega_{lk} - P_l(z)))^T\bar{d}_k \\
+			& a_l(z) + \sigma_\supp(\omega_{lk}) - b\RC{(x)}^T(\omega_{lk} - P_l(x)) - (A\RC{(x)}^T(\omega_{lk} - P_l(z)))^T\bar{d}_k \\
    &\qquad \qquad + \phi(r)\lambda \left\|A\RC{(x)}^T(\omega_{lk} - P_l(z))/\lambda \right\|^r_q \leq s_k, \quad l = 1,\dots, L, \quad k = 1,\dots, K\\
 			& \lambda \geq 0.
 		\end{array}
@@ -1786,10 +1786,10 @@ We thus converge to a stationary point of the constraint violation function, as 
 \section{Direct reformulation for~\eqref{eq:bilevel_sampled}}
 \label{appx:bilinear}
 We can directly reformulate the bi-level problem into a single-level problem using the KKT conditions. 
-At a fixed $\theta$ and for any context $x_i$, the inner level problem~\eqref{eq:robust_prob} with respect to the $1$-norm uncertainty set with a polyhedral support $S=\{u \in \reals^m~|~Cu \leq d \}$, that is, 
+At a fixed $\theta$ and for any context $x_i$, the inner level problem~\eqref{eq:robust_prob} with respect to the $1$-norm uncertainty set with a polyhedral support $\supp=\{u \in \reals^m~|~Cu \leq d \}$, that is, 
 \begin{equation*}
 \label{unc_set}
-    \uncset(\theta,x) = \left\{u = A(x)v+b(x) \mid \|v\|_1 \leq \rho ,~ u \in S\right\},
+    \uncset(\theta,x) = \left\{u = A(x)v+b(x) \mid \|v\|_1 \leq \rho ,~ u \in \supp\right\},
 \end{equation*} 
 can be reformulated as follows:
 \begin{equation*}
@@ -1923,7 +1923,7 @@ This formulation includes bilinear terms $b(x_i)^Tv_{il}$, $A(x_i)^Tv_{il}$, and
 % 	\label{eq:ellip_quad}
 % 	\begin{array}{lll}
 % 		\Phi(\theta) = &\mbox{argmin} & f(x)\\
-% 		&\mbox{subject to} & (1/2)\sum_{i=1}^n (h_i^TP_i^{-1}h_i)/x_i - b^Th_i + \sigma_S(\omega) - b^T\omega + \|\sum_{i=1}^n A^Th_i + A^T\omega\|_q \le 0\\		&& x \geq 0,
+% 		&\mbox{subject to} & (1/2)\sum_{i=1}^n (h_i^TP_i^{-1}h_i)/x_i - b^Th_i + \sigma_\supp(\omega) - b^T\omega + \|\sum_{i=1}^n A^Th_i + A^T\omega\|_q \le 0\\		&& x \geq 0,
 % 	\end{array}
 % \end{equation}
 % where we have $ \omega \in \reals^n, h_i \in \reals^n$, $i = 1,\dots,n$, as auxiliary variables.
@@ -1961,24 +1961,24 @@ We also consider the maximum of concave functions, $$g(z,u) = \max_{l=1,\dots,L}
 Rewriting the robust constraint as optimization problem, we have
 {\allowdisplaybreaks \begin{align*}
 & \begin{array}[t]{ll}
-	\underset{Av+b\in S}{\sup} & g(z,Av+b) \\
+	\underset{Av+b\in \supp}{\sup} & g(z,Av+b) \\
 	\mbox{subject to} & \|v\|_p \le 1
 \end{array}\\
 &= \begin{array}[t]{ll}
-	\underset{Av+b\in S}{\sup}  ~\underset{\lambda \geq 0}{\inf}~g(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
+	\underset{Av+b\in \supp}{\sup}  ~\underset{\lambda \geq 0}{\inf}~g(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
 	\end{array}\\
 	&= \begin{array}[t]{ll}
-	\underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~\underset{l}{\max}~g_l(z,Av+b)  - \lambda\|v \|_p  + \lambda\\
+	\underset{Av+b\in \supp}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~\underset{l}{\max}~g_l(z,Av+b)  - \lambda\|v \|_p  + \lambda\\
 		\end{array}\\
 		&= \begin{array}[t]{ll}
-			\underset{l}{\max}~ \underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~g_l(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
+			\underset{l}{\max}~ \underset{Av+b\in \supp}{\sup} ~ \underset{\lambda \geq 0}{\inf}  ~g_l(z,Av+b)  - \lambda\| v\|_p  + \lambda\\
 				\end{array}\\
 			&= \begin{array}[t]{ll}
-					\underset{l}{\max}~ \underset{\lambda \geq 0}{\inf} ~ \underset{Av+b\in S}{\sup}~ g_l(z,Av+b)  - \lambda\| v \|_p  + \lambda\\
+					\underset{l}{\max}~ \underset{\lambda \geq 0}{\inf} ~ \underset{Av+b\in \supp}{\sup}~ g_l(z,Av+b)  - \lambda\| v \|_p  + \lambda\\
 						\end{array}\\
 &= \begin{array}[t]{ll}
 	\underset{\lambda_l \geq 0, \tau}{\inf} & \tau\\
-	\mbox{subject to} & \lambda_l + \underset{Av+b\in S}{\sup } g_l(z,Av+b) - \lambda_l  \|v \|_p \leq \tau, \quad l = 1,\dots,L,
+	\mbox{subject to} & \lambda_l + \underset{Av+b\in \supp}{\sup } g_l(z,Av+b) - \lambda_l  \|v \|_p \leq \tau, \quad l = 1,\dots,L,
 \end{array}
 \end{align*}}
 where $p = \infty$ for box uncertainty and $p \geq 1$ otherwise. We used the Lagrangian in the first equality, and decomposed $g(z,Av+b)$ into its constituents for the second equality. As $l$ and $\lambda$ are separable, in the third step we interchanged the $\inf$ and the $\max$. Next, for each $l$, as the expression is convex in $\lambda$ and concave in $u$, we used the Von Neumann-Fan minimax theorem to interchange the $\inf$ and the $\sup$. We then express the $\max$ in epigraph form by introducing an auxiliary variable $\tau$.
@@ -1986,12 +1986,12 @@ where $p = \infty$ for box uncertainty and $p \geq 1$ otherwise. We used the Lag
 Now, if we define the function $c(v) = \|v\|_p$, then using the definition of conjugate functions, we have, for each $l$, the left-hand-side of the constraint equal to
 \begin{equation*}
 \begin{aligned}
-		\lambda_l + [-g_l(z,A\cdot+b) +\chi_S(A\cdot+b) + \lambda_l c]^\star(0).\\
+		\lambda_l + [-g_l(z,A\cdot+b) +\chi_\supp(A\cdot+b) + \lambda_l c]^\star(0).\\
 \end{aligned}
 \end{equation*}
 We then borrow results from~\cite[Theorem 11.23(a), p. 493]{rockafellar_wets_1998},~\cite[Lemma C.9]{zhen2021mathematical}, and~\cite[Proposition 13.24]{composites} with regards to the inf-convolution of conjugate functions, the conjugate functions of norms, and the conjugate of linear compositions, to note
 \begin{align*}
-	[-g_l(z,A\cdot+b)   +\chi_S(A\cdot+b)+ \lambda_l c]^\star (0) =  \underset{\omega_l, h_l, y_l}{\inf} ([-g_l]^\star(z,h_l) &- b^T(h_l + \omega_l) + \sigma_S(\omega_l)+\indicator_{\|y_l\|_q \leq \lambda_l}\\
+	[-g_l(z,A\cdot+b)   +\chi_\supp(A\cdot+b)+ \lambda_l c]^\star (0) =  \underset{\omega_l, h_l, y_l}{\inf} ([-g_l]^\star(z,h_l) &- b^T(h_l + \omega_l) + \sigma_\supp(\omega_l)+\indicator_{\|y_l\|_q \leq \lambda_l}\\
   &+ \indicator_{A^T(h_l + \omega_l)= y_l}),
 \end{align*}
 where  $h_l\in\reals^{m}$, $y_l \in \reals^{\hat{m}}$, $\omega_l \in \reals^{m}$, and $q$ is the conjugate number of $p$. Substituting these back, we arrive at
@@ -1999,7 +1999,7 @@ where  $h_l\in\reals^{m}$, $y_l \in \reals^{\hat{m}}$, $\omega_l \in \reals^{m}$
 \begin{aligned}
 \begin{array}[t]{ll}
 \underset{z,\tau, h, \omega, y}{\inf} & \tau\\
-\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b^T(h_l + \omega_l) + \|y_l\|_q \leq \tau, \quad l = 1,\dots,L \\
+\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_\supp(\omega_l)  -b^T(h_l + \omega_l) + \|y_l\|_q \leq \tau, \quad l = 1,\dots,L \\
  & A^T(h_l + \omega_l)= y_l,  \quad l = 1,\dots,L.
 \end{array}
 \end{aligned}
@@ -2009,7 +2009,7 @@ Recall that this optimization problem upper bounds our original robust constrain
 	\begin{aligned}
 	\begin{array}[t]{ll}
 	\underset{z, h, \omega}{\text{minimize}} & f(z)\\
-	\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_S(\omega_l)  -b^T(h_l + \omega_l) + \|A^T(h_l + \omega_l) \|_q \leq 0, \quad l = 1,\dots,L.	\end{array}
+	\mbox{subject to} & [-g_l]^\star(z,h_l)+ \sigma_\supp(\omega_l)  -b^T(h_l + \omega_l) + \|A^T(h_l + \omega_l) \|_q \leq 0, \quad l = 1,\dots,L.	\end{array}
 	\end{aligned}
 	\end{equation*}
 
@@ -2019,18 +2019,18 @@ Rewriting the robust constraint as optimization problem, we have
 \begin{equation*}
 	\begin{aligned}
 & \begin{array}[t]{ll}
-	\underset{Az+b\in S}{\sup} & g(z,Av+b) \\
+	\underset{Az+b\in \supp}{\sup} & g(z,Av+b) \\
 	\mbox{subject to} & \| v \|_\infty \le \rho_1\\
 	 & \| v \|_1 \le \rho_2\\
 \end{array}\\
 &= \begin{array}[t]{ll}
-	\underset{Av+b\in S}{\sup}~ \underset{\lambda \geq 0}{\inf} ~\underset{l}{\max} ~ g_l(z,Av+b)  - \lambda_1\| v \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
+	\underset{Av+b\in \supp}{\sup}~ \underset{\lambda \geq 0}{\inf} ~\underset{l}{\max} ~ g_l(z,Av+b)  - \lambda_1\| v \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
 	\end{array}\\
  &=  \begin{array}[t]{ll}
-	\underset{l}{\max} ~\underset{Av+b\in S}{\sup} ~ \underset{\lambda \geq 0}{\inf} ~g_l(z,Av+b)  - \lambda_1\| z \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
+	\underset{l}{\max} ~\underset{Av+b\in \supp}{\sup} ~ \underset{\lambda \geq 0}{\inf} ~g_l(z,Av+b)  - \lambda_1\| z \|_\infty  + \lambda_1\rho_1 - \lambda_2\| v\|_1  + \lambda_2\rho_2\\
 	\end{array}\\
 	&= \begin{array}[t]{ll}
-		\underset{l}{\max}~\underset{\lambda \geq 0}{\inf}~\underset{Av+b\in S}{\sup} ~g_l(z,v)  - \lambda_1\| v\|_\infty  + \lambda_1\rho_1 - \lambda_2\| v \|_1  + \lambda_2\rho_2,\\
+		\underset{l}{\max}~\underset{\lambda \geq 0}{\inf}~\underset{Av+b\in \supp}{\sup} ~g_l(z,v)  - \lambda_1\| v\|_\infty  + \lambda_1\rho_1 - \lambda_2\| v \|_1  + \lambda_2\rho_2,\\
 		\end{array}\\
 \end{aligned}
 \end{equation*}
@@ -2039,7 +2039,7 @@ where we again used the Lagrangian, separated $g$ into its constituents, and app
 	\begin{aligned}
 	\begin{array}[t]{ll}
 		\underset{\lambda_{l} \geq 0, \tau}{\inf} & \tau \\
-		\mbox{subject to} & \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + \underset{Av+b\in S}{\sup } g_l(z,Av+b) -\lambda_{l1}\| v \|_\infty - \lambda_{l2}\| v \|_1 \leq \tau, \quad l = 1,\dots,L.
+		\mbox{subject to} & \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + \underset{Av+b\in \supp}{\sup } g_l(z,Av+b) -\lambda_{l1}\| v \|_\infty - \lambda_{l2}\| v \|_1 \leq \tau, \quad l = 1,\dots,L.
 	\end{array}
 	\end{aligned}
 	\end{equation*}
@@ -2047,10 +2047,10 @@ where we again used the Lagrangian, separated $g$ into its constituents, and app
 If we define the functions $c_1(v) = \|v\|_\infty$, $c_2(v) = \|v\|_1$, then using the definition of conjugate functions, we have for each $l$ the left-hand-side of the constraint equal to
 \begin{equation*}
 \begin{aligned}
-		& \lambda_{l1}\rho_1 +  \lambda_{l2}\rho_2 +  [-g_l(z,A\cdot+b) +\chi_S(A\cdot+b) + \lambda_{l1} c_1 + \lambda_{l2} c_2]^\star(0)\\
-		&= 	\underset{h_l,\omega_l, y_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l) + \sigma_S(\omega_l)  +  [\lambda_{l1} c_1 + \lambda_{l2} c_2 ]^\star(-y_l) \\
+		& \lambda_{l1}\rho_1 +  \lambda_{l2}\rho_2 +  [-g_l(z,A\cdot+b) +\chi_\supp(A\cdot+b) + \lambda_{l1} c_1 + \lambda_{l2} c_2]^\star(0)\\
+		&= 	\underset{h_l,\omega_l, y_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l) + \sigma_\supp(\omega_l)  +  [\lambda_{l1} c_1 + \lambda_{l2} c_2 ]^\star(-y_l) \\
   &\hspace{12cm}+ \indicator_{A^T(h_l + \omega_l) = y_l} \\
-		&= \underset{h_l,\omega_l, y_l, r_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l)+ \sigma_S(\omega_l)  + \indicator_{\|r_l-y_l\|_1 \leq \lambda_{l1}} + \indicator_{\|r_l\|_\infty \leq \lambda_{l2}} \\
+		&= \underset{h_l,\omega_l, y_l, r_l}{\inf} \lambda_{l1}\rho_1 + \lambda_{l2}\rho_2 + [-g_l]^\star(z,h_l) - b^T(h_l + \omega_l)+ \sigma_\supp(\omega_l)  + \indicator_{\|r_l-y_l\|_1 \leq \lambda_{l1}} + \indicator_{\|r_l\|_\infty \leq \lambda_{l2}} \\
   & \hspace{12cm} + \indicator_{A^T(h_l + \omega_l) = y_l}
 \end{aligned}
 \end{equation*}
@@ -2059,7 +2059,7 @@ We can express this as
 	\begin{aligned}
 	\begin{array}[t]{ll}
 		\underset{z, h_l,\omega_l, y_l, r_l, \tau}{\inf} & \tau \\
-		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - y_l\|_1  + \rho_2\|r_l\|_\infty \leq \tau, \\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_\supp(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - y_l\|_1  + \rho_2\|r_l\|_\infty \leq \tau, \\
   &\hfill k =  1, \dots,K \\
 	 & A^T(h_l + \omega_l) = y_l,  \quad l =  1, \dots,L.
 	\end{array}
@@ -2069,7 +2069,7 @@ We can express this as
 \begin{equation*}
 	\begin{array}[t]{ll}
 		{\text{minimize}} & f(z) \\
-		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_S(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - A^T(h_l + \omega_l)\|_1  + \rho_2\|r_l\|_\infty \leq 0,\\
+		\mbox{subject to} & [-g_l]^\star(z,h_l)  + \sigma_\supp(\omega_l) -  b^T(h_l + \omega_l) + \rho_1\|r_l - A^T(h_l + \omega_l)\|_1  + \rho_2\|r_l\|_\infty \leq 0,\\
   &\hfill l =  1, \dots,L.	\end{array}
 	\end{equation*}
 
@@ -2079,33 +2079,33 @@ Rewriting the robust constraint as an optimization problem, we have
 \begin{equation*}
 	\begin{aligned}
 & \begin{array}[t]{ll}
-	\underset{Av+b\in S}{\sup} & g(z,Av+b) \\
+	\underset{Av+b\in \supp}{\sup} & g(z,Av+b) \\
 	\mbox{subject to} & Dz \le d
 \end{array}\\
 &= \begin{array}[t]{ll}
-	\underset{Av+b\in S}{\sup} ~\underset{h \geq 0}{\inf} ~g(z,Av+b)  - (Dv)^Th   + d^Th\\
+	\underset{Av+b\in \supp}{\sup} ~\underset{h \geq 0}{\inf} ~g(z,Av+b)  - (Dv)^Th   + d^Th\\
 	\end{array}\\
 	&= \begin{array}[t]{ll}
-		\underset{Av+b\in S}{\sup}~\underset{h \geq 0}{\inf}~\underset{l}{\max}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+		\underset{Av+b\in \supp}{\sup}~\underset{h \geq 0}{\inf}~\underset{l}{\max}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
 		\end{array}\\
 		&= \begin{array}[t]{ll}
-			\underset{l}{\max}~\underset{Av+b\in S}{\sup}~\underset{h \geq 0}{\inf}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+			\underset{l}{\max}~\underset{Av+b\in \supp}{\sup}~\underset{h \geq 0}{\inf}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
 			\end{array}\\
 		&= \begin{array}[t]{ll}
-				\underset{l}{\max}~\underset{h \geq 0}{\inf}~\underset{Av+b\in S}{\sup}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
+				\underset{l}{\max}~\underset{h \geq 0}{\inf}~\underset{Av+b\in \supp}{\sup}~g_l(z,Av+b)  - (Dv)^Th   + d^Th\\
 				\end{array}\\
 &= \begin{array}[t]{ll}
 	\underset{h\geq 0,\tau}{\inf} & \tau \\
-	\mbox{subject to}& d^Th_l + \underset{Av+b\in S}{\sup } g_l(z,Av+b) - (Dv)^Th_l \leq \tau, \quad l = 1,\dots,L
+	\mbox{subject to}& d^Th_l + \underset{Av+b\in \supp}{\sup } g_l(z,Av+b) - (Dv)^Th_l \leq \tau, \quad l = 1,\dots,L
 \end{array}\\
 &= \begin{array}[t]{ll}
 	\underset{h \geq 0, \omega,\tau, y, \gamma}{\inf} &\tau\\
-	\mbox{subject to}& d^Th_l + [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) + \indicator_{D^Th_l = -y_l} \\
+	\mbox{subject to}& d^Th_l + [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_\supp(\gamma_l) + \indicator_{D^Th_l = -y_l} \\
  &\hfill  + \indicator_{A^T(\omega_l+ \gamma_l) = y_l} \leq \tau, \quad l = 1,\dots,L
 \end{array}\\
 &= \begin{array}[t]{ll}
 	\underset{h \geq 0,\omega,\tau,\gamma}{\inf} &\tau\\
-	\mbox{subject to}& [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq \tau, \quad l = 1,\dots,L\\
+	\mbox{subject to}& [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_\supp(\gamma_l) \leq \tau, \quad l = 1,\dots,L\\
 	& A^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L,
 \end{array}\\
 \end{aligned}
@@ -2114,7 +2114,7 @@ where we again used the Lagrangian, the Von Neumann-Fan minimax theorem, the inf
 \begin{equation*}
 \begin{array}[t]{ll}
 	{\text{minimize}} & f(z)\\
-	\mbox{subject to} & [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_S(\gamma_l) \leq 0, \quad l = 1,\dots,L\\
+	\mbox{subject to} & [-g_l]^\star(z,\omega_l) - b^T(\omega_l + \gamma_l) + \sigma_\supp(\gamma_l) \leq 0, \quad l = 1,\dots,L\\
 	 &A^T(\omega_l+ \gamma_l) = -D^Th_l,\quad l = 1,\dots,L.
 \end{array}
 \end{equation*}
@@ -2181,7 +2181,7 @@ Now, again using properties of conjugate functions, we note that:
 \begin{equation*}
 	\begin{aligned}
 		\alpha_{lk}[(-g_l(z, A\cdot + b) +\chi_{\supp}(A\cdot + b) + \lambda c_k)]^\star (0) &= \alpha_{lk}\underset{\omega_{lk}, h_{lk}, y_{lk}}{\inf} ([-g_l]^\star(z,h_{lk}) - b^T(h_{lk} + \omega_{lk})\\
-  &+ \indicator_{A^T(h_{lk} + \omega_{lk})= y_{lk}} + \sigma_S(\omega_{lk})+[\lambda c_k]^\star (-y_{lk}))
+  &+ \indicator_{A^T(h_{lk} + \omega_{lk})= y_{lk}} + \sigma_\supp(\omega_{lk})+[\lambda c_k]^\star (-y_{lk}))
 	\end{aligned}
 \end{equation*}
 and
@@ -2206,7 +2206,7 @@ Taking the supremum over $\alpha$, noting that $\sum_{l=1}^L \alpha_{lk} = w_k$ 
 \begin{aligned}
 \begin{array}[t]{ll}
 \underset{\lambda \geq 0, h_{lk},\omega_{lk}, s_k}{\inf} & \lambda \epsilon^p + \sum_k^K w_k s_k\\
-\mbox{s.t.} & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+\mbox{s.t.} & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_\supp(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
 & \hfill + \phi(q)\lambda \left\|A^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\\
 & \hfill l = 1,\dots,L, \quad k = 1,\dots,K,
 \end{array}
@@ -2218,7 +2218,7 @@ for which the final reformulation of~\eqref{eq:robust_prob} is
 	\begin{array}[t]{ll}
 	{\text{minimize}} & f(z)\\
 	\mbox{subject to} &\lambda \epsilon^p + \sum_k^K w_k s_k \leq 0\\
-	 & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_S(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
+	 & [-g_l]^\star(z,h_{lk}) -b^T(h_{lk} + \omega_{lk}) + \sigma_\supp(\omega_{lk}) - (A^T(h_{lk} + \omega_{lk}))^T \bar{d}_k \\
 & \hfill + \phi(q)\lambda \left\|A^T(h_{lk} + \omega_{lk})/\lambda \right\|^q_* \le s_k,\\
 & \hfill l = 1,\dots,L, \quad k = 1,\dots,K.
 	\end{array}
@@ -2226,5 +2226,75 @@ for which the final reformulation of~\eqref{eq:robust_prob} is
 	\end{equation*}
 
 
-	\chapter{Proofs for CVXRO}
-\label{app:cvxro}
+% \chapter{Proofs for CVXRO}
+% \label{app:cvxro}
+
+% \section{Uncertainty sets and general reformulations}
+% \label{appx:gen_sets}
+% We derive reformulations of~\eqref{eq:canon_robust} for the uncertainty sets not given in Section~\ref{sec:uncertainty_sets}.
+% % Here, we consider the case for a single $g$, $\ie$, $I_1 = 1$.
+% % For multiple uncertain constraints, the same reformulation techniques can be applied to each constraint.
+% The dimension of $A$, unless otherwise specified, is $m\times \hat{m}$, where $\hat{m} \leq m$, and the dimension of $b$ is $m$.
+% % Reformulations for linear constraints are in Appendix~\ref{sec:RO_reform_linear}. 
+% % We suppress the dependency of $g$ on $y$ here and for all following sections on reformulations.
+% % We consider two general types of functions $g$: the sum of concave functions,
+% % $$g(x,u) = \sum_{j=1}^J g_j(u,x),$$
+% % where each $g_j$ is concave in $u$, and the maximum of affine functions,
+% % $$g(x,u) = \max_{l=1,\dots,L} (P_l(x)u + a_l(x)),$$
+% % where $P_l(x)$ and $a_l(x)$ are convex functions in $x$.
+
+
+
+% \paragraph{Box uncertainty.}
+% The box uncertainty set is defined as
+% $$ \uncset_{\text{box}}(\theta) = \{ u = Av+b \mid\| v\|_\infty \leq \rho, u \in S \}, $$
+% where $\theta = (A,b,\rho)$, and $S$ includes additional support information such as upper and lower bounds. Note that if $A = \rho I$, $b = 0$, and $ S = \reals^m$, this is equivalent to the traditional box uncertainty set ${ \{ u \mid\| u\|_\infty \leq \rho \}}$.
+% The reformulation of~\eqref{eq:canon_robust} is
+% \begin{equation}
+% 	\label{eq:box_max}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(z,x)\\
+% 		\mbox{subject to} & H^{cT}_{(i)}s + \sigma_S(\om_i)+ b^T( H_i^{uT}s + d_i^u -\om_i) +  \rho\|A^T(H_i^{uT}s + d_i^u-\om_i)\|_1 \le d_i^c, \quad i = 1,\dots,\bar{I}.	\end{array}
+% \end{equation}
+
+% \paragraph{Ellipsoidal uncertainty.}
+% The ellipsoidal uncertainty set with a general $p$-norm is defined as
+% $$ \uncset(\theta) = \{u = Av+b \mid \| v\|_p \leq \rho,u \in S\},$$
+% where $\theta = (A,b,\rho,p)$.
+% The reformulation is
+% \begin{equation}
+% 	\label{eq:ellip_max}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(s)\\
+% 		\mbox{subject to} & H^{cT}_{(i)}s + \sigma_S(\om_i)+ b^T( H_i^{uT}s + d_i^u -\om_i) +  \rho\|A^T(H_i^{uT}s + d_i^u-\om_i)\|_q \le d_i^c, \quad i = 1,\dots,\bar{I}.	\end{array}
+% \end{equation}
+
+% \paragraph{Budget uncertainty.}
+% The budget uncertainty set requires both box and ellipsoidal constraints, and is defined as
+% $$ \uncset_{\text{bud}}(\theta) = \{u = Av+b \mid \| v\|_\infty \leq \rho, \| v \|_1 \leq \Gamma, u \in S\},$$
+% where $\theta = (A,b, \rho, \Gamma)$.
+% The reformulation is 
+% \begin{equation}
+% 	\label{eq:budget_max}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(s)\\
+% 		\mbox{subject to} &  H^{cT}_{(i)}s +  \sigma_S(\om_i) + b^T(H_i^{uT}s + d_i^u - \om_i) + \rho\|r_i - A^T(H_i^{uT}s + d_i^u - \om_i)\|_1 \\
+%   & \hfill + \Gamma\|r_i\|_\infty \leq d_i^c, \quad i = 1,\dots,\bar{I},
+% 	\end{array}
+% \end{equation}
+% where $r_i \in \reals^m$ for $i = 1,\dots,\bar{I}$ are auxiliary variables.
+% \paragraph{Polyhedral uncertainty.}
+% The polyhedral uncertainty set is defined as
+% $$\uncset(\theta) = \{ u = Av+b \mid Dv \leq d, u \in S\},$$
+% where $\theta = (A,b,D,d)$ defines the polyhedron.
+% The reformulation is 
+% \begin{equation}
+% 	\label{eq:poly_max}
+% 	\begin{array}{ll}
+% 		\mbox{minimize} & f(s)\\
+% 		\mbox{subject to} & H^{cT}_{(i)}s + d^T\zeta_i + b^T( H_i^{uT}s + d_i^u-\om_i) + \sigma_S(\om_i) \le d_i^c, \quad i = 1,\dots,\bar{I}\\
+% 		& A^T(H_i^{uT}s + d_i^u-\om_i) = D^T\zeta_i , \quad i = 1,\dots,\bar{I}\\
+% 		& \zeta_i \geq 0, \quad i = 1,\dots,\bar{I},
+% 	\end{array}
+% \end{equation}
+% with auxiliary variables $\zeta_i, \om_i \in \reals^m$ for $i = 1,\dots,\bar{I}$. 

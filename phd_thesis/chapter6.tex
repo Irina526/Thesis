@@ -1,2 +1,656 @@
 \chapter{CVXRO Package}
 \label{chap:cvxro}
+
+
+
+\section{Introduction}
+\label{sec:cvxro}
+In this chapter, we introduce the Python package CVXRO: Convex Optimization Under Uncertainty, which builds off cvxpy~\cite{diamond2016cvxpy} and cvxpylayers~\cite{cvxpylayers2019} to solve~\glsentryfull{RO} problems. The package contains two modes: the user can use a pre-determined uncertainty $\uncset(\theta)$ set with a given $\theta$, or {\it learn} the optimal parametrization $\theta$ from provided data. The package is available at:
+\begin{center}
+	\url{https://github.com/stellatogrp/cvxro}.
+\end{center} 
+In particular, we note that this package provides the implementation of the procedure used in Chapter~\ref{chap:lro}, and that the uncertainty set introduced in Chapter~\ref{chap:mro} can also be augumented by this procedure. 
+
+\subsection{Our contributions}%
+\label{c6:sub:our_contributions}
+% Consider a~\gls{RO} uncertainty set parameterized as $\uncset(\theta)$.
+% The package contains two modes: solving~\gls{RO} problems with a given $\theta$, and {\it learning} a $\theta$ from provided data. 
+Our contributions are as follows.
+\begin{itemize}
+  \item Building off the powerful convex optimization toolbox cvxpy~\cite{diamond2016cvxpy}, we design a new canonicalization chain that transforms uncertain constraints into their robust counterparts. This automatic procedure removes problem dependency on the uncertain parameter $u$, transforming robust problems into equivalent convex ones. Additionally, we provide tools to evaluate the performance of any supported uncertainty set, in terms of both objective performance and constraint satisfaction. 
+\item Through tight integration with automatic differentiation software cvxpylayers~\cite{cvxpylayers2019}, diffcp~\cite{diffcp2019}, and pytorch~\cite{paszke2019pytorch}, we provide an end-to-end framework for learning uncertainty set representations from both data and problem-specific information. The performance metrics used for the learning procedure can be built from provided risk metrics, or can be completely customized by the user. 
+\item Our learned mappings can be contextual, \ie, the uncertainty set can be constructed as $\mcu(\theta,x)$, for some context parameter $x$ with additional provided data. This mapping can be customized to be linear or non-linear, with the latter trained through deep neural networks. 
+  \item Sample usage of the package can be found at \url{https://stellatogrp.github.io/cvxro/examples/index.html}, as well at \url{https://github.com/stellatogrp/cvxro_experiments}.
+\end{itemize}
+
+\subsection{Layout of the chapter}%
+The rest of this chapter is organized as follows.
+In Section~\ref{sec:determ}, we describe the deterministic setting: the accepted problem formulation, the canonicalization and reformulation chains, and the supported uncertainty sets.
+In Section~\ref{sec:eval_sol}, we present the tools for evaluating the performance of a given uncertainty set.
+In Section~\ref{sec:learned}, we detail the learning procedure and provide an overall user workflow, and in Section~\ref{sec:cvxro_conclusion} summarize the conclusions. 
+
+\section{The deterministic setting}
+\label{sec:determ}
+% \bsnote{Just talk about implementation details at this point. Details about reformulation and training should go earlier.}
+
+In this section, we focus on pre-determined uncertainty sets, and detail the multi-step reformulation procedure which converts the human-readable \gls{RO} problem with uncertain parameters into a convex optimization problem.
+The learned uncertainty sets introduced in Section~\ref{sec:learned} are also built from this framework. 
+% For learned uncertainty sets, see 
+
+We first {\it canonicalize} the problem into a {\it canonicalized robust form (CRF)}, which is the standard form we establish for our accepted problems; see equation~\eqref{eq:canon_robust}. We then reformulate the canonicalized robust problem such that the uncertain parameters are replaced in a dualization procedure. Lastly, this reformulated problem is fed through the cvxpy~\cite{diamond2016cvxpy} canonicalization chain, which transforms it into a solver-readable form, and is passed to the chosen solver. The high-level procedure is depicted in Figure~\ref{fig:determ_flow}.
+\begin{figure}[H]%
+	\centering
+	\includegraphics[width=\textwidth]{learn.pdf}
+	\caption{\gls{CVXRO}'s procedure for solving robust problems}%
+	\label{fig:determ_flow}%
+\end{figure}
+We note that the uncertainty set information is required only in the reformulation chain. In the canonicalization chain, we are only interested in the structure of the provided constraints. 
+We therefore begin with detailing the accepted problem formulation, regardless of the uncertainty set structure. 
+% Example formulations are given in Appendices~\ref{appx:gen_sets}~\ref{sec:RO_reform_linear} with proofs provided in Appendix~\ref{appx:reform}. For code details and examples, see Section~\ref{sec:canon_procedure}.
+
+\subsection{Problem formulation and CVXRO ruleset}
+\label{sec:ruleset}
+The package is constructed to handle parametric \glsfirst{RO} problems, parametrized by the {\it context parameter}~$x \in \reals^p$, where each instance takes the form:
+% Each problem takes the form:
+\begin{equation}
+	\label{eq:robust_prob}
+         \begin{array}[t]{ll}
+		\mbox{minimize} & \sup_{u \in \uncset(\theta)} g_0(z,u,x)\\
+		\mbox{subject to} & \sup_{u \in \uncset(\theta)} g_i(z,u,x)  \le 0,  \quad i = 1,\dots,I.
+        % \forall u \in \uncset(\theta)
+	\end{array}
+\end{equation}
+We set $z \in \mathcal{Z} \subseteq \reals^n$ as the optimization variable and $u \in \reals^m$ as the {\it uncertain parameter}, which lives in the convex uncertainty set $\uncset(\theta)$ and is supported on $\supp$.
+Note that for the deterministic uncertainty set mode, we assume $\uncset(\theta)$ to be independent of $x$, \ie, the same uncertainty set applies for all $x$.  
+The special case of contextual uncertainty sets $\uncset(\theta,x)$ with a deterministic mapping $\theta$ falls under the second mode of the package, and is described in Section~\ref{sec:set_param}.
+
+In the deterministic setting, we can have multiple uncertainty sets, \ie, we assume w.l.o.g. that
+\begin{align*}
+    \uncset(\theta) = ~& \uncset_1(\theta_1) \times \uncset_2(\theta_2) \times ... \times \uncset_K(\theta_K) = \{(u_{(1)},u_{(2)},...,u_{(K)}) \mid  u_{(1)} \in \uncset_1(\theta_1)\subseteq \reals^{m_1},\\
+    & u_{(2)} \in \uncset_2(\theta_2)\subseteq \reals^{m_2}, ..., u_{(K)} \in \uncset_K(\theta_K) \subseteq \reals^{m_K}\},
+\end{align*}
+where $1 \leq  K \leq m$, and $\sum_{k=1}^K m_k = m$. In this manner, the uncertain parameters can be anything between fully constraint-wise or fully coupled; see~\cite{coupling} for further details. Note that we use the notation $u_{(k)}$ to denote a portion of $u$, of dimension $m_k \leq m$. This is to be distinguished from the notation $u_i \in U$ for some dataset $U$, which we will use throughout the paper to denote a numbered uncertain {\it realization} of the full dimension $m$.  
+
+Next, the function $g_0:  \reals^n \times \reals^m \times \reals^{p} \to \reals$ is the possibly uncertain objective function, and each $g_i : \reals^n \times \reals^m \times \reals^{p} \to \reals$ is a possibly uncertain constraint. We assume the uncertain portion of each $g_i$, $i=0,\dots,I$, to be the sum of some maximum of functions bi-affine in $u$ and $z$,~\eg, 
+\begin{equation}
+\label{eq:sum_max_affine}
+    g_i(z, u, x) = \sum_{j=1}^J\max_{l\leq L} \Phi_{jl}^u(x,u)^T\Phi_{jl}^z(x,z)+ f_i(z,x)
+\end{equation} 
+for some integers $J$ and $L$, where $\Phi_{jl}^a(x,a) = P_{jl}^a(x)a + h^a_{jl}(x)$ and $P_{jl}^a(x)$ and $h_{jl}^a(x)$ are matrices or vectors possibly parameterized affinely by $x$. 
+Such a formulation allows for multi-stage problems parameterized through affine decision rules (ADR). 
+The certain portion of the functions, $f_i(z,x)$, is assumed to be affine in the parameter $x$ and convex in the variable $z$.  
+% See the upcoming section for details. 
+% The objective function is assumed to be certain without loss of generality; if it is an uncertain function, the \gls{CVXRO} package turns it into an uncertain constraint using an epigraph reformulation. 
+The uncertainty set $\uncset(\theta)$ is detailed in Section~\ref{sec:uncertainty_sets}.
+
+To handle the uncertainty in the objective, the package automatically reformulates the objective into an uncertain constraint using an epigraph transformation, given below in~\eqref{eq:robust_prob_new}.
+\begin{equation}
+	\label{eq:robust_prob_new}
+         \begin{array}[t]{ll}
+		\mbox{minimize}  & \tau \\
+		\mbox{subject to} & \sup_{u \in \uncset(\theta)} g_0(z,u,x)\leq \tau \\
+        & \sup_{u \in \uncset(\theta)} g_i(z,u,x)  \le 0,  \quad i = 1,\dots,\hat{I}-1\\
+        &g_i(z,x)  \le 0,  \quad i = \hat{I},\dots,I.
+        % \forall u \in \uncset(\theta)
+	\end{array}
+\end{equation}
+
+Note that for evaluation purposes forthcoming in Section~\ref{sec:eval_sol}, we also separate the certain constraints $g_i(z,x)$, if they exist, from the uncertain constraints. The effective number of uncertain constraints is denoted $\hat{I}$.
+Regardless of uncertainty status, all functions $g_i$ must
+%  follow specific rulesets. 
+% Specifically, the objective function $f$ and constraint functions $g_i$ not involving the uncertain parameter $u$, \ie, $g_i(z,u,x) = g_i(z,x)$, must
+follow the \gls{DCP} and \gls{DPP} rules enforced by cvxpy \cite{diamond2016cvxpy}. These rulesets are enforced to ensure the existence of a convex reformulation. 
+In particular, the \gls{DPP} rules require that each function $g_i(z,u,x)$ is parameter-affine, \ie, parameters must not directly multiply each other, even if one is a context parameter and the other is an uncertain parameter. Such occurrences are to be reformulated through transformations, \ie, $$u^TP_{jl}(x)z \leq 0 \quad \rightarrow \quad u^Tz_{\text{aux}} \leq 0,~z_{\text{aux}} =P_{jl}(x)z,$$
+where $z_{\text{aux}}$ is an auxiliary variable, and the additional constraint $z_{\text{aux}} =P_{jl}(x)z$ is added to the problem. The resultant constraints are affine in the parameters, even with respect to each other, as required. 
+The~\gls{CVXRO} package inherits basic atoms from the cvxpy package~\cite{diamond2016cvxpy}, which can be used to formulate a wide variety of convex expressions. 
+
+\paragraph{Example.} As an example, we can formulate and solve the given problem using \gls{CVXRO} as follows, where we use an ellipsoidal uncertainty set. For details on the uncertainty set, refer to Section~\ref{sec:uncertainty_sets}. 
+\begin{equation*}
+         \begin{array}[t]{ll}
+		\mbox{minimize}  & \sup_{u \in \uncset(\theta)} -u^Tz \\
+		\mbox{subject to} & \sup_{u \in \uncset(\theta)} -2u^Tz + x^Tz  \le 0\\
+        & \ones^Tz =1.
+        % \forall u \in \uncset(\theta)
+	\end{array}
+\end{equation*}
+Using~\gls{CVXRO}, and assuming we are given a dimension $n$ and context $x$, we write:
+\begin{listing}[H]
+	\begin{minted}{python}
+    
+import CVXRO as cr 
+z = cr.Variable(n)
+x = cr.ContextParameter(n)
+u = cr.UncertainParameter(n,uncertainty_set=cr.Ellipsoidal(rho=1, p=2))
+objective = cr.Minimize(-u@z)}
+constraints = [-2*u@z + x@z <= 0, cr.sum(z)==1]
+robust_problem = cr.RobustProblem(objective, constraints)
+x.value = x_val
+robust_problem.solve()
+\end{minted}
+\caption{CVXRO example}
+\end{listing}
+
+% \begin{align*}
+% &\tt{z = cvxro.Variable(n)}\\
+% &\tt{x = cvxro.ContextParameter(n)}\\
+% &\tt{u = cvxro.UncertainParameter(n,
+%                                uncertainty\_set=cvxro.Ellipsoidal(rho=1, p=2))}\\
+% &\tt{objective = cvxro.Minimize(-u@z)}\\
+% &\tt{constraints = [-2*u@z + x@z <= 0, cvxro.sum(z)==1 ]}\\
+% &\tt{robust\_problem = cvxro.RobustProblem(objective, constraints)}\\
+% &\tt{x.value = x\_val}\\
+% &\tt{robust\_problem.solve()}
+% \end{align*}
+Note that we can change the value of the context and resolve the problem without needing to reformulate the robust problem. This could be done by replacing the value field of the context parameters. 
+
+In addition to the standard atoms of Diamond and Boyd~\cite{diamond2016cvxpy}, we create a custom atom for handling the sum-of-maximum-of-affine constraints denoted in~\eqref{eq:sum_max_affine}.
+
+\paragraph{Sum-of-maximum-of-affine.}
+In order to model the sum of maximum of affine functions described by~\eqref{eq:sum_max_affine}, we also provide the following atom. Note that this atom must be used to ensure the correctness of the reformulation; see Section~\ref{sec:max_reform} for details. There can only be a single $\tt{sum\_of\_max\_of\_uncertain}$ atom in each constraint. Furthermore, this atom can only be added to other expressions; no other operations involving this atom are currently supported. 
+% Here, we additionally describe a set of rules on the types of functions $g_i(z,u,x)$ that \gls{CVXRO} can reformulate and solve. 
+% Similar to \gls{DCP}, and \gls{DPP} rules, or the \gls{DSP} rules derived from \cite{juditsky2022} and implemented by \cite{dsp} for solving convex-concave saddle point problems, the \gls{CVXRO} ruleset is necessary for a \gls{RO} problem to have a convex reformulation. 
+% They are, however, sufficient and indeed cover a broad range of robust problems.
+% We say that $g_i(z,u,x)$ is \gls{CVXRO}-compliant if it can be written as a sum of smaller subexpressions
+% \begin{equation}
+% 	g_i(z,u,x) = \sum_{j=1}^n g_j(z,u,x),
+% \end{equation}
+% where each subexpression $g_j(z,u,x)$ is \gls{DPP} in $x$ and either
+% \begin{itemize}[noitemsep]
+% 	\item \gls{DPP} in the parameter~$u$, and \gls{DCP} convex in variable~$z$.
+% 	\item A non-negative scaling of \gls{CVXRO} atoms described in Section \ref{sec:atoms}.
+% 	\item A maximum over any number of the previous expressions.
+% \end{itemize}
+% Broadly speaking, a \gls{RO} problem has a convex reformulation if each $g_i(z,u)$ is concave in $u$ and convex in $z$, or is represented by the maximum of expressions which are concave in $u$ and convex in $z$.
+% We note that non-\gls{DPP} problems can be written in \gls{DPP} form through transformations. For example, the term $u^Tx$ is not parameter-affine, as both $u$ and $x$ are parameters. However, this can be rewritten as $u^Tx_1$, where $x_1$ is a variable, and with the additional constraint $x = x_1$. 
+% \subsubsection{\gls{CVXRO} atoms}
+% \label{sec:atoms}
+% \inote{biaffine, one rule}
+% The \gls{CVXRO} package introduces new atoms for the following expressions.
+
+% \item[Matrix-vector product.] The matrix-vector multiplication syntax {\tt @} is supported for writing affine expressions in $u$ such as {\tt x@P@u}.
+% \item[Maximum-of-affine.]  Maximum-of-affine terms can be modeled using the atom $\tt{max\_of\_uncertain([g_1(u,z),\dots,g_l(u,z)])}$, which represents the expression $\max_l g_l(u,z)$, where each $g_l$ is affine. 
+\paragraph{\tt{sum\_of\_max\_of\_uncertain}.} The sum of maximum-of-affine terms can be modeled using the atom $\tt{sum\_of\_max\_of\_uncertain([[g_{1}(u,z,x),\dots,g_L(u,z,x)],[h_1(u,z,x),\dots,h_L(u,z,x]])}$, where the number of sub-lists represents the number of summands, and the length of each sub-list represents the number of terms within each maximum. For example, the above expression represents $\max(g_{1}(u,z,x),\dots,g_{L}(u,z,x))+ \max(h_{1}(u,z,x),\dots,h_{L}(u,z,x))$, where each constituent function is bi-affine in $u$ and $z$, and also parameter-affine in $u$ and $x$. If there is only a single maximum, the atom can also be expressed without the sum and with a single  list, $\tt{max\_of\_uncertain([g_1(u,z,x),\dots,g_L(u,z,x)])}$, which represents, $\max_{l\leq L} g_l(u,z,x)$.
+
+When the uncertain constraints $g_i$ of the optimization problem do not contain either the $\tt{sum\_of\_max\_of\_uncertain}$ or the $\tt{max\_of\_uncertain}$ atom, they can be combined into a single uncertain constraint using the $\tt{max\_of\_uncertain}$ atom, as described below.
+
+\paragraph{Combining multiple uncertain constraints.}
+\label{sec:multiple}
+The above atom allows for expressing multiple uncertain constraints as a single maximum of bi-affine constraint. In particular, given a set of constraints
+$$g_{l}(z,u,x)\leq 0, \quad l = 1,\dots,L, $$
+where each $g_l$ satisfies the ruleset defined above without involving maximums, we can write a single joint uncertain constraint,
+\begin{equation}
+	\label{multiple_comb}
+g(z,u,x) = \max_{l}g_l(z,u,x)\leq 0,
+\end{equation}
+as the joint constraint is still compliant of the ruleset.
+
+While the combination of multiple constraints does not affect the solution of the robust problem, it will affect the probability of constraint satisfaction, which the \gls{CVXRO} package can calculate; see Section~\ref{sec:eval_sol}. If the constraints are combined in the user input, it is considered a single joint constraint instead of multiple uncertain constraints, regardless of subsequent reformulations, and the probability of constraint violation is calculated accordingly. For example, if combined, the probability will be given as $\prob(\max_{l}g_l(z,u,x)\leq 0)$; otherwise, each constraint's violation probability is calculated separately, \ie, $\prob(g_{l}(z,u,x)\leq 0),~l = 1,\dots,L$.
+
+\subsection{The canonicalized robust problem}
+\label{sec:canon_procedure}
+Given a transformed input of the form~\eqref{eq:robust_prob_new}, the \gls{CVXRO} package further transforms it into the {\it canonicalized robust form (CRF)}, which is a standard form we establish for robust problems. This is given as
+\begin{equation}
+\tag{CRF}
+	\label{eq:canon_robust}
+	\begin{array}[t]{ll}
+		\mbox{minimize}  & f(s)\\
+		\mbox{subject to} & (H_{(i)}^c + H^u_iu)^Ts + d^{uT}_iu \le d^c_i,  \quad \forall u \in \uncset(\theta),~i = 1,\dots \bar{I},\\
+	\end{array}
+\end{equation}
+where $s$ is a vector of problem variables, including the auxiliary variables added by the reformulation, and $\bar{I}$ is the new number of constraints, which includes auxiliary constraints. Notably, if the uncertain constraints contained sums of maximums, auxiliary constraints are added as described in Section~\ref{sec:max_reform}, then reformulated to fit the above form. The original problem variables $z$ are a subset of $s$, \ie, $z = Es$ for some matrix $E$. 
+The objective $f(s)$ encodes the epigraph of the original objective, as described in~\eqref{eq:robust_prob_new}.
+
+
+% \inote{use different letters? $M$?. objective in terms of $z$ bar? relate $z$ and $s$. isolate things that depend on $u$ or $s$. Write $z = Es$, where $s = s$}
+Each vector $H_{(i)}^c$ is a row of $H^c$, which is a sparse matrix of the parameters and deterministic problem data of~\eqref{eq:robust_prob} that interacts with the problem variables $s$, but not with any uncertain parameter. 
+Each matrix $H^u_i$ is a section of the matrix $H^u$, which contains the deterministic problem data that interacts with both the uncertain parameter $u$ and variables $s$.
+The vector $d^u_i$ contains the deterministic problem data that interacts with only the uncertain parameter $u$, and the vector $d^c_i$ contains the constants of the problem.
+
+The context parameter $x$, as parameters that follow the \gls{DPP} ruleset, are contained in the matrix $H^c$.
+These representations of problem data come from the cvxpy canonicalization map; for more details, see Section 4.2 of the work by Agrawal et al.~\cite{diamond2016cvxpy}.
+Note that, by nature of the transformation, $\bar{I} \geq I \geq \hat{I}$, \ie, we have an increased number of constraints compared to the original problem. 
+
+\subsubsection{Treating maximum functions}
+\label{sec:max_reform}
+For uncertain constraints that contain both sums and a maximum function, \ie,
+$$g(z,u,x) = h(z,u,x) + \max_{l\leq L}g_l(z,u,x) \leq 0, \quad \forall u \in \uncset(\theta),$$
+which requires use of the $\tt{sum\_of\_max\_of\_uncertain}$ or $\tt{max\_of\_uncertain}$ atom,
+a pre-processing step is taken prior to constructing the above canonicalized robust problem. 
+Specifically, the above constraint is replaced by $L$ separate constraints, \ie,
+ $$h(z,u,x) + g_l(z,u,x) \leq 0, \quad \forall u \in \uncset(\theta),~l = 1,\dots,L,$$
+ each containing a single term within the maximum. 
+See the book by Bertismas and den Hertog~\cite[Section 12]{robustadaptopt}, and the work by Gorissen and den Hertog~\cite{max-cons} for further details.
+For more general sum-of-maximum functions, \ie, 
+$$g(z,u,x) = \sum_{j\leq J} \max_{l\leq L}g_{jl}(z,u,x) \leq 0, \quad \forall u \in \uncset(\theta),$$
+the summation is rewritten into a single maximum-of-summations by enumerating all combinations. 
+Then, a constraint is created for each combination, each containing a summation of $J$ terms, one from each maximum.
+
+\subsection{The reformulated problem}
+Once the problem has been transformed to the canonicalized robust form, we are ready for the second step: reformulating it to remove the dependency on the uncertain parameter. 
+
+We remove the uncertain parameter $u$ from the canonicalized robust problem by taking the {\it robust counterpart} of each constraint of~\eqref{eq:canon_robust}. 
+Using the notion of the support function~\cite[Section 13]{rockafellar1970convex} of a set $\supp$, which we denote as 
+% \begin{equation*}
+%     \delta^{\star} (z|S) = \sup\limits_{u\in S} \left\{z^Tu\right\},
+% \end{equation*}
+\begin{equation*}
+    \sigma_\supp(\om) = \sup\limits_{u\in \supp} \om^Tu,
+\end{equation*}
+the robust counterpart of each constraint of~\eqref{eq:canon_robust} can be expressed as
+\begin{equation*}
+    \begin{cases}
+    H^{cT}_{(i)}s + \sigma_{\uncset(\theta)}(\om_1) + \sigma_\supp(\om_2)  \leq d_i^c \\
+    \om_1 + \om_2 = H_i^{uT}s + d_i^u,
+    \end{cases}
+\end{equation*}
+% \begin{equation*}
+%     \begin{cases}
+%     H^{cT}_{(i)}s + \delta^\star(z_1 \mid \uncset(\theta)) + \delta^\star(z_2 \mid S)  \leq d_i^c \\
+%     z_1 + z_2 = -H_i^{uT}s - d_i^u,
+%     \end{cases}
+% \end{equation*}
+where the support functions of both the uncertainty set $\uncset(\theta)$ ($\sigma_{\uncset(\theta)}$) and the support set $\supp$ ($\sigma_\supp$) are involved. 
+Recall that the support set $\supp$ is the set on which the unknown uncertainty is supported, which could be known, and defaults to $\reals^m$ otherwise. 
+In~\gls{CVXRO}, the support can include a lower bound, an upper bound, a summed value, and polyhedral constraints, \ie, 
+$u\geq \text{lb}, u\leq \text{ub}, \sum_i^m u_i = \text{sum\_eq}, Cu\leq d$, where lb, ub, sum\_eq, $C$, and $d$ are user-provided. 
+
+% Below, we consider it as part of the uncertainty set. 
+Note that when the uncertainty set $\uncset(\theta)$ is the cross product of $K$ independent uncertainty sets (as described in Section~\ref{sec:ruleset}),  each possibly with its own support, the detailed reformulation is as follows:
+\begin{equation}
+  \label{eq:diff_sets}
+    \begin{cases}
+    H^{cT}_{(i)}s + \sum_{k=1}^K\sigma_{\uncset_k(\theta_k)}(\om_{1,k}) + \sum_{k=1}^K\sigma_{S_k}(\om_{2,k})  \leq d_i^c \\
+    \om_{1,k} + \om_{2,k} = [H_i^{uT}s]_{(k)} + [d_i^u]_{(k)},\quad k = 1,\dots K,
+    \end{cases}
+\end{equation}
+where $[a]_{(k)}$ denotes the sub-matrix/sub-vector corresponding to the $k$-th uncertainty block.
+
+Once all constraints have been transformed in this manner, the uncertain parameter $u$ disappears, and the problem becomes a convex cvxpy problem that can be solved directly.
+We note that this reformulation depends on the specific uncertainty set(s) provided, which we detail below.
+
+
+\subsection{Uncertainty sets}
+\label{sec:uncertainty_sets}
+The~\gls{CVXRO} uncertainty set is presumed to have a known structure, and is reformulated according to this structure. 
+The package currently supports certain basic uncertainty sets, data-driven uncertainty sets, as well as an additional scenario approach formulation. These are described in the following section.
+Note that in the deterministic setting, we work only with non-contexual sets. 
+The special case of contextual uncertainty sets with a pre-determined mapping falls also under the category of learned uncertainty sets, which will be introduced in Section~\ref{sec:set_param}.
+\subsubsection{Basic uncertainty sets}
+% For ease of use, \gls{CVXRO} is equipped with structure for describing array of common uncertainty sets you might need.
+% For this section and all related sections, we suppress the dependency of the problem parameter $y$, abbreviating $f(x,y)$ as $f(x)$ and $g_i(x,u,y)$ as $g_i(x,u)$ as the $y$'s are fixed data for each problem, and independent of the reformulation procedure. As described, every \gls{RO} problem is written with uncertainty parameter $u$ and an uncertainty set $\mathcal{U}(\theta)$, working together to describe each uncertain constraint,
+% \begin{equation}
+%   g_i(x,u) \leq 0 \quad \forall u \in \mcu(\theta).
+% \end{equation}
+
+% Recall that in each \gls{CVXRO} problem, the user may define the uncertainty set $\mcu(\theta)$ by electing to either:
+% \begin{enumerate}
+% 	\item Explicitly define the values of $\theta$ upfront, or
+% 	\item Provide a dataset $U^N$ of past realizations of $u$, and a set $X^N$ of instances of $x$, leaving $\theta$ to be automatically learned.
+% \end{enumerate}
+% No matter which case the user selects, the uncertainty set is presumed to have a known structure, and is reformulated according to this structure. 
+To begin, the package currently supports the following basic uncertainty sets: norm (box, ellipsoidal), budget, and polyhedral, which could be mixed and matched as shown in Section~\ref{sec:ruleset}, \ie, $1\leq K \leq m$, with each $u_{(k)}$ contained in an independent uncertainty set.  While the parameterization of the basic uncertainty sets could be data-driven, \ie, with $\theta = (A,b,\rho)$ learned through data, here we consider $\theta$ to be provided, thus the formulations are not directly dependent on data. 
+% Below, we give an example of the reformulation for the ellipsoidal uncertainty set. The reformulations for the remaining sets are given in Appendix~\ref{appx:gen_se dts}.
+For each of the listed sets, we give the corresponding robust counterpart below, and note that when the cross product of sets is used, the reformulations will be adjusted according to the form~\eqref{eq:diff_sets}.
+
+% Here, we give an example set, and describe its parameterization $\theta$. 
+% We leave the description and reformulations of the other supported uncertainty sets to Appendices~\ref{appx:gen_sets} and~\ref{sec:RO_reform_linear} and the codebase.
+\paragraph{Ellipsoidal uncertainty.}
+Arguably the most common uncertainty sets used in \gls{RO} is the ellipsoidal uncertainty set, which we write as
+$$ \uncset_{\text{ellip}}(\theta) = \{u=Av+b \mid \| v \|_p \leq \rho,~u \in \supp \},$$
+where $\theta = (A,b,\rho) \in \reals^{m\times\hat{m}} \times \reals^m \times \reals_+$, and $\supp$ is the support of $u$. These are user-specified parameters, where $\hat{m} \leq m$ when $A$ is rectangular. The parameter $p$ specifies the norm of the set; when $p = \infty$, this is the box uncertainty set.
+% Given all parameters, including upfront values for $\theta$, in~\gls{CVXRO} syntax, we express the set as follows. 
+% \begin{align*}
+%     \tt{cr.Ellipsoidal(a=A,b=b,rho = rho, p = p, lb=lb,ub=ub,sum\_eq = sum\_eq,c = C, d = d)}.
+% \end{align*}
+% If some parameters are not provided, the corresponding entries can be omitted from the input, which then defaults to the~\gls{CVXRO} default values. 
+For constraints of the canonicalized robust form given in~\eqref{eq:canon_robust}, \ie 
+\begin{equation}
+\label{eq:simpleaffine}
+H^{cT}_{(i)}s + (H^u_iu)^Ts + d_i^{uT}u \le d_i^c, \quad \forall u \in \uncset(\theta),~ i = 1,\dots,\bar{I}
+\end{equation}
+ and with polyhedral support $\supp = \{Cu\leq d\}$, we obtain the following convex reformulation,
+\begin{equation*}
+	\begin{array}{ll}
+		\mbox{minimize} & f(s)\\
+		\mbox{subject to} & H^{cT}_{(i)}s +  d_i^T\om + b^T( H_i^{uT}s + d_i^u -C^T\om) +  \\
+        &\qquad \rho\|A^T(H_i^{uT}s + d_i^u-C^T\om)\|_\star \le d_i^c, \quad i = 1,\dots,\bar{I}	\end{array}
+\end{equation*}
+where $\om \in \reals^m$ is an auxiliary variable, and $\|\cdot\|_\star$ is the dual norm. 
+
+\paragraph{Budget uncertainty.}
+The budget uncertainty set requires both box and ellipsoidal constraints, and is defined as
+$$ \uncset_{\text{bud}}(\theta) = \{u = Av+b \mid \| v\|_\infty \leq \rho, \| v \|_1 \leq \Gamma, u \in \supp\},$$
+where $\theta = (A,b, \rho, \Gamma)$.
+The reformulation is 
+\begin{equation}
+	\label{eq:budget_max}
+	\begin{array}{ll}
+		\mbox{minimize} & f(s)\\
+		\mbox{subject to} &  H^{cT}_{(i)}s +  \sigma_\supp(\om_i) + b^T(H_i^{uT}s + d_i^u - \om_i) + \rho\|r_i - A^T(H_i^{uT}s + d_i^u - \om_i)\|_1 \\
+  & \hfill + \Gamma\|r_i\|_\infty \leq d_i^c, \quad i = 1,\dots,\bar{I},
+	\end{array}
+\end{equation}
+where $r_i \in \reals^m$ for $i = 1,\dots,\bar{I}$ are auxiliary variables.
+\paragraph{Polyhedral uncertainty.}
+The polyhedral uncertainty set is defined as
+$$\uncset(\theta) = \{ u = Av+b \mid Dv \leq d, u \in \supp\},$$
+where $\theta = (A,b,D,d)$ defines the polyhedron.
+The reformulation is 
+\begin{equation}
+	\label{eq:poly_max}
+	\begin{array}{ll}
+		\mbox{minimize} & f(s)\\
+		\mbox{subject to} & H^{cT}_{(i)}s + d^T\zeta_i + b^T( H_i^{uT}s + d_i^u-\om_i) + \sigma_\supp(\om_i) \le d_i^c, \quad i = 1,\dots,\bar{I}\\
+		& A^T(H_i^{uT}s + d_i^u-\om_i) = D^T\zeta_i , \quad i = 1,\dots,\bar{I}\\
+		& \zeta_i \geq 0, \quad i = 1,\dots,\bar{I},
+	\end{array}
+\end{equation}
+with auxiliary variables $\zeta_i, \om_i \in \reals^m$ for $i = 1,\dots,\bar{I}$. 
+
+
+\subsubsection{Data-driven uncertainty sets}
+In addition to the basic sets above, we also support a select number of data-driven uncertainty sets. These sets explicitly rely on historical realizations of the uncertain parameter, which we denote as $U$. 
+Below, we describe the Wasserstein \gls{DRO} and \glsentryfull{MRO} sets (Chapter~\ref{chap:mro}), with additional polyhedral support constraints. These sets cannot be mixed with any other sets; if any is chosen, then there can exist only a single uncertainty set, \ie, $K=1$. Note that $k$ in this section refers to the cluster index for the \gls{MRO} set, which is defined with $K^{\text{MRO}}$ total clusters.
+\paragraph{Mean robust uncertainty.}
+The \glsentryfull{MRO} set, given in Chapter~\ref{chap:mro} and adjusted for this chapter, is defined as 
+\begin{equation*}
+	\begin{aligned}
+		\uncset_{\text{mro}}(\theta) & = \left\{ u = A(v_{11},\dots,v_{\bar{I}K^{\text{MRO}}})+ b\in S^{K^{\text{MRO}}\times \bar{I}}~\middle|~\exists \alpha \in \Gamma,~\sum_{k=1}^{K^{\text{MRO}}} \sum_{i=1}^{\bar{I}} \alpha_{ik} \| v_{ik} - \bar{d}_k \|^r_p \le \rho^r \right\},
+	\end{aligned}
+\end{equation*}
+where $\Gamma = \{\alpha~|~\sum_{i=1}^{\bar{I}}\alpha_{ik}= w_k, \alpha_{ik}\geq 0 ~\forall i,k\}$. For the MRO set, we assume A is square. We have $\theta = (A, b,\rho,U^N)$, with $U^N$ a dataset of $N$ samples. We partition ${\mathcal{D}}_N$ into $K^{\text{MRO}}$ disjoint subsets using $k$-means~\cite{kmeans} or similar clustering techniques, where $\bar{d}_k$ is the centroid of the $k$th subset. The weight we place upon each subset is $w_k$, and is equivalent to the proportion of points in the subset. We choose $r$ to be an integer exponent $r \in [1,\infty)$ or $r = \infty$, and $p$ to be an arbitrary norm. The reformulation of~\eqref{eq:canon_robust} for $r = 2$ is 
+\begin{equation}
+	\label{eq:mro_max}
+	\begin{aligned}
+		\begin{array}{ll}
+			\text{minimize } & f(s)\\
+			\mbox{subject to} & \lambda + \sum_{k=1}^{K^{\text{MRO}}} w_{k} c_{k}  \le 0\\
+			& H^{cT}_{(i)}s - d_i^c + \sigma_\supp(\om_{ik}) - b^T\zeta_{ik} - (A^T\zeta_{ik})^T\bar{d}_k  + (1/4)\lambda \left\|A^T\zeta_{ik}/\lambda \right\|^2_q \leq c_k, \quad i = 1,\dots, \bar{I}, \\
+   &\hfill \quad k = 1,\dots, K^{\text{MRO}}\\
+			& \zeta_{ik} = \om_{ik} - (H_i^{uT}s + d_i^u), \quad i = 1,\dots, \bar{I},\quad k = 1,\dots, K^{\text{MRO}}\\
+			& \lambda \geq 0,
+		\end{array}
+	\end{aligned}
+\end{equation}
+with auxiliary variables $c_k, \zeta_{ik}, \om_{ik} \in \reals^m$ for $i = 1,\dots,\bar{I}$, $k = 1,\dots, K^{\text{MRO}}$. 
+% $\hat{r} = 1 + 1/(r-1)$, and
+Note that  $q$ is the conjugate number of $p$. For other values of $r$, we refer to Chapter~\ref{chap:mro}.
+
+\paragraph{Wasserstein~\gls{DRO}.}
+The Wasserstein~\gls{DRO} set is the~\gls{MRO} set with $K^{\text{DRO}} = N$, where $N$ is the total number of data samples. The reformulation thus follows. 
+
+\subsubsection{Additional formulations}
+While technically not an uncertainty set, we also support the Scenario Approach~\cite{scenario}, where all uncertain constraints must be satisfied by the provided realizations of all uncertain parameters. Note that the Scenario Approach allows multiple independent uncertain parameters, but they cannot be mixed with any other uncertainty set; if there are multiple uncertain parameters, all such parameters must be of type $\tt{Scenario}$. The details of this set are given below.
+
+\paragraph{Scenario Approach.}
+The Scenario Approach is an entirely data-driven approach, where we support two separate modes. In the Cartesian mode, when there are multiple independent uncertain parameters, each parameter may have a different number of realizations, \ie, if $u = (u_{(1)},u_{(2)})$, the parameters can be defined with datasets $U^{N_1}_{(1)}$, $U^{N_2}_{(2)}$, where $N_1 \neq N_2$. The overall dataset is defined $U = (U^{N_1}_{(1)}\times U^{N_2}_{(2)})$, with cardinality $N = N_1 N_2$.
+In the non-Cartesian mode, the datasets for all uncertain parameters must have the same number of realizations, \ie, $N = N_1=N_2$, and the overall dataset is defined $U = (U^{N}_{(1)}, U^{N}_{(2)})$, with cardinality $N$.
+The uncertainty set is thus defined as the discrete set
+$$ \uncset_{\text{scenario}}(\theta) = U,$$
+where $\theta$ is the provided data and the Cartesian flag. 
+The reformulation of~\eqref{eq:canon_robust} using the Scenario Approach is as follows, where we simply use the constraints
+\begin{equation}
+\label{eq:simpleaffine_scenario}
+H^{cT}_{(i)}s + (H_i^uu)^Ts + d_i^{uT}u \le d_i^c, \quad \forall u \in U,~i = 1,\dots,\bar{I},
+\end{equation}
+which is tractable since $U$ is discrete with cardinality $N$.
+
+
+
+
+\section{Performance evaluation}
+\label{sec:eval_sol}
+To evaluate the performance of our pre-determined uncertainty set(s), we offer two modes: evaluating the performance for a fixed context, and for a {\it set} of contexts. For a single fixed context $x$, we evaluate the performance of the corresponding solution $z^\star(x)$. For a set of contexts, as the solutions are context-dependent, we must re-solve~\eqref{eq:robust_prob} at each context $x_i$, and evaluate the corresponding solutions $z^\star(x_i)$.
+We describe both modes below. 
+
+\subsection{Evaluation data}
+\label{sec:eval_data}
+We begin with the fixed-context setting. 
+In order to evaluate the performance of the given uncertainty set(s), we need evaluation data for the uncertain parameter(s). If there are multiple uncertain parameters, we require the evaluation data to have the same number of realizations,~\ie, if $u = (u_{(1)},u_{(2)})$, the evaluation data is defined
+$U_\text{eval} = (U_\text{eval,{(1)}}, U_\text{eval,{(2)}})$, where each individual dataset and the combined dataset all have cardinality $N_{\text{eval}}$. In~\gls{CVXRO} syntax, the data can be passed in when defining the uncertain parameters, or populated after, \eg~$\tt{u1.eval\_data = u1\_eval},~\tt{u2.eval\_data = u2\_eval}$.
+In Section~\ref{sec:fixed_context}, we assume the evaluation data to be passed in for all uncertain parameters.
+
+In the changing-context setting, we additionally need evaluation data for the context parameter(s). For any context parameter that we want to vary, we require its evaluation data have the same number of realizations as the evaluation data for the uncertain parameters, \ie, $X_{\text{eval}}$ also has cardinality $N_{\text{eval}}$. This data is passed in similarly as above, \eg, when there are two context parameters, $x_{(1)}$ and $x_{(2)}$, both subject to change, we write~$\tt{x1.eval\_data = x1\_eval},\tt{x2.eval\_data = x2\_eval}$, and $X_\text{eval} = (X_\text{eval,{(1)}}, X_\text{eval,{(2)}})$. The evaluation will then be performed using the context-uncertainty pairs $(X_\text{eval,i}, U_\text{eval,i})$. In Section~\ref{sec:vary_context}, we assume the evaluation data to be passed in for all relevant contexts and all uncertain parameters.
+
+\subsection{Evaluating the performance for a fixed context}
+\label{sec:fixed_context}
+\paragraph{Evaluating the solution.} Given an optimization problem of the form~\eqref{eq:robust_prob}, with a fixed uncertainty set, a fixed context parameter $x$, and evaluation data $U_\text{eval}$ of size $N_{\text{eval}}$ for the uncertain parameter, we can evaluate the performance of the robust solution $z^\star(x)$ by evaluating the loss. The loss function $\ell(z,u,x)$ can be a custom designed function, passed in as $\tt{eval\_exp}$ in the robust problem, \ie , if $\ell(z,u,x) = z^T(u+x)$, then
+$$\tt{robust\_problem = cvxro.RobustProblem(objective,constraints,eval\_exp = z@(u+x))}.$$
+If this is not provided, then the loss function defaults to the objective function of the optimization problem. Once the robust problem is solved, we can evaluate the loss function by passing in evaluation data as described in Section~\ref{sec:eval_data}, then calling the $\tt{evaluate\_sol()}$ function, \ie, $\tt{robust\_problem.evaluate\_sol()}$.
+This returns an array of length $N_{\text{eval}}$, where each value corresponds to the loss function applied to a realization of $U_\text{eval}$, \ie, corresponding to $\ell(z^\star(x),U_{\text{eval},i},x)$. To get the mean evaluation value, $$(1/N_{\text{eval}})\sum_{i=1}^{N_{\text{eval}}}\ell(z^\star(x),U_{\text{eval},i},x),$$ we can instead call $\tt{robust\_problem.evaluate\_sol\_mean()}$.
+
+
+\paragraph{Evaluating the probability of constraint violation.}  
+Given an optimization problem of the form~\eqref{eq:robust_prob}, with a fixed uncertainty set, a fixed context parameter $x$, and evaluation data $U_\text{eval}$ of size $N_{\text{eval}}$ for the uncertain parameter, we can evaluate the indicators of constraint violation for each uncertain constraint. Instead of returning an array, we return a binary matrix of dimension $\hat{I} \times N_{\text{eval}}$, where $\hat{I}$ is the number of uncertain constraints of the epigraph-transformed version of~\eqref{eq:robust_prob}, given in~\eqref{eq:robust_prob_new}.
+The $i,j$-th entry of the returned matrix denotes whether or not the $i$-th uncertain constraint is violated at the $j$-th uncertain realization of $U_{\text{eval}}$, \ie, $$\mathbf{I}\{{g_i(z^\star(x),U_{\text{eval},j},x)}\geq 0\}.$$ 
+Note that, as mentioned previously in Section~\ref{sec:ruleset}, if the constraint is formulated as a sum-of-maximum, the violation indicator is calculated accordingly. The ~\gls{CVXRO} syntax is:
+$\tt{robust\_problem.violation\_indicator\_sol()}$.
+To compute the probability of constraint violation, \ie, return an array of length $\hat{I}$, where the $i$-th value denotes the probability of violating the corresponding constraint on the evaluation dataset,~\ie,
+$$\hat{\mathbf{P}}^{N_{\text{eval}}}_u\left(g_i(z^\star(x),u,x)\geq 0\right),$$
+we instead call $\tt{robust\_problem.violation\_probability\_sol()}$.
+
+
+\subsection{Evaluating the performance for a set of contexts}
+\label{sec:vary_context}
+\paragraph{Evaluating the solutions.} Given a set of contexts $X_{\text{eval}}$ and evaluation data for the uncertain parameter(s) as described in Section~\ref{sec:eval_data}, we evaluate the loss for each context value, \ie, return an array of length $N_{\text{eval}}$, where each value corresponds to the loss function applied to the context-uncertainty pair $(X_\text{eval,i}, U_\text{eval,i})$, $$\ell(z^\star(X_{\text{eval,i}}),U_{\text{eval},i},X_{\text{eval,i}}).$$
+This is obtained by the function call $\tt{robust\_problem.evaluate()}$.
+Subsequently, the function call $\tt{robust\_problem.evaluate\_mean()}$ returns the mean evaluation value, \ie,
+$$(1/N_{\text{eval}})\sum_{i=1}^{N_{\text{eval}}}\ell(z^\star(X_{\text{eval,i}}),U_{\text{eval},i},X_{\text{eval,i}}).$$
+
+\paragraph{Evaluating the probability of constraint violation.}  
+Similarly as in Section~\ref{sec:fixed_context}, the slightly adjusted function call $\tt{robust\_problem.violation\_indicator()}$ returns a binary matrix of dimension $\hat{I} \times N_{\text{eval}}$, where the $i,j$-th entry denotes
+$$\mathbf{I}\{{g_i(z^\star(X_{\text{eval,j}}),U_{\text{eval},j},X_{\text{eval,j}})}\geq 0\}.$$ 
+Subsequently, $\tt{robust\_problem.violation\_probability()}$ returns an array of length $\hat{I}$, where the $i$-th value denotes
+$$\hat{\mathbf{P}}^{N_{\text{eval}}}_{(x,u)}\left(g_i(z^\star(x),u,x)\geq 0\right).$$
+
+% \begin{itemize}
+%     \item Multiple uncertain parameters
+%     \item Scenario approach
+%     \item Calculating the evaluation 
+%     \item Calculating the probability of constraint violation
+% \end{itemize}
+
+\section{Learning uncertainty sets}
+\label{sec:learned}
+In this section, we detail the procedure to learn the parametrization $\theta$ of the uncertainty set $\uncset(\theta)$ using provided data. See Figure~\ref{fig:train_flow} below for the general high level procedure, and see Section~\ref{sec:user_steps} for the user's required steps. For simplicity, we have condensed the reformulation chains shown in Figure~\ref{fig:determ_flow}.
+\begin{figure}[H]%
+	\centering
+	\includegraphics[width=\textwidth]{train.pdf}
+	\caption{\gls{CVXRO}'s procedure for learning uncertainty sets}%
+	\label{fig:train_flow}%
+\end{figure}
+
+We note that, in the learning setting, only a single uncertainty set is allowed, \ie, $K=1$ in the context of Section~\ref{sec:ruleset}. Therefore, in this section, we instead denote by $K$ the {\it number of training iterations} of the algorithm. 
+
+\paragraph{Train, test, validate.}
+To train and select an appropriate uncertainty set, we require three separate datasets: train, validate, and test. We perform training using the training dataset ($X_{\text{train}},U_{\text{train}}$) under various hyperparameter settings, select the uncertainty set with the best performance on the validation dataset ($X_{\text{validate}},U_{\text{validate}}$), and finally report the out-of-sample values using the testing dataset ($X_{\text{test}},U_{\text{test}}$). The partitioning of a given dataset into these subsets can be made deterministic by providing a seed and the desired partition percentages, or by directly providing the desired indices for each partition.  
+ 
+\subsection{Uncertainty set parametrization}
+\label{sec:set_param}
+Before we give the learning algorithm, we first describe the initial uncertainty set, which the user provides.  
+There are two broad categories of learned uncertainty sets: non-contextual, where the learned parameters are $\theta = (A,b,\rho)$ of the uncertainty sets from Section~\ref{sec:uncertainty_sets}, and contextual, where $\theta = (A(\cdot), b(\cdot),\rho)$, \ie, we learn the {\it mappings} from context parameters $x$ to $A,b$. 
+In the following, we give sample initializations for these sets. Note that uncertainty sets with pre-determined mappings can be interpreted as sets that are fixed at these initializations. 
+
+\subsubsection{Identity and Mean-Variance}
+The most basic initialization would be to set 
+$$A = I,\quad b = 0, \quad \rho = 1,$$
+where no data is used. For a more sophisticated approach, we can also implement the Mean-Variance set, with
+$$ A^{\rm mv}= \hat{\Sigma}^{1/2},\quad b^{\rm mv} = \hat{\mu},$$
+where the mean and covariance matrix of the training data $U_{\text{train}}$ is computed. 
+% \begin{equation}\label{eq:intro_example_unc_set}
+% 	\uncset{(\theta)} = \{u = \hat{\mu} + \hat{\Sigma}^{1/2} v \mid \|v\|_2 \leq \rho\} = \{b^{\rm mv} + A^{\rm mv} v \mid \|v\|_2 \leq \rho\},
+% \end{equation}
+% where $\theta = (A^{\rm mv}, b^{\rm mv},\rho)$. 
+
+
+% the initial mappings below. 
+\subsubsection{Contextual Mean Variance}
+For contextual sets, an intuitive mapping is the contextual mean-variance mapping, where $b^{\rm cmv}(x)$ is a linear mapping of the context $x$ to the contextual mean of the uncertainty, and $A^{\rm cmv}(x)$ is based on the covariance matrix of the $q$ uncertainty realizations associated with the $q$-nearest neighbors of $x$,~\ie,
+\begin{equation}
+    A^{\rm cmv}(x) = \gamma\hat{\Sigma}_{q}^{1/2}(x) + (1-\gamma)\text{vec}^{-1}(W_Ax+h_A),\quad b^{\rm cmv}(x) = W_bx+h_b.
+\end{equation} 
+ We compute $W_b,h_b$ as the solution to the ordinary least-squares problem
+$$W_b,h_b=\text{argmin}~\|X_{\text{train}}W_b^T + \ones_{N_{\text{train}}}h_b^T - U_{\text{train}}\|_F^2,$$
+where we use the training dataset. 
+To obtain the covariance mapping, for each context in $X_{\text{train}}$, we find its $q$-nearest neighbors and take the covariance of the associated uncertainty realizations in $U_{\text{train}}$. This gives us a total of $N_{\text{train}}$ covariance matrices, each denoted $\hat{\Sigma}_{q}(X_{\text{train},i})$, for $i = 1,\dots,N_{\text{train}}$. We take the square root of these matrices and flatten them to construct the matrix $U^{\text{cov}}_{\text{train}}$. We then compute $W_A,h_A$ as the solution to the ordinary least-squares problem
+$$W_A,h_A = \text{argmin}~\|X_{\text{train}}W_A^T + \ones_{N_{\text{train}}}h_A^T - U^{\text{cov}}_{\text{train}}\|_F^2,$$
+to obtain a mapping from context parameters to the (flattened) contextual covariance represented by $W_Ax+h_A$. We obtain the unflattened representation through the operation $\text{vec}^{-1}(W_Ax+h_A)$.
+For each new context $x$, the final value of $A^{\text{cmv}}(x)$ is then taken as a weighted sum of its local square-root covariance matrix $\hat{\Sigma}_{q}^{1/2}(x)$ and the mapping constructed above.  
+
+While the parameters $W_A, h_A, W_b, h_b$ are initialized as above, they can also be trained using the learning algorithm. In this case, the learnable parameters become $\theta = (W_A, h_A, W_b, h_b,\rho)$.
+
+\subsubsection{Deep Learning (Nonlinear predictor)}
+For a more expressive parametrization, we can replace the linear mappings with a deep neural network.
+The network consists of a shared hidden layer followed by two separate heads: one for the mean $b^{\rm dnn}(x)$ and one for the reshaping matrix $A^{\rm dnn}(x)$.
+Specifically, given a context $x$, we first compute a vector $h$ using a shared layer,
+\begin{equation*}
+    h = \tanh(W_sx + c_s),
+\end{equation*}
+where $W_s, c_s$ are the weights and bias of this shared layer.
+Then, the mapping for $b^{\rm dnn}(x)$ applies two successive layers with $\tanh$ activations,
+\begin{equation*}
+    b^{\rm dnn}(x) = W_3\tanh(W_2 h + c_2) + c_3.
+\end{equation*}
+On the other hand, we parametrize $A^{\rm dnn}(x)$ as a scaled Cholesky factor to ensure positive semidefiniteness.
+The network predicts the off-diagonal elements $\ell(x)$ and diagonal elements $d(x)$ of a lower-triangular matrix separately,
+\begin{align*}
+    \ell(x) &= \phi_{\rm corr}\left(\text{LeakyReLU}\left(W_5\tanh(W_4 h + c_4) + c_5\right)\right), \\
+    d(x) &= \text{softplus}\left(W_7\tanh(W_6 h + c_6) + c_7\right),
+\end{align*}
+where $\phi_{\rm corr}$ denotes the Cholesky correlation transform, which maps an unconstrained vector to the off-diagonal entries of a valid Cholesky factor, and $\text{softplus}$ ensures positive diagonal entries.
+The reshaping matrix is then
+\begin{equation}
+    A^{\rm dnn}(x) = L(x)
+\end{equation}
+where $L(x)$ is the lower-triangular matrix assembled from $\ell(x)$ and $d(x)$.
+As with the linear predictor, the covariance head can optionally be blended with a $k$-nearest-neighbor estimate $\hat{\Sigma}_q^{1/2}(x)$ via $A(x) = (1-\gamma)A^{\rm dnn}(x) + \gamma \hat{\Sigma}_q^{1/2}(x)$.
+The full set of learnable parameters is $\theta = (W_s, c_s, W_2, c_2, \dots, W_7, c_7, \rho)$.
+
+
+\subsection{Learning algorithm}
+\subsubsection{Augmented Lagrangian function}
+\label{sec:aug_lag_c6}
+To learn $\theta$, as introduced in Chapter~\ref{chap:lro}, we construct a data-driven bi-level problem, then construct an augmented Lagrangian formulation.
+In this work, we allow user-defined cost functions for the outer-level problem. Let $\ell(z,u,x)$ be the user-defined objective evaluation function, and let $\phi_i(z,u,x)$ be the user-defined constraint evaluation functions for $i = 1,\dots,\hat{I}$, where $\hat{I}$ is the number of uncertain constraints defined in~\eqref{eq:robust_prob_new}. 
+As an example, the objective evaluation function can be taken as the objective function $g_0$ from~\eqref{eq:robust_prob}, and the constraint evaluation functions can be taken as the constraint functions from~\eqref{eq:robust_prob_new}, \ie,
+$$ \ell = g_0,~\phi_1 = g_0-\tau,~\phi_{i} = g_{i-1},~i = 2,\dots,\hat{I}.$$
+Using the training data $(X_{\text{train}},U_{\text{train}})$, we denote the data-driven solutions of~\eqref{eq:canon_robust} as $z(\theta,X_{\text{train},{j}}), ~j=1,\dots,|X_{\text{train}}|$, and subsequently define the functions
+\begin{equation}
+\label{eq:general_func}
+F(\theta) = r_\ell(z,X_{\text{train}},U_{\text{train}}) \quad \text{and}\quad H_i(\theta) = r_{\phi_i}(z,X_{\text{train}},U_{\text{train}}),
+\end{equation}
+where $r_\ell$ denotes a custom empirical risk metric $r$ applied to the function $\ell$; see Section~\ref{sec:risk} for examples. 
+The training problem we wish to solve is
+\begin{equation}
+	\label{eq:bilevel_sampled_c6}
+	\begin{array}{ll}
+		\underset{\theta}{\mbox{minimize}} & F(\theta) \\
+		\mbox{subject to} & H_i(\theta) = 0,\quad i = 1,\dots,\hat{I},\\
+	\end{array}
+\end{equation}
+and the augmented Lagrangian is constructed as 
+\begin{equation}
+\label{eq:aug_lag}
+    L(\theta,\lambda,\mu) = F(\theta) + \lambda^T H(\theta) + \frac{\mu}{2}\|H(\theta)\|^2,
+\end{equation}
+where $H(\theta)$ is the stacked vector of all functions $H_i(\theta)$.
+
+
+\subsubsection{Sample risk metrics}
+\label{sec:risk}
+In this section, we suggest sample risk metrics for~\eqref{eq:general_func}. To achieve convergence of our subsequent learning algorithm, we require the risk metric to be definable~\cite{definable,definable2}.
+% Note that different risk metrics
+% lead to different probabilistic guarantees.
+\paragraph{Expectation.} The most common risk metric is expectation; when $r_\ell$ is defined using expectation, we define the empirical objective risk as
+\begin{equation*}
+F(\theta) = r^{\text{avg}}_\ell(z,X_{\text{train}},U_{\text{train}})= \frac{1}{|X_{\text{train}}|}\sum_{j=1}^{|X_{\text{train}}|}\ell(z(\theta,X_{\text{train},j}),U_{\text{train},j}, X_{\text{train},j}).
+\end{equation*}
+We note that while this is the simplest to compute, expectation is fundamentally risk-neutral, and does not offer substantial protection against uncertainty. 
+
+\paragraph{Conditional Value at Risk.}
+Another useful metric is the Conditional Value at Risk, $(\CVaR)$~\cite{cvaropt,cvar}, which quantifies the conditional expectation of a random variable exceeding its $(1-\eta)$-quantile, and thus offers increased protection against uncertainty. When $r_\ell$ is defined as $\CVaR$ with a quantile parameter $\eta$, the empirical objective risk is
+\begin{equation*}
+F(\theta) = r^{\text{cvar},\eta}_\ell(z,X_{\text{train}},U_{\text{train}}) = \inf_{\alpha}\frac{1}{|X_{\text{train}}|}\sum_{j=1}^{|X_{\text{train}}|}\frac{(\ell(z(\theta,X_{\text{train},j}),U_{\text{train},j}, X_{\text{train},j})-\alpha)_+}{\eta} + \alpha.
+\end{equation*}
+Note that as long as the function $\ell$ is convex in $z$, the $\alpha$ minimization step can be shifted to problem~\eqref{eq:bilevel_sampled}~\cite{cvar_ref}.
+
+
+\paragraph{Worst-case.} We may also be interested in the worst-case value (essential supremum), or, less extremely, the $(1-\eta)$-quantile worst-case value, also known as the Value at Risk ($\bf{VaR}$). We define the $\bf{VaR}$ of a random variable $X$ as $$q_\eta(X) = \inf\{\alpha \in \reals ~|~ \prob(X \leq \alpha) \geq 1-\eta \},$$
+and note that the $\CVaR$ is a convex upper bound on the $\bf{VaR}$~\cite{cvaropt}.
+When the objective risk $r_\ell$ is defined as the $(1-\eta)$-quantile worst-case, the empirical value is given as 
+$$F(\theta) = r^{\text{var},\eta}_\ell(z,X_{\text{train}},U_{\text{train}}) = \hat{q}_\eta(\ell) =\ell_{(k)}, ~k = \lceil\eta|X_{\text{train}}|\rceil,$$
+where $\ell_{(1)},\dots \ell_{(|X_{\text{train}}|)}$ are the order statistics of $\ell(z(\theta,X_{\text{train},j}),U_{\text{train},j}, X_{\text{train},j}),~j=1,\dots,|X_{\text{train}}|$.
+Similarly, when the objective risk $r_\ell$ is defined as the worst-case (essential supremum), the empirical value is given as
+$$F(\theta) = r^{\text{worst}}_\ell(z,X_{\text{train}},U_{\text{train}}) = \ell_{(|X_{\text{train}}|)}$$
+Note that the worst-case can be interpreted as the limit of the $\CVaR$ as $\eta \to 0$, \ie,
+$$\lim_{\eta \to 0} r^{\text{cvar},\eta}_\ell(z,X_{\text{train}},U_{\text{train}}) = r^{\text{worst}}_\ell(z,X_{\text{train}},U_{\text{train}}).$$
+
+\paragraph{Mixture.} If the elemental risk metrics are not enough, we can also define the risk metric to be a mixture of the above. For instance, if we want to minimize both the average-case performance and the $(1-\eta)$-quantile $\CVaR$, we can define the following objective:
+\begin{equation}
+  \label{eq:default_sim}
+  F(\theta) =  \gamma^{\text{cvar}}r^{\text{cvar},\eta}_\ell(z,X_{\text{train}},U_{\text{train}}) + \gamma^{\text{avg}}r^{\text{avg}}_\ell(z,X_{\text{train}},U_{\text{train}})
+\end{equation}
+where $\gamma^{\text{cvar}}$ and $\gamma^{\text{avg}}$ are hyperparameters that control the scaling.
+\subsubsection{The learning algorithm}
+Given the augmented Lagrangian function~\eqref{eq:aug_lag} equipped with the desired risk metrics, we then use Algorithms~\ref{alg:learning} and~\ref{alg:learning_inner}, as introduced in Chapter~\ref{chap:lro}, Section~\ref{sec:training_procedure}, to find a feasible solution to~\eqref{eq:bilevel_sampled_c6}. 
+We summarize the overall procedure in the following section.
+
+
+\subsection{Overall procedure}
+\label{sec:user_steps}
+Below, we give the high-level sequence of steps for the user. 
+{\begin{singlespace}
+\begin{enumerate}
+  \item Define an uncertain parameter with chosen structure, \eg, ellipsoidal, and equip it with a dataset, \eg, 
+  \begin{align*}
+    \tt{u = cvxro.UncertainParameter(m,uncertainty\_set}&\tt{=cvxro.Ellipsoidal(}\\
+    &\tt{p=2,rho = 1, data=data}))
+  \end{align*}
+  \item Define relevant context parameters, and equip them with datasets, \eg,
+$$\tt{x = cvxro.ContextParameter(n, data=context\_data)} $$
+  \item Define the~\gls{RO} problem in the format provided in Section~\ref{sec:ruleset}, possibly with an extra objective evaluation function, \eg,
+  $$\tt{robust\_problem = cvxro.RobustProblem(objective, constraints, eval\_exp)} $$
+  \item Define the trainer and trainer settings objects, \eg,
+ \begin{align*}
+  & \tt{trainer = cvxro.Trainer(robust\_problem)}\\
+  & \tt{settings = cvxro.TrainerSettings()}
+ \end{align*}
+\item Initialize a mapping for the contextual uncertainty set, \eg, for a linear mapping,
+    \begin{align*}
+    \tt{settings.predictor}~&\tt{= cvxro.LinearPredictor(}\\
+    &\tt{predict\_mean = True, predict\_cov = True, pretrain=True)}
+  \end{align*}
+\item Create a custom simulator class and fill in the objective and constraint evaluation functions, introduced in Section~\ref{sec:aug_lag_c6}. Otherwise, see the next step for the dafault simulator. 
+    \begin{align*}
+&\tt{class~NewSimulator(lropt.Simulator): \#fill~in}\\
+&\tt{settings.simulator = NewSimulator()}
+  \end{align*}
+\item If a custom simulator is not provided, the default simulator will use the aggregate objective~\eqref{eq:default_sim}, where $\ell$ is taken to be the evaluation function provided in Step 2, and the default constraint evaluation functions will be the $\CVaR$ of the constraints. The scaling hyperparameters and $\CVaR$ $\eta$ can be customized, \eg,
+    \begin{align*}
+&\tt{settings.avg\_scale = 0.5}\\
+&\tt{settings.cvar\_scale = 0.5}\\
+&\tt{settings.eta = 0.05}
+  \end{align*}
+\item Specify the remaining training hyperparameters of Algorithms~\ref{alg:learning} and~\ref{alg:learning_inner}, which are described in Section~\ref{sec:hyper}, \eg,
+    \begin{align*}
+&\tt{settings.set(num\_iter = .., lr = .., init\_lam = .., init\_mu = .., test\_percentage=.., ...)}
+  \end{align*}
+  A more comprehensive list of hyperparameters and their default values can be found in our documentation,
+  \begin{center}
+    \url{https://stellatogrp.github.io/cvxro/api/train/index.html}.
+  \end{center}
+\item Call the train function, which deploys Algorithms~\ref{alg:learning} and~\ref{alg:learning_inner}. The result contains the trained mapping, as well as performance metrics of interest as defined in the provided (or default) simulator. 
+$$\tt{result = trainer.train(settings=settings)} $$
+\item The user can additionally evaluate the performance of the trained sets using the functions provided in Section~\ref{sec:eval_sol}.
+\end{enumerate}
+\end{singlespace}}
+
+For more comprehensive examples, we point to our documentation at~\url{https://stellatogrp.github.io/cvxro/examples/index.html}, as well as the companion repository for Chapter~\ref{chap:lro}: \url{https://github.com/stellatogrp/cvxro_experiments}.
+
+\section{Conclusion}
+\label{sec:cvxro_conclusion}
+We have presented \gls{CVXRO}, an open-source Python package for formulating and solving \gls{RO} problems.
+The package automates the reformulation of uncertain constraints into their robust counterparts through a canonicalization chain built on top of cvxpy, removing the need for manual dualization.
+Beyond the deterministic setting, \gls{CVXRO} supports learning uncertainty set parametrizations from data, including contextual mappings via linear or deep neural network predictors, trained using a stochastic augmented Lagrangian method.
+By providing a unified interface for specifying uncertainty sets, defining robust problems, and training uncertainty set parameterizations, the package lowers the barrier to applying the frameworks developed in Chapters~\ref{chap:mro},~\ref{chap:online_dro}, and~\ref{chap:lro}, as well as traditional~\gls{RO} methods, to real-world problems.
+

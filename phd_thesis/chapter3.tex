@@ -9,7 +9,7 @@ As discussed in Chapter~\ref{chap:intro}, while Wasserstein \gls{DRO} can be les
 We thus employ clustering techniques to reduce the dimensionality of the data, and build a framework that combines the closely data-driven nature of~\gls{DRO} and the tractability of classical~\gls{RO}.
 
 In this chapter, instead of the function $\ell$ introduced in Chapter~\ref{chap:prelim}, we work directly with an uncertain constraint $g$.
-Note that by the epigraph trick of Section~\ref{sec:ro_def}, these two representations are interchangable. 
+Note that by the epigraph trick of Section~\ref{sec:ro_def}, these two representations are interchangeable. 
 
 % since the number of constraints grows linearly with the number of datapoints.
 % A common idea to reduce the dimensionality of data-driven decision-making problems is to use clustering techniques from machine learning.
@@ -61,10 +61,10 @@ The number of clusters is a tunable parameter that provides a tradeoff between t
 \end{comment}
 
 \subsection{Layout of the chapter}%
-\reviewChanges{
+The rest of this chapter is organized as follows.
 In Section~\ref{sec:mro}, we present our approach for concave uncertainty constraints, then extend the results to maximum-of-concave functions. 
 In Section~\ref{sub:connectionsdro}, we present connections to distributionally robust optimization, and give theoretical guarantees on constraint satisfaction.
-In Section~\ref{sec:conservatism}, we analyze the effect on clustering on the worst-case value of the~\gls{MRO} solutions for both concave and maximum-of-concave constraints}.
+In Section~\ref{sec:conservatism}, we analyze the effect on clustering on the worst-case value of the~\gls{MRO} solutions for both concave and maximum-of-concave constraints.
 In Section~\ref{sec:parameter_selection}, we give guidelines for choosing hyperparameters.
 In Section~\ref{sec:examples}, we provide computational verification of the speedups obtained through our methodology.
 In Section~\ref{sec:conclusions}, we summarize our conclusions.
@@ -79,7 +79,7 @@ We consider a deterministic objective $f(z)$ subject to an uncertain constraint 
 	\label{eq:constr_original}
 	g(u,z) \le 0,
 \end{equation}
-where $z \in \mathcal{Z} \subseteq \reals^n$ is an optimization variable on the compact set $\mathcal{Z}$, $u \in \supp \subseteq \reals^m$ is an uncertain parameter with convex and closed support $\supp$, governed by the distibution $\prob$, and $-g(u, z)$ is proper, convex, and lower-semicontinuous in~$u$ for all $z$, \ie, satisfying Assumption~\ref{ass:convex_l} with $J = 1$.  In Section~\ref{sec:max_concave}, we extend our results for $g$ being the maximum of of concave functions, where $J \geq 1$.
+where $z \in \mathcal{Z} \subseteq \reals^n$ is an optimization variable on the compact set $\mathcal{Z}$, $u \in \supp \subseteq \reals^m$ is an uncertain parameter with convex and closed support $\supp$, governed by the distribution $\prob$, and $-g(u, z)$ is proper, convex, and lower-semicontinuous in~$u$ for all $z$, \ie, satisfying Assumption~\ref{ass:convex_l} with $J = 1$.  In Section~\ref{sec:max_concave}, we extend our results for $g$ being the maximum of concave functions, where $J \geq 1$.
 Throughout this paper, we assume the support $\supp$ of $u$ to live within the domain of $g$ for the variable $u$, which we will refer to as $\dom{g}$, \ie, $\supp \subseteq \dom{g}$.
 We assume $\dom{g}$ is independent of $z$, and that the following assumption holds. 
 \begin{assumption}
@@ -315,7 +315,7 @@ We compute the conjugate as
 \end{dcases}
 \end{equation}
 To substitute $\sigma_{\supp}(h_k)$ and $[-g]^*(y_k - h_k, z)$ into~\eqref{eq:robustopt_p}, we note that $h_k = 0$ and $y_k = -P^Tz$, \ie, $y_k$ is independent from $k$.
-Bh combining the $K$ constraints in~\eqref{eq:robustopt_p}, we arrive at the form
+Bycombining the $K$ constraints in~\eqref{eq:robustopt_p}, we arrive at the form
 \begin{equation}
 	\label{eq:example-affine-p}
 	\begin{array}{ll}
@@ -377,7 +377,7 @@ Following a similar derivation as~\eqref{eq:example-affine-p}, we substitute the
 	\end{array}
 \end{equation}
 where the number of constraints and variables does not depend on $K$.
-Similairy to problem~\eqref{eq:example-affine-p}, the term $\sum_{k=1}^{K} w_k \bar{d}_k$ is the average of the datapoints in $\mathcal{D}_N$ for any $K \in \{1,\dots,N\}$. Therefore, the choice of $K$ does not affect this formulation.
+Similarly to problem~\eqref{eq:example-affine-p}, the term $\sum_{k=1}^{K} w_k \bar{d}_k$ is the average of the datapoints in $\mathcal{D}_N$ for any $K \in \{1,\dots,N\}$. Therefore, the choice of $K$ does not affect this formulation.
 \reviewChanges{This can be viewed as the robust counterpart when the uncertainty set is a norm ball of radius $\epsilon$ centered at $(1/N)\sum_{i=1}^N d_i$}
 
 Note that, if $\bar{d} = 0$ the constraint can be simplified even further, obtaining ${a^Tz + \epsilon\|P^Tz\|_* \le b}$, which corresponds to the robust counterpart in \gls{RO} with norm uncertainty sets~\citep[Section 2.3]{robustadaptopt},~\citep[Chapter 2]{ben-tal_robust_2009}.
@@ -539,7 +539,7 @@ is equivalent to the dual of the constraint of~\eqref{eq:unif-const_max}, when $
 This is noted in~\citep{kuhn2019wasserstein,zhen2021mathematical}.
 We give a proof of strong duality in Appendix~\ref{app:convex_red}.
 This is the dual of the generalized max-of-concave form, which is equivalent to the dual of the single concave form~\eqref{eq:unif-const} when $J = 1$. 
-Bh the same logic, in the case where $p = \infty$, the expression is equivalent to the dual of the constraint of~\eqref{eq:unif-const-p}.
+Bythe same logic, in the case where $p = \infty$, the expression is equivalent to the dual of the constraint of~\eqref{eq:unif-const-p}.
 Given the above reductions, we can rewrite the Wasserstein \gls{DRO} problem in the same form as~\eqref{eq:unif-const_max}, the \gls{MRO} problem.
 
 Our approach can then be viewed as a form of Wasserstein \gls{DRO}, with the difference that, when $K<N$, we deal with the clustered and averaged dataset.
@@ -552,7 +552,7 @@ This formulation allows for the reduction of the sample size while preserving ke
 
 \subsection{Satisfying the probabilistic guarantees}
 \label{par:gau}
-As we have noted the parallels between \gls{MRO} and Wasserstein \gls{DRO}, we now show that the conditions for satisfying the probabilistic guarantees are also analogous. Bh enlarging the Wasserstein ball by a clustering-dependent value $\eta_N(K)$, we ensure that the measure-concentration type results from Section~\ref{sec:gua_dependent} hold also for~\gls{MRO}.
+As we have noted the parallels between \gls{MRO} and Wasserstein \gls{DRO}, we now show that the conditions for satisfying the probabilistic guarantees are also analogous. Byenlarging the Wasserstein ball by a clustering-dependent value $\eta_N(K)$, we ensure that the measure-concentration type results from Section~\ref{sec:gua_dependent} hold also for~\gls{MRO}.
 % \paragraph{Case $p \geq 1$.} Wasserstain \gls{DRO} satisfies~\eqref{eq:prob_guarantees1} if the data-generating distribution, supported on a convex and closed set $\supp$, satisfies a {\it light-tailed assumption}~\citep{fournier_guillin_2013,mohajerin_esfahani_data-driven_2018}: there exists an exponent $a > 0$ and $t > 0 $ such that ${A = \Expect^{\prob}(\exp (t \|u \|^a))  = \int_{\reviewChanges{\supp}} \exp (t \| u \| ^a) \prob(du) < \infty.}$
 % We refer to the following theorem.
 % \begin{theorem}[Measure concentration {\citep[Theorem 2]{fournier_guillin_2013}}]
@@ -639,7 +639,7 @@ which implies the uncertainty set $\uncset(K, \epsilon_N(\beta) + \eta_N(K)^{1/p
 
 This result introduces a tradeoff between conservatism (affected by the radius) and computational efficiency (affected by the sample size), controlled by the value of $K$. When a large $K$ is chosen, the effect on the radius is small, but the computational savings may also be minimal. The choice of $K$ is thus paramount.
 
-One might note that a blanket increase in the radius regardless of the optimization problem may introduce unneccesary conservatism. This brings us to the next section, where we bring the constraint functions $g$ into our considerations. 
+One might note that a blanket increase in the radius regardless of the optimization problem may introduce unnecessary conservatism. This brings us to the next section, where we bring the constraint functions $g$ into our considerations. 
 
 
 \section{Worst-case value of the uncertain constraint}
@@ -928,7 +928,7 @@ On the other hand, for maximum-of-concave $g$, we do need to choose larger $\eps
 However, for both cases, we show a powerful result in the upcoming numerical examples: although for the same $\epsilon$, \gls{MRO} with $K$ clusters differs in conservatism from Wasserstein \gls{DRO} ($N$ clusters), there are cases where we can tune $\epsilon$ such that \gls{MRO} and \gls{DRO} provide almost identical tradeoffs between objective values and probabilitic guarantees, such that no loss in performance results from choosing a smaller cluster number $K$.}
 \reviewChanges{
 \paragraph{Data with outliers}
-When the provided dataset contains outliers, one might imagine that the centoids created by the clustering algorithm will be biased towards the outliers. While this is true, the weights of the outliers will not increase through clustering, thus the effect of outliers on these clustered Wasserstein balls is not worse than their effect on the original Wasserstein balls, which include the Wasserstein ball around the outlier point. In fact, by clustering the outlier point with other points, \gls{MRO} offers protection against the outlier. We demonstrate this in on the numerical experiment in Section~\ref{sub:news}, where we compare three methods: \gls{MRO}, \gls{MRO} with outlier removal, and \gls{MRO} with the outlier considered as its own cluster.
+When the provided dataset contains outliers, one might imagine that the centroids created by the clustering algorithm will be biased towards the outliers. While this is true, the weights of the outliers will not increase through clustering, thus the effect of outliers on these clustered Wasserstein balls is not worse than their effect on the original Wasserstein balls, which include the Wasserstein ball around the outlier point. In fact, by clustering the outlier point with other points, \gls{MRO} offers protection against the outlier. We demonstrate this in on the numerical experiment in Section~\ref{sub:news}, where we compare three methods: \gls{MRO}, \gls{MRO} with outlier removal, and \gls{MRO} with the outlier considered as its own cluster.
 }
 
 \section{Numerical examples}
@@ -948,7 +948,7 @@ The calculated in-sample objective value and out-of-sample expected values, as w
 
 \reviewChanges{
 For numerical examples with an uncertain objective, the probability of constraint violation is measured as the probability the average out-of-sample value is above the in-sample value.
-For numerical examples with an uncertain constraint, the probablity of constraint violation is measured as the probability the average constraint value is above zero.}
+For numerical examples with an uncertain constraint, the probability of constraint violation is measured as the probability the average constraint value is above zero.}
 
 \reviewChanges{In Sections~\ref{sub:capitalbudget},~\ref{sub:quadraticconcave}, and~\ref{sub:logsumexp}, we demonstrate the performance of \gls{MRO} when the uncertain constraint is concave. In Section~\ref{sub:sparse_portfolio_optimization},~\ref{sub:facility}, and~\ref{sub:news}, we demonstrate the performance of \gls{MRO} for maximum-of-affine uncertainty. }
 
@@ -1248,7 +1248,7 @@ We generate demands as the combination of two normal distributions. Half of the 
 We then project the demands onto $(1,6)$.}
 % Since the underlying distribution is uniform, it satisfies the assumptions of Theorem~\ref{theorem-inf}, so theoretical guarantees also exist for $p = \infty$. 
 \reviewChanges{For the upper bound $\delta(K,y,\gamma)$ on  $\bar{g}^N(z) - \bar{g}^K(z)$ from Corollary~\ref{cor:maxaffine}, we have $(1/N)\sum_{k=1}^K \sum_{i \in C_k}  \max(\max_{j\leq J}((X[i] -H^T\gamma_{jk}),0)^T(d_i - \bar{d}_k))$. Note that this upper bounds the difference in constraint values, and only indirectly affects the objective values through restrictions on the feasible region. Therefore, it is not an upper bound on the difference in objective value, merely a rough estimate.
-We cannot directly compare this upper bound against the change in constraint values, as at the optimal chonsen $z, X$ for each $K$, which differ due to differences in the feasible regions, the constraint value will always be near 0 for optimality. We thus compare it against the change in objective values. }
+We cannot directly compare this upper bound against the change in constraint values, as at the optimal chosen $z, X$ for each $K$, which differ due to differences in the feasible regions, the constraint value will always be near 0 for optimality. We thus compare it against the change in objective values. }
 \reviewChanges{
 \paragraph{Choosing $K$}
 Plotting the clustering value $D(K)$ over $K$, we note that the elbow occurs at $K=2$, which suggests using cross-validation for $K$ values around 2. }
@@ -1334,7 +1334,7 @@ We consider three ways to solve the problem, decribed as follows.
 \begin{enumerate}
 	\item \gls{MRO}, where we directly apply \gls{MRO} to the dataset with the outlier.
 	\item ROB-\gls{MRO}, where we perform preliminary analysis on the dataset to remove the outlier point, then apply \gls{MRO} to the cleaned dataset. 
-	\item AUG-\gls{MRO}, where we perform the clustering step on data without the outlier, then define an augmented distribution supported on $K+1$ points, where the extra point is the outlier point (0,0), with weight $1/N$. The weights of the other clusters are ajusted accordingly. 
+	\item AUG-\gls{MRO}, where we perform the clustering step on data without the outlier, then define an augmented distribution supported on $K+1$ points, where the extra point is the outlier point (0,0), with weight $1/N$. The weights of the other clusters are adjusted accordingly. 
 \end{enumerate}}
 
 
@@ -1374,7 +1374,7 @@ Overall, choosing $K=5$, we obtain an order of magnitude computational speed-up.
 \section{Conclusions}
 \label{sec:conclusions}
 We have presented \glsentryfull{MRO}, a data-driven methodology for decision-making under uncertainty that bridges robust and distributionally robust optimization while preserving rigorous probabilistic guarantees.
-Bh clustering the dataset, we solve an efficient and computationally tractable formulation with limited performance degradation.
+Byclustering the dataset, we solve an efficient and computationally tractable formulation with limited performance degradation.
 In particular, we showed that when the constraints are affine in the uncertainty, clustering does not affect the optimal value of the objective.
 \reviewChanges{When the constraint is concave or maximum-of-concave in the uncertainty, we directly quantified the change in worst-case constraint value that is caused by clustering. For problems with objective uncertainty, this directly bounds the change in the optimal value caused by clustering. }
 % This is especially the case when the uncertainty constraint is affine in the uncertain parameter, as then the conservatism of the solution is completely unaffacted by clustering.

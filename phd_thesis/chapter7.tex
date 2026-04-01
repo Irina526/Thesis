@@ -1,0 +1,70 @@
+\chapter{Concluding remarks and future directions}
+\label{chap:conc}
+
+In this thesis, we presented data-driven frameworks for fast and reliable optimization under uncertainty, addressing three fundamental challenges: high computational effort, conservative uncertainty models, and complex formulations.
+Below, we summarize our contributions, and lay out ongoing and future directions of research. 
+
+\paragraph{Reducing computational effort through data compression.}
+In Chapter~\ref{chap:mro}, we introduced \glsentryfull{MRO}, a framework that bridges \gls{RO} and Wasserstein \gls{DRO} by constructing uncertainty sets from clustered data.
+By varying the number of clusters, \gls{MRO} provides a tunable tradeoff between computational tractability and conservatism.
+We established finite-sample probabilistic guarantees of constraint satisfaction, derived explicit bounds on the effect of clustering, and demonstrated the computational gains on various numerical experiments. 
+In Chapter~\ref{chap:online_dro}, we extended this framework to the online setting, where data arrives sequentially over time.
+Our method dynamically adapts the clustered uncertainty sets using online clustering algorithms, maintaining a fixed problem structure regardless of the number of observed data points.
+We proved asymptotic performance guarantees, finite-sample bounds, and sublinear regret relative to the full-information \gls{DRO} solution.
+Experiments in mixed-integer portfolio optimization confirmed significant computational savings with minimal degradation in solution quality.
+
+\paragraph{Reducing conservatism through decision-focused learning.}
+In Chapter~\ref{chap:lro}, we proposed an end-to-end method for learning contextual uncertainty sets that are tailored to the optimization problem at hand.
+Rather than constructing uncertainty sets independently of the downstream decisions, our approach reshapes the sets by optimizing for both worst-case and average-case performance, subject to a conditional-value-at-risk constraint that guarantees probabilistic constraint satisfaction.
+We solved the resulting constrained learning problem using a stochastic augmented Lagrangian method, established convergence guarantees via the nonsmooth conservative implicit function theorem, and provided finite-sample probabilistic guarantees using empirical process theory.
+Numerical experiments showed that our method outperforms traditional \gls{RO} and \gls{DRO} approaches in terms of both out-of-sample performance and constraint satisfaction.
+
+
+\paragraph{Making robust optimization accessible.}
+In Chapter~\ref{chap:cvxro}, we presented \gls{CVXRO}, an open-source Python package that automates the formulation and solving of \gls{RO} problems.
+Built on top of cvxpy, \gls{CVXRO} handles the reformulation of uncertain constraints into their robust counterparts through a canonicalization chain, removing the need for users to perform manual dualization.
+The package supports both pre-determined and learned uncertainty sets, including contextual mappings via linear and deep neural network predictors, and implements the learning procedure of Chapter~\ref{chap:lro}.
+
+\section{Future directions}
+We now describe select ongoing and future research directions that build on this work.
+
+\paragraph{Dimensionality reduction in the uncertain parameter.}
+In Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, while we reduced the {\it number of datapoints}, the adversary's search space still grows with the {\it ambient dimension} of the uncertain parameter. In many real-world applications, the uncertain parameters exhibit low-rank structure: asset returns are driven by a small number of market factors, product demands are governed by shared macroeconomic and seasonal trends, and machine-learning models produce high-dimensional embeddings that concentrate near low-dimensional subspaces. This intrinsic low-dimensionality suggests that the full ambient space is unnecessary for capturing distributional uncertainty. We thus propose low-rank DRO, an approach that allows for reductions in both solution-time and conservatism compared to full-space DRO. Specifically, we work with the formulation
+\begin{equation*}
+\label{eq:dro_prob_future}
+	\begin{array}{ll}
+		\underset{z \in \mathcal{Z}}{\text{minimize}} & \sup_{\mathbf{Q} \in  \mathbf{B}_\epsilon^p (T_\# \hat{\prob}^N) } \Expect_{\unc \sim \mathbf{Q}}[\ell(\unc,z)],
+	\end{array}
+\end{equation*}
+where $T_\#$ represents the push-forward of $\hat{\prob}^N$ onto a lower dimensional subspace. 
+We analyze the solutions under this setting for uncertain parameters with varying intrinsic dimensions, and prove performance bounds with respect to the true stochastic optimal, as well as to the full-space~\gls{DRO} formulation. 
+
+% We present the low-rank risk using bias-variance tradeoff, and prove conditions in which only low-rank models can recover the optimal value with respect to the true distribution. For general settings, we derive theoretical bounds on the gap between the low-rank and full-space problems. We demonstrate the effectiveness of our approach on the aforementioned applications. 
+
+% \paragraph{Tighter analysis of clustering effects.}
+% The performance bounds in Chapters~\ref{chap:mro} and~\ref{chap:online_dro} quantify the gap between clustered and non-clustered \gls{DRO} solutions, but these bounds may be conservative in practice.
+% A tighter analysis that exploits problem-specific structure, such as the geometry of the feasible set or the curvature of the objective, could yield sharper guarantees and better guidance for selecting the number of clusters.
+
+\paragraph{Adaptive learning of uncertainty sets.}
+While the formulation in Chapter~\ref{chap:lro} can be applied for multi-stage problems through the use of adjustable~\gls{RO} techniques, as demonstrated in the inventory example~\ref{sec:inv_example}, it is intrinsically still a single-stage problem. 
+Using ideas from {\it control theory}, many \gls{RO} applications can be cast as dynamical systems, where at each time step we observe the system state, make a decision based on a {\it robust control policy}, observe an unknown disturbance, then advance the system state based on known {\it state dynamics}. 
+We can then adapt the procedure of Chapter~\ref{chap:lro} to this dynamic decision-making framework. 
+% My co-author and I are currently developing a data-driven technique to automatically learn uncertainty sets in this dynamic decision making framework.
+We formulate the learning problem as a control design problem where the control policy involves solving a robust optimization problem parametrized by the past disturbances, as well as the parameter $\theta$ of the uncertainty set.
+The uncertainty set at each time step is then dependent on both {\it endogenous sources} such as the current system state, as well as {\it exogenous sources} such as contextual information, and we optimize the parameters over a closed-loop performance metric. 
+  % propose a learning procedure to predict the parameters of the uncertainty set to minimize a closed-loop performance metric.
+
+% Combining the online data compression of Chapter~\ref{chap:online_dro} with the decision-focused learning of Chapter~\ref{chap:lro} is a natural next step.
+% In this setting, both the uncertainty set parametrization and the data compression scheme would adapt simultaneously as new data arrives, requiring new theoretical tools to analyze the interplay between learning and compression.
+
+\paragraph{Geometric insights for uncertainty set design.}
+While Chapter~\ref{chap:lro} demonstrates empirically that learned uncertainty sets outperform traditional ones, a deeper understanding of the geometric properties of the optimal sets in relation to the optimization problem would provide valuable theoretical insights.
+Instead of treating the algorithm as a ``black box", such analysis could inform the choice of parametrization and reduce the need for hyperparameter tuning.
+Furthermore, while the exact formulation of the bilevel problem provided in Appendix~\ref{appx:bilinear} is intractable for general problems, solutions to smaller stylized examples may produce helpful insights. Additional approximations and solution methods, such as outer approximation techniques, could also be explored.
+
+% Several directions for future research remain. One is to extend the performance guarantees to relate to the true global optimal value, though this requires solving the exact formulation provided in Appendix~\ref{appx:bilinear}. Another one is, instead of treating the algorithm as a ``black box", to analyze the geometric properties of the uncertainty sets found in relation to the geometric properties of the optimization problem, and establish theoretical insights. 
+% This would add to the empirical demonstrations given in this work, and help inform the best choice for an uncertainty set parametrization for a given problem.  We aim to explore these directions in future works. 
+
+\paragraph{Extensions of \gls{CVXRO}.}
+The \gls{CVXRO} package currently supports a broad class of uncertainty sets and optimization problems, but further development could extend its capabilities to multi-stage problems, additional data-driven robust and distributionally robust formulations, and more expressive learned parametrizations. Hyperparameter (size) tuning through distribution-free approaches such as conformal prediction could also be implemented. 
+The multi-stage formulation is underway, and we plan to add corresponding implementations examples to the current library of examples at \url{https://stellatogrp.github.io/cvxro/examples/index.html}. 

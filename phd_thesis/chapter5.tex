@@ -7,11 +7,12 @@
 \label{sec:intro_p}
 % Over the past years, \gls{RO} has become a widely adopted efficient tool for decision-making under uncertainty.
 % A robust approach first defines an uncertainty set where the uncertain vector lives, and subsequently hedges its decision against any worst-case realization in this set~\citep{robustconvexopt,ben-tal_robust_2009,bertsimassurvey,robustadaptopt}.
-As mentioned in Chapters~\ref{chap:intro} and~\ref{chap:prelim}, to attain proper solution quality and practical robustness, the choice of the uncertainty set in \gls{RO} is paramount. Uncertainty sets obtained through a two-step procedure, where information on the optimization problem is not used, could lead to conservative decisions. 
-In this chapter, we thus explore an end-to-end approach to build problem-specific uncertainty sets. We additionally consider a {\it context parameter}, such that our results can be applied for a {\it family} of related optimization problems.
+As mentioned in Chapters~\ref{chap:intro} and~\ref{chap:prelim}, to attain proper solution quality and practical robustness, the choice of the uncertainty set in \gls{RO} is paramount. 
+When the construction of the uncertainty set is decoupled from the subsequent optimization problem, the solutions obtained could be overly conservative. 
+% obtained through a two-step procedure, where the optimization problem itself is not used, could lead to conservative decisions. 
+In this chapter, we thus explore an end-to-end approach to build problem-specific uncertainty sets. We additionally consider a {\it context parameter}, such that our results can be applied for a {\it family} of related optimization problems. We note that the sets considered in Chapters~\ref{chap:mro} and~\ref{chap:online_dro} follow the traditional decoupled procedure, but can be enhanced using the results of this chapter. 
 
-We note that the sets considered in Chapters~\ref{chap:mro} and~\ref{chap:online_dro} follow the traditional two-step procedure, but can be enhanced using the results of this chapter. 
-Lastly, instead of the function $\ell$ considered in Chapter~\ref{chap:prelim}, in this chapter we work with {\it both} an uncertain objective $f$ and an uncertain constraint $g$. 
+Instead of the function $\ell$ considered in Chapter~\ref{chap:prelim}, we now work with {\it both} an uncertain objective $f$ and an uncertain constraint $g$, which encompasses a more general set of problems. 
 % Coverage-based uncertainty sets,
 
 
@@ -66,10 +67,11 @@ a variety of traditional sets with simple structure, such as ellipsoidal and bud
 % The use of $\CVaR$ constraints to substitute chance constraints has also been explored in reliability engineering, where the $\CVaR$ constraint has been given a different name: buffered failure probability~\citep{buffered}.
 % In our work, we constrain risk, which in \gls{RO} is the probability of constraint violation, by constraining the $\CVaR$ of the uncertain constraint functions.
 
-\subsection{Layout of the paper}%
-\RC{In Section~\ref{c4:sec:intro}, we introduce the notion of the decision-focused set with a motivating example. In Section~\ref{sec:learn}, we describe the data-driven algorithm and prove its convergence, and in Section~\ref{sec:guarantees}, provide probabilistic guarantees.
+\subsection{Layout of the chapter}%
+The rest of this chapter is organized as follows.
+In Section~\ref{c4:sec:intro}, we introduce the notion of the decision-focused set with a motivating example. In Section~\ref{sec:learn}, we describe the data-driven algorithm and prove its convergence, and in Section~\ref{sec:guarantees}, provide probabilistic guarantees.
 % In Section~\ref{sec:HL_canon}, we give a high-level overview of our \gls{LROPT} package, and 
-In Section~\ref{sec:hyper}, we discuss hyperparameter tuning, and in Section~\ref{c4:sec:examples}, present various numerical examples problems.}
+In Section~\ref{sec:hyper}, we discuss hyperparameter tuning, and in Section~\ref{c4:sec:examples}, present various numerical examples problems.
 For completeness, we give example convex reformulations of robust optimization problems for common uncertainty sets, with our shaped parameters, in the appendices.
 % \bsnote{make sure this matches the final version after we move things to fit journal page limits}
 
@@ -217,19 +219,20 @@ Problem~\eqref{eq:robust_prob} guarantees that, for $\theta$ and any given $x$, 
 % \VaR(g(z(\theta,x),u,x),\eta) = \inf\{\Gamma \mid \prob_{(u,x)}(g(z(\theta,x),u,x)\leq \Gamma) \geq 1-\eta\} \leq 0.
 % \end{equation*}}
 
-Unfortunately, the value at risk function often leads to intractable formulations~\citep{cvaropt}, so our problem cannot be solved directly. 
-To get a tractable approximation, we adopt the {\it conditional value at risk}~\citep{cvaropt,cvar}, defined as
+Unfortunately, as the value at risk function often leads to intractable formulations~\citep{cvaropt}, we work instead with the the {\it conditional value at risk}~\citep{cvaropt,cvar}, which provides a tractable approximation
 \begin{equation*}
 	\label{eq:cvar}
 \CVaR(g(z(\theta,x),u,x),\eta) = \inf_{\alpha}\left\{\frac{\Expect_{(u,x)} (g(z(\theta,x),u,x)- \alpha)_+}{\eta} + \alpha\right\},
 \end{equation*}
-where $(a)_+ = \max\{a,0\}$. It is well known~\citep{cvaropt} that, for any \RC{$z \in \reals^n$}, the relationship between these probabilistic guarantees of constraint satisfaction is
-% Please use quad instead of specific hspace cm. Otherwise, if we change the layout, things can break.
-\begin{equation*}
-	\label{eq:imply}
-\CVaR(g(z,u, x),\eta) \leq 0 ~~\Longrightarrow~~ \VaR(g(z,u,x),\eta)\leq 0 ~~\Longleftrightarrow ~~ \prob_{(u,x)}(g(z,u,x)\leq 0) \geq 1 - \eta.
-\end{equation*}
-Therefore, if the solution \RC{$z(\theta,x)$ of~\eqref{eq:robust_prob} satisfies $\CVaR(g(z(\theta,x),u,x),\eta) \leq 0$,} we have the desired probabilistic guarantee in~\eqref{eq:bilevel_intro_opt_theta}.
+where $(a)_+ = \max\{a,0\}$. 
+From the discussion in Section~\ref{sec:ro_def}, equation~\eqref{eq:cvar_relate},
+% It is well known~\citep{cvaropt} that, for any \RC{$z \in \reals^n$}, the relationship between these probabilistic guarantees of constraint satisfaction is
+% % Please use quad instead of specific hspace cm. Otherwise, if we change the layout, things can break.
+% \begin{equation*}
+% 	\label{eq:imply}
+% \CVaR(g(z,u, x),\eta) \leq 0 ~~\Longrightarrow~~ \VaR(g(z,u,x),\eta)\leq 0 ~~\Longleftrightarrow ~~ \prob_{(u,x)}(g(z,u,x)\leq 0) \geq 1 - \eta.
+% \end{equation*}
+if the solution \RC{$z(\theta,x)$ of~\eqref{eq:robust_prob} satisfies $\CVaR(g(z(\theta,x),u,x),\eta) \leq 0$,} we have the desired probabilistic guarantee in~\eqref{eq:bilevel_intro_opt_theta}.
 In fact, as the $\CVaR$ constraint is stronger than the $\bf{VaR}$ constraint, ensuring its satisfaction might result in more desirable solutions, especially when, on top of the {\it threshold} worst-case value, the decision-maker is concerned with the {\it magnitude} of all the worst-case values beyond the threshold~\citep{cvar_var}. Furthermore, this formulation should not favor neglecting certain contexts $x$ (such that they suffer constraint violations of a significant magnitude) in exchange for better performance for other contexts, since that would result in a high $\CVaR$.
 
 
@@ -499,7 +502,7 @@ the empirical mean $\hat{\mu}$ and covariance $\hat{\Sigma}$ of the training-set
 \end{equation}
 where $\theta = (A^{\rm mv}, b^{\rm mv},\rho)$. 
 The radius $\rho$, which represents the size of the uncertainty set, is tuned using the validation-set uncertainty $U^{\text{valid}}$.
-\item Contextual Mean-Variance (CMV) uncertainty set. Consider now a contextual version of~\eqref{eq:intro_example_unc_set} inspired by~\cite{knn}, \ie,
+\item Contextual Mean-Variance (CMV) uncertainty set. Consider now a contextual version of~\eqref{eq:intro_example_unc_set} inspired by Messoudi et al.~\cite{knn}, \ie,
 $\uncset(\theta,x) =\{u = b^{\rm cmv}(x) + A^{\rm cmv}(x)v \mid \|v\|_2 \leq \rho\}$, where $b^{\rm cmv}(x)$ is a linear mapping of the context $x$ to the contextual mean of the uncertainty, and $A^{\rm cmv}(x)$ is based on the covariance matrix of the $k$ uncertainty realizations associated with the $k$ nearest neighbors of $x$,~\ie,
 \begin{equation}
     A^{\rm cmv}(x) = \hat{\Sigma}_k^{1/2}(x),\quad b^{\rm cmv}(x) = W_bx+h_b.
@@ -1159,12 +1162,12 @@ and
 The weights $w(\bar{x},x^i)$ are constructed such that $\sum_{i=1}^Nw(\bar{x},x^i) = 1$ and $w(\bar{x},x^i) \geq 0$ for $i = 1,\dots N$, and is a measure of the proximity of the data-point $x^i$ to $\bar{x}$. With this construction, the conditional distribution $\prob_{(u|x = \bar{x})}$ is approximated as
 $$\tilde{\prob}_{(u|x = \bar{x})} = \sum_{i=1}^Nw(\bar{x},x^i)\delta_{u^i}.$$
 
-As discussed by~\cite{bertsimas2020predictive}, the weights could be constructed using $k$-nearest-neighbors ($k$NN), kernel methods, nonnegative local linear methods, trees, or random forests. Here, we focus on the $k$NN setting, and note that the remaining methods could similarly be applied, albeit with different assumptions.
+As discussed by Bertsimas and Kallus~\cite{bertsimas2020predictive}, the weights could be constructed using $k$-nearest-neighbors ($k$NN), kernel methods, nonnegative local linear methods, trees, or random forests. Here, we focus on the $k$NN setting, and note that the remaining methods could similarly be applied, albeit with different assumptions.
 
 In the $k$NN setting, we choose the weights
 $$w(\bar{x},x^i) = \frac{1}{k}\ones\{x^i\text{ is a $k$NN of } \bar{x}\}, $$
 where ties are broken randomly, and the nearest-neighbors are decided using the Euclidean distance in $\reals^p$. 
-In their work,~\cite{bertsimas2020predictive} derive asymptotic guarantees for their constructed contextul prescriptors. We, however, require a finite-sample gaurantee analogous to~\eqref{eq:prob_guarantee_fin} for a particular context $\bar{x}$. We therefore require the following assumptions:
+In their work, Bertsimas and Kallus~\cite{bertsimas2020predictive} derive asymptotic guarantees for their constructed contextual prescriptors. We, however, require a finite-sample gaurantee analogous to~\eqref{eq:prob_guarantee_fin} for a particular context $\bar{x}$. We therefore require the following assumptions:
 \begin{assumption}[Regular marginal density]
 	\label{ass:positive}
 	The distribution $\prob_x$ of the context variable $x$ admits a density $\mu_x$ with respect to the Lebesgue measure, and $\mu_x$ is continuous at $\bar{x}$ with $\mu_x(\bar{x}) > 0$.
@@ -1272,12 +1275,13 @@ Among the solutions obtained from the hyperparameter combinations, we use a vali
 
 \section{Examples}
 \label{c4:sec:examples}
-We run the following experiments on the Princeton Institute for Computational Science and Engineering (PICSciE) facility with 20 parallel 2.4 GHz Skylake cores. We solve the inner optimization problems~\eqref{eq:robust_prob} with the Clarabel optimizer with default settings. The learning procedure relies on the Python package cvxpylayers~\citep{cvxpylayers2019}, and 
+We run the following experiments on the Princeton Institute for Computational Science and Engineering (PICSciE) facility with 20 parallel 2.4 GHz Skylake cores. We solve the inner optimization problems~\eqref{eq:robust_prob} with the Clarabel optimizer with default settings. The learning procedure relies on the Python package cvxpylayers~\citep{cvxpylayers2019} and our Python package CVXRO~\cite{lropt_package}, which will be introduced in Chapter~\ref{chap:cvxro}.
 % is implemented using the \gls{LROPT} package. T
-the code to replicate the experiments (along with the baselines) can be accessed at
+The code to replicate the experiments (along with the baselines) can be accessed at
 \begin{center}
-	\githubrepo
+	\githubrepo.
 \end{center}
+% This code is dependent on 
 \RC{We compare our method with the following baselines. To accommodate non-contextual methods, we restrict ourselves to discrete contexts, so the problems can be solved separately in each context. While we can also use clustering to restrict the number of representative contexts (for problems where the context does not appear in the formulation), here we use the exact contexts for a better comparison. For all experiments, we split the data into three components: training, validation, and testing. For all methods, we tune hyperparameters based on the performance on the validation dataset, for a validation probability of constraint violation below 10\%, and for the best (lowest) 90 percentile validation value (out-of-sample objective value on the validation dataset) among all sets that satisfies the criteria. We report the corresponding test-set values. Below, we detail the tuning procedures for each method.}
 % \bsnote{Do we use LRO or LROPT? In the tables you write LRO. I would be consistent.}
 \begin{itemize}
@@ -1287,8 +1291,8 @@ the code to replicate the experiments (along with the baselines) can be accessed
 \item {\bf Wasserstein \gls{DRO} (W)}. We perform Wasserstein-1 \gls{DRO}~\citep{mohajerin_esfahani_data-driven_2018}, where the uncertainty set is constructed around individual data-points from the training set, regardless of the context. We again perform grid search over the set size $\rho$ on the validation data, as described above.
 \item {\bf Wasserstein \gls{DRO} with separate contexts (CW)}. We perform Wasserstein-1 \gls{DRO} for each context, where the uncertainty set is constructed around individual data-points from the training set for the particular context. For each context, we grid search over the set size $\rho$ on the validation data. We average the final result across all contexts. 
 % \item {\bf Scenario Approach with separate contexts (CSA)}. We implement the scenario approach, inspired by~\cite{scenario}. For each context, we require the constraint to be satisfied by both the associated training and validation uncertainty data. We average the results across all contexts. 
-\item {\bf End-to-End Conditional \gls{RO} (ECRO)}. We implement the end-to-end approach given by~\cite{cond-cov}, where a contextual neural-network is trained on the training data. We use grid search over $\eta \in [0.05,0.3]$ and $\gamma \in [0.1,0.9]$, which controls their objective $\CVaR$ and a conditional coverage objective, with 6 values in each interval. We choose the combination with the best performance on the validation data, as described above. For other hyperparameters, we use the values given in their work. 
-\item {\bf Linear-Convex Ordering \gls{RO} with separate contexts (CLCX)}. We implement the LCX uncertainty set given by~\cite[Section 7]{bertsimas_data-driven_2018}, which is a custom constraint-based uncertainty set built using hypothesis testing. We use the hyperparameters $\alpha = \epsilon = 0.1$, as given in their numerical experiments. We repeat the procedure for each context in the training data, and average the results across all contexts.  
+\item {\bf End-to-End Conditional \gls{RO} (ECRO)}. We implement the end-to-end approach of Chenreddy and Delage~\cite{cond-cov}, where a contextual neural-network is trained on the training data. We use grid search over $\eta \in [0.05,0.3]$ and $\gamma \in [0.1,0.9]$, which controls their objective $\CVaR$ and a conditional coverage objective, with 6 values in each interval. We choose the combination with the best performance on the validation data, as described above. For other hyperparameters, we use the values given in their work. 
+\item {\bf Linear-Convex Ordering \gls{RO} with separate contexts (CLCX)}. We implement the LCX uncertainty set of Bertsimas et al.~\cite[Section 7]{bertsimas_data-driven_2018}, which is a custom constraint-based uncertainty set built using hypothesis testing. We use the hyperparameters $\alpha = \epsilon = 0.1$, as given in their numerical experiments. We repeat the procedure for each context in the training data, and average the results across all contexts.  
 \end{itemize}
 
 For each setting, we repeat the experiment 10 times, each with a new independent dataset, and evaluate the performance metrics in Table~\ref{tab:perfmetrics}. For all methods with size tuning, we use $60$ values of $\rho$, and for our method, additionally grid over 6 values of $\eta$ and 6 combinations of $(\lambda^0,\mu^0,\gamma$) in the given ranges. Note that the hyperparameter tuning is done separately for each repetition of the experiments.
@@ -1555,6 +1559,7 @@ A larger $n$ may increase the solving and training time for all problems, as it 
  
 
 \subsection{Inventory management}
+\label{sec:inv_example}
 % Instead of the deterministic polyhedral uncertainty set considered there, 
 % We assume the uncertainty set to be ellipsoidal, with parameters to be learned from data.
 \paragraph{Problem description. } We consider a two-stage adjustable \gls{RO} problem on inventory management~\citep[Section 5.2.1]{pareto}. There exist a retail network consisting of a single warehouse and $n$ different retail points, indexed by $i = 1, \dots, n$. For simplicity, only a single product is sold.
@@ -1596,7 +1601,7 @@ where $V = [v_1 \cdots v_n]^T \in \reals^{n \times f}$.
 \RC{We treat the $2n+1$ uncertain constraints as a single joint chance constraint represented as the maximum of concave functions.}
 % As there are multiple uncertain constraints, we next apply a maximum of concave formulation to combine all uncertain constraints into a single joint constraint. The final problem solved is the problem with a single constraint. 
 
-\paragraph{Data.} As in the work by~\cite{pareto}, we let $n = 10$. \RC{This is also the size of the uncertain parameter, \ie, $m=n$. We consider the case where the number of market factors for the contextual information is $q=4$.} We set $C = 200$, and all other problem data are independently sampled from uniformly distributed random variables. 
+\paragraph{Data.} As in Iancu and Trichakis~\cite{pareto}, we let $n = 10$. \RC{This is also the size of the uncertain parameter, \ie, $m=n$. We consider the case where the number of market factors for the contextual information is $q=4$.} We set $C = 200$, and all other problem data are independently sampled from uniformly distributed random variables. 
 Inventory capacities $c$ are between 30 and 50. 
 Transportation and operation costs are between $0.1$ and $0.3$, and sales revenues $r$ are between 2 and 4.
 We consider 10 instances for $r$, perturbing each by random sample of a normal distribution with mean 0 and standard deviation $0.05$.
@@ -1606,7 +1611,7 @@ We consider the case with $N=1000$ samples, with 100 samples for each context. W
 
 \paragraph{Uncertainty sets.}
 \RC{As this problem has $2n+1 = 21$ uncertain constraints, the ECRO uncertainty set, which works with uncertain objectives only, does not apply. In addition, the LCX uncertainty set would require a separate cutting-plane procedure for each uncertain constraint, and also for each context, so we opted to forgo it. 
-For the non-contextual Wasserstein~\gls{DRO} method (W), we use the \gls{MRO} approximation, with the number of clusters $K=30$, given by~\cite{mro}, to obtain a more tractable formulation. 
+For the non-contextual Wasserstein~\gls{DRO} method (W), we use the \gls{MRO} approximation, with the number of clusters $K=30$, given by Chapter~\ref{chap:mro}, to obtain a more tractable formulation. 
 For our training method, due to the higher complexity of the problem, we lower the batch size to 30, and the initial step size to $0.0005$. We halve the step size every $20$ steps. To adjust for the smaller step sizes, we increase the number of outer iterations to $25$, bringing the total number of iterations to $500$.}
 
 \paragraph{Results.}
@@ -1640,11 +1645,8 @@ For our training method, due to the higher complexity of the problem, we lower t
 
 
 \section{Conclusion}
-We develop a data-driven method to learn the contextual shape of uncertainty sets in a decision-focused manner, \ie, using the structure and the solution of the robust counterpart.
+We have developed a data-driven method to learn the contextual shape of uncertainty sets in a decision-focused manner, \ie, using the structure and the solution of the robust counterpart.
 % , \ie, in a decision-focused manner, dependent on the structure of the robust optimization problem.
 By formulating the learning problem as a stochastic optimization problem with $\CVaR$ constraints, we can optimize over a weighted performance metric while enforcing desired probabilistic guarantees. 
 We show convergence of our algorithm using nonsmooth implicit differentiation, and provide finite sample probabilistic guarantees on unseen data.
 Through numerical examples, we demonstrate the performance gain achieved by our method compared to traditional manual tuning methods, for both worst-case and average-case performance.
-
-Several directions for future research remain. One is to extend the performance guarantees to relate to the true global optimal value, though this requires solving the exact formulation provided in Appendix~\ref{appx:bilinear}. Another one is, instead of treating the algorithm as a ``black box", to analyze the geometric properties of the uncertainty sets found in relation to the geometric properties of the optimization problem, and establish theoretical insights. 
-This would add to the empirical demonstrations given in this work, and help inform the best choice for an uncertainty set parametrization for a given problem.  We aim to explore these directions in future works. 

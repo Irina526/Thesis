@@ -28,6 +28,9 @@
 \usepackage{verbatim}   % For comment environment
 \usepackage{subfig}     % For \subfloat
 
+\usepackage{listings}
+\usepackage[cachedir=.]{minted}  % minted v3+ doesn't need finalizecache
+
 % Acronyms
 \usepackage[acronym]{glossaries}
 \makeglossaries
@@ -70,7 +73,7 @@
 \vspace{0.5in}
 IRINA WANG\\
 \vspace{0.5in}
-A DISSERATION \\
+A DISSERTATION \\
 PRESENTED TO THE FACULTY \\
 OF PRINCETON UNIVERSITY \\
 IN CANDIDACY FOR THE DEGREE \\
@@ -133,7 +136,34 @@ In the final part of this thesis, we provide an open-source Python package for a
 \titlespacing*{\chapter}{0pt}{0em}{1.5em}
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
-Your acknowledgements here...
+% Throughout my time at Princeton, I had the fortune 
+First and foremost, I am deeply grateful to my advisor, Professor Bartolomeo Stellato, for his unwavering support and dedicated guidance throughout my Ph.D. journey. 
+No matter at what time, his door (or Slack/Zulip account) is always open for discussions on high-level concepts, technical details, coding implementations, presentation slides, as well as career related advice. 
+He has been an incredible mentor and a constant source of inspiration, and has, on countless occasions, pointed me to opportunities I never knew existed. 
+His positivity and enthusiasm have not only provided me with motivation for our projects, but have also fostered a healthy mindset with which I can face any challenge. 
+This dissertation and my future career would not have been the same without him. 
+
+
+I am also incredibly grateful to Professor Bart P. G. Van Parys, for his mentoring and support throughout the years, and particularly for his willingness to join zoom meetings on short notice to provide valuable insights. 
+I am especially thankful to Professor Daniel Kuhn for hosting me for a summer at EPFL. The visit to his research group was an enlightening and enriching experience, both for the research insighted gained and for the refreshing change of pace that life in Switzerland provided. 
+
+
+My time in the ORFE department has been made enjoyable by the brilliant and kind faculty members and staff. I would like to thank my Ph.D. committee members Professor Jason Klusowski and Professor Amir Ali Ahmadi, and my dissertation reader Professor Elizaveta Rebrova, for their valuable time and insightful remarks not only on my thesis, but also for my practice job talk in the prior months. My deep appreciation also extends to the administrative staff, who have made my life significanly easier. 
+In particular, I would like to thank Kimberly Lupinacci for keeping things running and accommodating my random requests, and Michael Bino for the magic he performs to solve any and all OIT related issues.
+
+It has been a great pleasure to be a part of Bartolomeo's research group. To Rajiv Sambharya, Vinit Ranjan, and Stefan Clarke: I'll always remember the early years, when we were all new and relatively inexperienced, travelling together for our first conferences and sharing various AirBnBs. It has been rewarding to see each other's growth amidst our mutual encouragement and deepening friendships. Thank you also to the other members and affiliates of the group, who have filled my days with warmth and laughter: Yixuan Hua, Yanjun Liu, Daniel Deza, Jisun Park, Aras Selvi, Gabriele Dragotto, Cole Becker, Liubomir Baicev, Amit Solomon, and Paul Häusner. I have learned a lot from all of you through our plentiful interactions, whether in our group meetings, office hangouts, or beyond. 
+
+
+I am grateful to my first office mate Suqi Liu, who really showed me the ropes when I arrived at Princeton, and made me feel welcome to the new community. I would also like to thank my subsequent office mates, Sofiia Shvaiko, Giang Truang, and Erica Lai, who made our ``all-girls" office a truly wonderful experience. 
+My time at Princeton was made all the richer by my friends and fellow graduate students in the ORFE department: Abraar Chaudhry, Kaiwen Zhang, Benjamin Budway, Carla Crucianelli,  Nicolas Garcia, Felix Hoefer, Giulia Crippa, Kevin Wong, Yukai Tang, Jiawei Ge, Silvia Tao, and many others, who have made Sherrerd Hall such a lively and inspiring space to be.
+
+
+Last but not least, I would like to thank my partner, long-time friends, and family, for their unconditional and steadfast support. Their faith in me has given me incredible strength throughout this long journey. 
+
+To my parents, Baoping Wang and Jun Zheng: I would not be who I am today without you.
+
+
+
 \endgroup
 
 \newpage
@@ -161,6 +191,7 @@ Your acknowledgements here...
 \include{chapter4}
 \include{chapter5}
 \include{chapter6}
+\include{chapter7}
 % Bibliography
 \bibliographystyle{abbrv}
 % \bibliographystyle{natbib}

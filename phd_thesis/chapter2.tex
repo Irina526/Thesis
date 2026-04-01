@@ -40,7 +40,7 @@ The above solution that underestimates the true and out-of-sample costs may not 
 	\prob^N\left( \Expect_{\prob}[\ell(u, \hat{z}_N)] \le  \hat{H}_N \right) \ge 1 - \beta,
 \end{equation}
 such that with respect to the product distribution of the dataset, the in-sample certificate upper bounds the out-of-sample cost with high confidence $1-\beta$.
-This has lead to developements in~\glsentryfull{DRO}.
+This has led to developments in~\glsentryfull{DRO}.
 
 \subsection{Distributionally robust optimization}
 \label{sec:dro_def}
@@ -96,7 +96,7 @@ Specifically, the following results guide the choice of the ambiguity set radius
 The following result then holds.
 \begin{theorem}[Concentration inequalities~{\citep{fournier2015rate,kuhn2019wasserstein}}]
 \label{thm:measure_gen}
-Suppose that Assumption~\ref{ass:light_tail} holds with $r > \barp$. For $\barp \neq m/2$, there exists constants $c_1, c_2 > 0$ that depend on $\prob$ only through $R$, $r$, and $m$, such that for any $\beta \in (0,1]$ the concentration inequality $\prob^N(\prob \in \mathbf{B}_{\epsilon,\barp}(\hat{\prob}^N)) \geq 1 - \beta$ holds whenever $\epsilon$ exceeds
+Suppose that Assumption~\ref{ass:light_tail} holds with $r > \barp$. For $\barp \neq m/2$, there exists constants $c_1, c_2 > 0$ that depend on $\prob$ only through $R$, $r$, and $m$, such that for any $\beta \in (0,1]$ the concentration inequality $\prob^N(\prob \in \mathbf{B}_{\epsilon}^{\barp}(\hat{\prob}^N)) \geq 1 - \beta$ holds whenever $\epsilon$ exceeds
 \begin{equation}
 \label{eq:eps_N_finite_p}
 	\epsilon_N(\beta) =
@@ -135,8 +135,8 @@ Suppose that Assumption~\ref{ass:light_tail} holds with $r > \barp$. For $\barp 
 %         \end{cases}$$
 %         for all  $\epsilon > 0$, $m \neq 4$, and $N \geq 1$. $c_1,c_2$ are positive constants depending only on $A,a,t, s,$ and $m$.
 % \end{theorem}
-Theorem~\ref{thm:measure_gen} provides the smallest radius $\epsilon_N(\beta)$ such that the Wasserstein ball $\mathbf{B}_{{\epsilon},\barp}(\hat{\prob}^N)$ contains the true distribution with probability at least $1 - \beta$~\citep[Theorem 3.5]{mohajerin_esfahani_data-driven_2018}, which implies the probabilistic guarantee~\eqref{eq:prob_guarantees_intro} for any $z \in \mathcal{Z}$ with the corresponding certificate
-$$\hat{H}_N = \sup_{\mathbf{Q} \in  \mathbf{B}_{{\epsilon},\barp}(\hat{\prob}^N)}\Expect_{\mathbf{Q}}[\ell(\unc,z)]. $$
+Theorem~\ref{thm:measure_gen} provides the smallest radius $\epsilon_N(\beta)$ such that the Wasserstein ball $\mathbf{B}_{{\epsilon}}^{\barp}(\hat{\prob}^N)$ contains the true distribution with probability at least $1 - \beta$~\citep[Theorem 3.5]{mohajerin_esfahani_data-driven_2018}, which implies the probabilistic guarantee~\eqref{eq:prob_guarantees_intro} for any $z \in \mathcal{Z}$ with the corresponding certificate
+$$\hat{H}_N = \sup_{\mathbf{Q} \in  \mathbf{B}_{{\epsilon}}^{\barp}(\hat{\prob}^N)}\Expect_{\mathbf{Q}}[\ell(\unc,z)]. $$
 This certificate is then optimized by minimizing over the solution space $\mathcal{Z}$, which is equivalent to solving the Wasserstein \gls{DRO} problem~\eqref{eq:dro_prob_intro} with the given radius.
 A similar result can be established for the case $p = \infty$.
 
@@ -145,7 +145,7 @@ A similar result can be established for the case $p = \infty$.
 \label{theorem-inf}
 	Let the support $\supp$ be a bounded, connected, open set with Lipschitz boundary.
 	Let $\prob$ be a probability measure on $\supp$ with density $\rho : \supp \rightarrow (0,\infty)$, such that there exists $\lambda \geq 1$ for which ${1/\lambda \leq \rho(x) \leq \lambda}$ for all $x \in \supp$.
-	Then, there exists a constant $C > 0$ depending only on $\supp$ and $\lambda$ such that for any $\beta \in (0,1]$ the concentration inequality $\prob^N(\prob \in \mathbf{B}_{\epsilon,\infty}(\hat{\prob}^N)) \geq 1 - \beta$ holds whenever $\epsilon$ exceeds
+	Then, there exists a constant $C > 0$ depending only on $\supp$ and $\lambda$ such that for any $\beta \in (0,1]$ the concentration inequality $\prob^N(\prob \in \mathbf{B}_{\epsilon}^{\infty}(\hat{\prob}^N)) \geq 1 - \beta$ holds whenever $\epsilon$ exceeds
 	\begin{equation}
 	\label{eq:eps_N_inf}
 		\epsilon_N(\beta) = C
@@ -156,7 +156,7 @@ A similar result can be established for the case $p = \infty$.
 	\end{equation}
 \end{theorem}
 
-For both $p\geq 1$ and $p = \infty$, these results hold asymptotically. In fact, as the number of samples grow, we can simutaneouly reduce the radius $\epsilon$ and the violation level $\beta$, and prove asymptotic consistency of the Wasserstein~\gls{DRO} problem~\cite{kuhn2019wasserstein}. 
+For both $p\geq 1$ and $p = \infty$, these results hold asymptotically. In fact, as the number of samples grow, we can simultaneously reduce the radius $\epsilon$ and the violation level $\beta$, and prove asymptotic consistency of the Wasserstein~\gls{DRO} problem~\cite{kuhn2019wasserstein}. 
 \begin{theorem}[Asymptotic consistency~{\cite[Theorem 20]{kuhn2019wasserstein}}]
   \label{thm:asymp_dro}
   Assume that all conditions of Theorem~\ref{thm:measure_gen} hold for the case $p\geq 1$, and that all conditions of Theorem~\ref{theorem-inf} hold for the case $p= \infty$. 
@@ -165,7 +165,7 @@ For both $p\geq 1$ and $p = \infty$, these results hold asymptotically. In fact,
 \end{theorem}
 
 \paragraph{Curse of dimensionality.}
-Note that while the asymptotic results hold, the selected radii $\epsilon_N(\beta)$ decay only as $O(N^{-1/m})$, which suffers from the {\it curse of dimensionality}; to reduce the radius by 50\%, the number of samples must be scaled by $2^m$. As the number of constraints and variables of the corresponding Wassersteing~\gls{DRO} problem~\eqref{eq:dro_prob_intro} scales linearly with the number of samples~\cite{mohajerin_esfahani_data-driven_2018}, this leads to a tradeoff between solution quality and efficiency. For any target $\beta$, smaller sample sizes lead to problems that are highly tractable but likely conservative, as more distributional ambiguity (larger radii) is considered, while larger sample sizes lead to reductions in the conservatism level (smaller radii), but may have prohibitive solution times due to the exponentially larger problem sizes. 
+Note that while the asymptotic results hold, the selected radii $\epsilon_N(\beta)$ decay only as $O(N^{-1/m})$, which suffers from the {\it curse of dimensionality}; to reduce the radius by 50\%, the number of samples must be scaled by $2^m$. As the number of constraints and variables of the corresponding Wasserstein~\gls{DRO} problem~\eqref{eq:dro_prob_intro} scales linearly with the number of samples~\cite{mohajerin_esfahani_data-driven_2018}, this leads to a tradeoff between solution quality and efficiency. For any target $\beta$, smaller sample sizes lead to problems that are highly tractable but likely conservative, as more distributional ambiguity (larger radii) is considered, while larger sample sizes lead to reductions in the conservatism level (smaller radii), but may have prohibitive solution times due to the exponentially larger problem sizes. 
 
 % Wasserstein \gls{DRO} with this ambiguity set can be formulated as a convex minimization problem where the number of constraints grows linearly with the number of datapoints~\citep{mohajerin_esfahani_data-driven_2018}.
 
@@ -184,7 +184,7 @@ A distribution $\prob \in \mathcal{M}_p(\supp)$ satisfies a \emph{transportation
 where $H(\mathbf{Q} \| \prob)$ denotes the relative entropy $H(\mathbf{Q} \| \prob) := \int_\supp \log(d\mathbf{Q}/d\prob) \, d\mathbf{Q}$, where $d\mathbf{Q}/d\prob$ denotes the Radon-Nikodym derivative.
 \end{definition}
 
-We note that for $p=1$, the assumption that $T_1(\tau)$ is satisfied is equivalent to the light-tailed assumption~\ref{ass:light_tail} with $r = 2$, which holds for all sub-Gaussian distributions. On the other hand, $T_2(\tau)$ is a stonger assumption, typically requiring strongly log-concave distributions, which include Gaussian distributions~\cite{gao2016distributionally}.
+We note that for $p=1$, the assumption that $T_1(\tau)$ is satisfied is equivalent to the light-tailed assumption~\ref{ass:light_tail} with $r = 2$, which holds for all sub-Gaussian distributions. On the other hand, $T_2(\tau)$ is a stronger assumption, typically requiring strongly log-concave distributions, which include Gaussian distributions~\cite{gao2016distributionally}.
 
 On top of conditions on $\prob$, the loss function $\ell$ is also required to satisfy certain curvature conditions. We make use of the following assumptions. 
 \begin{assumption}[Lipschitzness]
@@ -196,7 +196,7 @@ For all $z \in \mathcal{Z}$, $\ell$ is Lipschitz continuous with constant~$M$,
 \begin{assumption}[Smoothness]
 \label{ass:smooth_intro}
 For all $z \in \mathcal{Z}$, $\ell$ is smooth with constant~$L$,
-\ie, $\left\|\nabla \ell(v,z) - \nabla \ell(u,z)\right\|_\star \leq L\| u - v\|,\; \forall u,v \in \dom \ell$, where $\|\cdot\|_\star$ denotes the dual norm of $\|\cdot\|$.
+\ie, $\|\nabla \ell(v,z) - \nabla \ell(u,z)\|_\star \leq L\| u - v\|~\forall u,v \in \dom \ell$, where $\|\cdot\|_\star$ denotes the dual norm of $\|\cdot\|$.
 \end{assumption}
 
 \begin{assumption}[Gradient regularity]
@@ -239,13 +239,13 @@ We are then ready to summarize the resultant finite-sample probabilistic guarant
 For $p=1$, let Assumptions~\ref{ass:lip_intro} and~\ref{ass:sub-root} hold, and assume $\prob$ satisfies $T_1(\tau)$. For $p=2$, let Assumptions~\ref{ass:smooth_intro},~\ref{ass:grad_reg}, and~\ref{ass:sub-root} hold, and assume $\prob$ satisfies $T_2(\tau)$. We can then choose confidence levels $\beta_N \in (0,1]$ and corresponding radii $\epsilon_N(\beta_N)=\tilde{O}(N^{-1/2})$, such that for all $z \in \mathcal{Z}$, with residual terms $\rho_{N} = \tilde{O}(N^{-1/2}),$ 
 \begin{equation}
 	\label{eq:informal_x}
-	\prob^{N}\left(\Expect_{\prob}[\ell(u, z)] \le \sup_{\mathbf{Q} \in  \mathbf{B}_{{\epsilon},\barp}(\hat{\prob}^N)}\mathbf{E}_{ \mathbf{Q}}[\ell(\unc,z)]+ \rho_{N}\right) \ge 1 - \beta_{N}.
+	\prob^{N}\left(\Expect_{\prob}[\ell(u, z)] \le \sup_{\mathbf{Q} \in  \mathbf{B}_{{\epsilon}}^{\barp}(\hat{\prob}^N)}\mathbf{E}_{ \mathbf{Q}}[\ell(\unc,z)]+ \rho_{N}\right) \ge 1 - \beta_{N}.
 \end{equation}
     % $$\prob^{t-1}\left( H_\star \leq \Expect_{\prob}[f(u, x_t)] \le H_t+\rho_{t-1}\right) \ge 1 - \beta_{t-1}.$$
 \end{theorem}
 For simplicity, we omit the exact representations of $\beta_N$, $\epsilon_N(\beta_N)$, and $\rho_N$, which are given in~\cite[Corollary 4, Corollary 6]{gao2016distributionally}.
 Similar to the dimension-dependent case, the optimal in-sample certificate can then be obtained by optimizing over $\mathcal{Z}$, which means solving the corresponding Wasserstein~\gls{DRO} problem~\eqref{eq:dro_prob_intro}. 
-In exchange for a dimension-free radius $\epsnom_N$, this result introduces a nonzero residual~$\rho_N$ to the original probabilistic guarantee~\eqref{eq:prob_guarantees_intro}. However, even with smaller radii, the fundamental difficulties of solving Wasserstein~\gls{DRO} with large $N$ is not addressed. This thus motivates our results in Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, where a separate tradeoff -- a clustering-dependent term, added either to the radius $\epsilon$ of the ambiguity set or to the in-sample certificate --  is established in exchange for a more compact \gls{DRO} formulation.
+In exchange for a dimension-free radius $\epsnom_N$, this result introduces a nonzero residual~$\rho_N$ to the original probabilistic guarantee~\eqref{eq:prob_guarantees_intro}. However, even with smaller radii, the fundamental difficulties of solving Wasserstein~\gls{DRO} with large $N$ is not addressed. This thus motivates our results in Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, where a separate tradeoff --- a clustering-dependent term, added either to the radius $\epsilon$ of the ambiguity set or to the in-sample certificate ---  is established in exchange for a more compact \gls{DRO} formulation.
 
 % the difficulty of solving the DRO problem with a large number of datapoints can be high. We are thus motivated to introduce an additional tradeoff, where a separate residual term is established in exchange for a more compact \gls{DRO} formulation. This leads to our framework below.
 
@@ -270,7 +270,7 @@ Recalling that the support function~\citep[Section 13]{rockafellar1970convex} of
 \end{equation*}
 then for $\ell$ concave in $u$, \ie, satisfying Assumption~\ref{ass:convex_l} with $J = 1$, the robust counterpart of the constraint is 
 \begin{equation*}
-    [-\ell]^*(z,y - h) + \sigma_{\uncset}(-y) + \sigma_S(h)  \leq \tau,
+    [-\ell]^*(z,y - h) + \sigma_{\uncset}(-y) + \sigma_\supp(h)  \leq \tau,
 \end{equation*}
 where $y,h\in \reals^m$ are auxiliary variables, and $[-\ell]^*(y,z) \define \sup_{u\in \dom \ell} y^Tu - [-\ell(u, z)] $ is the conjugate function of $-\ell$ in $u$. When the uncertainty set and support take simple geometric shapes, such as box, ellipsoidal, budget, or polyhedral sets, this results in highly tractable formulations for solving~\eqref{eq:ro_intro}. Particularly, these formulations do not scale with data-sample size. In Chapters~\ref{chap:mro} and~\ref{chap:online_dro}, we thus take ideas from~\gls{RO} to augment~\gls{DRO}.
 
@@ -286,13 +286,13 @@ $$\prob(u\in\mathcal{U}) \geq 1 - \eta,$$
 which automatically implies the chance constraint. For the simple sets mentioned above, this could be achieved by choosing an appropriately sized radius / scaling factor. 
 To improve upon these sets, in recent years, many data-driven methods have been developed to identify the best (smallest) high-probability-regions of the uncertainty.
 % are thus geared towards  which is then taken to be the uncertainty set. 
-These coverage-based approaches, however, have been noted to be conservative, as the above is a {\it sufficient but not nessesary} condition. Researchers have turned to directly takle the chance constraint~\eqref{eq:chance_intro}, which is equivalent to the following {\it value at risk} constraint,
+These coverage-based approaches, however, have been noted to be conservative, as the above is a {\it sufficient but not necessary} condition. Researchers have turned to directly tackle the chance constraint~\eqref{eq:chance_intro}, which is equivalent to the following {\it value at risk} constraint,
 \begin{equation*}
 \VaR(\ell(u,z),\eta)\leq \tau~~\Longleftrightarrow~~ \inf\{\gamma \mid \prob(\ell(u,z) \leq \gamma) \geq 1-\alpha\} \leq \tau.
 \end{equation*}
 Unfortunately, except in very special cases, the value at risk function is intractable~\citep{cvaropt}, and approximations must be used instead.
-In this vein, Bertismas et al.~\cite{bertsimas_data-driven_2018} constuct data-driven uncertainty sets that produce upper bounds of the $\VaR$, and note improvements with respect to traditional approaches. Their framework, however, treats maximum-of-concave constraints only through union-bound-type arguments.
-Instead, we wish to consider the constraints hollistically.
+In this vein, Bertismas et al.~\cite{bertsimas_data-driven_2018} construct data-driven uncertainty sets that produce upper bounds of the $\VaR$, and note improvements with respect to traditional approaches. Their framework, however, treats maximum-of-concave constraints only through union-bound-type arguments.
+Instead, we wish to consider the constraints holistically.
 % Expectation constraints of the form~\eqref{eq:expectation} can represent popular risk measures, and can imply constraints commonly used in chance-constrained programming (CCP). 
 % In CCP, the probabilistic constraint considered is
 %   \begin{equation}
@@ -310,7 +310,7 @@ To this end, we note that a tractable approximation of the value at risk is the 
 \end{equation}
 where $(a)_+ = \max\{a,0\}$. 
 % This expression can be modeled through our approach, by writing $\CVaR(g(u,x),\alpha) = \inf_{\tau}\{\Expect(\hat{g}(u,x,\tau))\}$, where ${\hat{g}(u,x,\tau) = \tau + (1/\alpha)(g(u,x)- \tau)_+}$ is the maximum of concave functions, which we study in Sections~\ref{sec:max_concave},~\ref{sub:sparse_portfolio_optimization}, and~\ref{sub:facility}.
-It is well known from~\cite{cvaropt} that the relationship between probabilistic guarantees of constraint satisfaction is
+It is well known~\cite{cvaropt} that the relationship between probabilistic guarantees of constraint satisfaction is
 \begin{equation}
   \label{eq:cvar_relate}
 \CVaR(\ell(u,z),\eta) \leq \tau ~~ \Longrightarrow~~ \VaR(\ell(u,z),\eta)\leq \tau ~~\Longleftrightarrow ~~\prob(\ell(u,z)\leq \tau)) \geq 1 - \eta,

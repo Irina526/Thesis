@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -n 'in S\\\\|in \\\\$S\\\\|\\\\$S\\\\|support S')"
+      "Bash(grep -n 'in S\\\\|in \\\\$S\\\\|\\\\$S\\\\|support S')",
+      "Bash(grep -n \"In their work,~\\\\\\\\cite{bertsimas2020predictive}\" /Users/irina.wang/Desktop/Princeton/Project2/phd_thesis_template/phd_thesis/chapter5.tex)"
     ]
   }
 }
